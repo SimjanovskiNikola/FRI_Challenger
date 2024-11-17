@@ -6,9 +6,10 @@ use crate::game::PiecePosition;
 static RANK_MAP: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 static MOD67TABLE: [usize; 67] = [
-    64, 0, 1, 39, 2, 15, 40, 23, 3, 12, 16, 59, 41, 19, 24, 54, 4, 64, 13, 10, 17, 62, 60, 28, 42, 30,
-    20, 51, 25, 44, 55, 47, 5, 32, 64, 38, 14, 22, 11, 58, 18, 53, 63, 9, 61, 27, 29, 50, 43, 46, 31, 37,
-    21, 57, 52, 8, 26, 49, 45, 36, 56, 7, 48, 35, 6, 34, 33,
+    64, 0, 1, 39, 2, 15, 40, 23, 3, 12, 16, 59, 41, 19, 24, 54, 4, 64, 13, 10,
+    17, 62, 60, 28, 42, 30, 20, 51, 25, 44, 55, 47, 5, 32, 64, 38, 14, 22, 11, 58,
+    18, 53, 63, 9, 61, 27, 29, 50, 43, 46, 31, 37, 21, 57, 52, 8, 26, 49, 45, 36,
+    56, 7, 48, 35, 6, 34, 33,
 ];
 
 // DEPRECATE:
@@ -21,8 +22,14 @@ fn bit_scan_simple(mut bit: u64) -> usize {
     return leading_zeros;
 }
 
-fn bit_scan(bit: u64) -> usize {
-    return MOD67TABLE[(bit % 67) as usize];
+pub fn bit_scan(bit: u64) -> usize {
+    // Gets the least significant bit
+    let one_bit = bit ^ (bit - 1) ^ (!bit & (bit - 1));
+    return MOD67TABLE[(one_bit % 67) as usize];
+}
+
+pub fn bit_scan_backward(bit: u64) -> usize {
+    return (bit as f64).log2().floor() as usize;
 }
 
 pub fn bit_to_position(bit: u64) -> Result<String, String> {
@@ -51,13 +58,25 @@ pub fn split_on(s: &str, sep: char) -> (&str, &str) {
 
 pub fn position_to_bit(position: &str) -> Result<PiecePosition, String> {
     if position.len() != 2 {
-        return Err(format!("Invalid length: {}, string: '{}'", position.len(), position));
+        return Err(
+            format!(
+                "Invalid length: {}, string: '{}'",
+                position.len(),
+                position
+            )
+        );
     }
 
     let bytes = position.as_bytes();
     let byte0 = bytes[0];
     if byte0 < 97 || byte0 >= 97 + 8 {
-        return Err(format!("Invalid Column character: {}, string: '{}'", byte0 as char, position));
+        return Err(
+            format!(
+                "Invalid Column character: {}, string: '{}'",
+                byte0 as char,
+                position
+            )
+        );
     }
 
     let column = (byte0 - 97) as u32;
@@ -67,13 +86,25 @@ pub fn position_to_bit(position: &str) -> Result<PiecePosition, String> {
     match (byte1 as char).to_digit(10) {
         Some(number) => {
             if number < 1 || number > 8 {
-                return Err(format!("Invalid Row character: {}, string: '{}'", byte1 as char, position));
+                return Err(
+                    format!(
+                        "Invalid Row character: {}, string: '{}'",
+                        byte1 as char,
+                        position
+                    )
+                );
             } else {
                 row = number - 1;
             }
         }
         None => {
-            return Err(format!("Invalid Row character: {}, string: '{}'", byte1 as char, position));
+            return Err(
+                format!(
+                    "Invalid Row character: {}, string: '{}'",
+                    byte1 as char,
+                    position
+                )
+            );
         }
     }
 
@@ -110,6 +141,21 @@ mod tests {
             let bit = (1 as u64) << i;
             let index = bit_scan(bit);
             assert_eq!(i, index);
+        }
+    }
+
+    #[test]
+    fn bit_scan_with_multiple_bits() {
+        for lowest_bit in 0..64 {
+            let mut bit = 1 << lowest_bit;
+
+            for other_bit in lowest_bit + 1..64 {
+                if (other_bit + 37) % 3 != 0 {
+                    bit |= 1 << other_bit;
+                }
+            }
+            let bit_scan_result = bit_scan(bit);
+            assert_eq!(lowest_bit, bit_scan_result);
         }
     }
 }

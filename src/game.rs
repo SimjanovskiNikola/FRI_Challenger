@@ -3,10 +3,10 @@ use std::usize;
 use std::collections::VecDeque;
 
 use crate::{
-    utils::{ index_to_position, position_to_bit, split_on },
+    utils::{index_to_position, position_to_bit, split_on},
     castling::CastlingRights,
-    piece::{ Piece, PieceColor, PieceType },
-    square::{ Square, SquareType },
+    piece::{Piece, PieceColor, PieceType},
+    square::{Square, SquareType},
 };
 
 pub type PiecePosition = u64;
@@ -111,13 +111,12 @@ impl Game {
             "-" => {
                 game.en_passant = None;
             }
-            s =>
-                match position_to_bit(s) {
-                    Err(msg) => panic!("{}", msg),
-                    Ok(bit) => {
-                        game.en_passant = Some(bit);
-                    }
+            s => match position_to_bit(s) {
+                Err(msg) => panic!("{}", msg),
+                Ok(bit) => {
+                    game.en_passant = Some(bit);
                 }
+            },
         }
         // halfmove_clock
         let (halfmove_clock, rest) = split_on(rest, ' ');
@@ -142,7 +141,7 @@ impl Game {
     pub fn parse_row(
         row: &str,
         mut piece_index: usize,
-        mut piece_position: usize
+        mut piece_position: usize,
     ) -> (Vec<Piece>, Vec<Square>) {
         let mut pieces = Vec::new();
         let mut squares = VecDeque::new();

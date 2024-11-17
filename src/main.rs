@@ -10,5 +10,6 @@ pub mod ray_attacks;
 
 fn main() {
     let game: Game = Game::initialize();
-    println!("{}", game.to_string());
+    // println!("{}, 'Hello World'");
+    game.to_string();
 }
