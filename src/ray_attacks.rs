@@ -1,4 +1,4 @@
-use crate::utils::{ bit_scan, bit_scan_backward };
+use crate::utils::*;
 
 macro_rules! make_rays {
     ($ray_fn:ident) => {
@@ -102,36 +102,11 @@ pub fn blocked_ray_attack(
     return ray ^ ray_after;
 }
 
-pub fn bitboard_to_string(bitboard: u64, mark: Option<usize>) -> String {
-    let mut row = "".to_owned();
-    let mut board = "".to_owned();
-
-    for i in 0..64 {
-        let value = (bitboard >> i) & 1;
-        let s = if value == 0 { ".".to_owned() } else { value.to_string() };
-        match mark {
-            Some(idx) => {
-                if i == idx {
-                    row.push_str("X");
-                } else {
-                    row.push_str(&s);
-                }
-            }
-            None => row.push_str(&s),
-        }
-
-        if (i + 1) % 8 == 0 {
-            row.push_str("\n");
-            board.insert_str(0, &row);
-            row.clear();
-        }
-    }
-    return board;
-}
-
 // TESTS: Here Are the tests for the above functions
 #[cfg(test)]
 mod tests {
+    use crate::utils::bitboard_to_string;
+
     use super::*;
 
     #[test]
