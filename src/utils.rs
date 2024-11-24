@@ -141,6 +141,14 @@ pub fn bitboard_to_string(bitboard: u64, mark: Option<usize>) -> String {
     return board;
 }
 
+pub fn idx_to_position(index: usize) -> (usize, usize) {
+    return ((index - (index % 8)) / 8, index % 8);
+}
+
+pub fn position_to_idx(row: usize, col: usize) -> usize {
+    return row * 8 + col;
+}
+
 // TESTS: Here Are the tests for the above functions
 #[cfg(test)]
 mod tests {

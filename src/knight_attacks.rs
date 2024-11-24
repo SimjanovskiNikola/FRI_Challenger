@@ -66,5 +66,6 @@ mod tests {
         println!("{}", bitboard_to_string(attacks.knight_rays[14], Some(14)));
         println!("{}", bitboard_to_string(attacks.knight_rays[52], Some(52)));
         println!("{}", bitboard_to_string(attacks.knight_rays[62], Some(62)));
+        println!("{}", bitboard_to_string(attacks.knight_rays[63], Some(63)));
     }
 }
