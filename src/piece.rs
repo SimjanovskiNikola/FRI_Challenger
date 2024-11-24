@@ -1,5 +1,5 @@
 /* Enums for the peaces */
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PieceColor {
     White,
     Black,
