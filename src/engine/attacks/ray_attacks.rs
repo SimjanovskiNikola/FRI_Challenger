@@ -1,4 +1,4 @@
-use crate::utils::*;
+use crate::engine::shared::helper_func::utils::*;
 
 macro_rules! make_rays {
     ($ray_fn:ident) => {
@@ -105,8 +105,6 @@ pub fn blocked_ray_attack(
 // TESTS: Here Are the tests for the above functions
 #[cfg(test)]
 mod tests {
-    use crate::utils::bitboard_to_string;
-
     use super::*;
 
     #[test]
@@ -137,10 +135,7 @@ mod tests {
 
         println!("{}", bitboard_to_string(occupancy, Some(idx)));
         println!("{}", bitboard_to_string(rays.sw_rays[idx], Some(idx)));
-        println!(
-            "{}",
-            bitboard_to_string(occupancy & rays.sw_rays[idx], Some(idx))
-        );
+        println!("{}", bitboard_to_string(occupancy & rays.sw_rays[idx], Some(idx)));
         let blocked_ray = blocked_ray_attack(
             rays.sw_rays[idx],
             &rays.sw_rays,

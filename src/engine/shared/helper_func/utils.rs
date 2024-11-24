@@ -1,15 +1,15 @@
 /* A Chess board has files and ranks */
 /* Rank (Row) - horizontal from A to H */
 /* Files (Columns) - vertical from 1 to 8*/
-use crate::game::PiecePosition;
+use crate::engine::game::*;
 
 static RANK_MAP: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 static MOD67TABLE: [usize; 67] = [
-    64, 0, 1, 39, 2, 15, 40, 23, 3, 12, 16, 59, 41, 19, 24, 54, 4, 64, 13, 10,
-    17, 62, 60, 28, 42, 30, 20, 51, 25, 44, 55, 47, 5, 32, 64, 38, 14, 22, 11, 58,
-    18, 53, 63, 9, 61, 27, 29, 50, 43, 46, 31, 37, 21, 57, 52, 8, 26, 49, 45, 36,
-    56, 7, 48, 35, 6, 34, 33,
+    64, 0, 1, 39, 2, 15, 40, 23, 3, 12, 16, 59, 41, 19, 24, 54, 4, 64, 13, 10, 17, 62,
+    60, 28, 42, 30, 20, 51, 25, 44, 55, 47, 5, 32, 64, 38, 14, 22, 11, 58, 18, 53, 63, 9,
+    61, 27, 29, 50, 43, 46, 31, 37, 21, 57, 52, 8, 26, 49, 45, 36, 56, 7, 48, 35, 6, 34,
+    33,
 ];
 
 // DEPRECATE:
@@ -58,24 +58,14 @@ pub fn split_on(s: &str, sep: char) -> (&str, &str) {
 
 pub fn position_to_bit(position: &str) -> Result<PiecePosition, String> {
     if position.len() != 2 {
-        return Err(
-            format!(
-                "Invalid length: {}, string: '{}'",
-                position.len(),
-                position
-            )
-        );
+        return Err(format!("Invalid length: {}, string: '{}'", position.len(), position));
     }
 
     let bytes = position.as_bytes();
     let byte0 = bytes[0];
     if byte0 < 97 || byte0 >= 97 + 8 {
         return Err(
-            format!(
-                "Invalid Column character: {}, string: '{}'",
-                byte0 as char,
-                position
-            )
+            format!("Invalid Column character: {}, string: '{}'", byte0 as char, position)
         );
     }
 
@@ -147,6 +137,15 @@ pub fn idx_to_position(index: usize) -> (usize, usize) {
 
 pub fn position_to_idx(row: usize, col: usize) -> usize {
     return row * 8 + col;
+}
+
+pub fn set_bit(bitboard: u64, row_col: (i64, i64), offset: (i64, i64)) -> u64 {
+    let (row, col) = (row_col.0 + offset.0, row_col.1 + offset.1);
+
+    if row < 0 || row > 7 || col < 0 || col > 7 {
+        return bitboard;
+    }
+    return bitboard | (1 << (col + row * 8));
 }
 
 // TESTS: Here Are the tests for the above functions

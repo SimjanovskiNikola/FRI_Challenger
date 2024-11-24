@@ -1,4 +1,7 @@
-use crate::{ knight_attacks::set_bit, piece::PieceColor, utils::* };
+use crate::engine::{
+    attacks::knight_attacks::*,
+    shared::{ helper_func::utils::*, structures::piece_struct::PieceColor },
+};
 
 pub struct PawnAttacks {
     white_forward_moves: Vec<u64>,

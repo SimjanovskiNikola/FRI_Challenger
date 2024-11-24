@@ -1,4 +1,4 @@
-use crate::utils::*;
+use crate::engine::shared::helper_func::utils::*;
 
 const knight_attack_arr: [(i64, i64); 8] = [
     (-2, -1),
@@ -33,19 +33,10 @@ pub fn knight_attacks(row: i64, col: i64) -> u64 {
 
     for idx in 0..8 {
         bitboard = set_bit(bitboard, (row, col), knight_attack_arr[idx]);
+        bitboard = set_bit(bitboard, (row, col), knight_attack_arr[idx]);
     }
 
     return bitboard;
-}
-
-pub fn set_bit(bitboard: u64, row_col: (i64, i64), offset: (i64, i64)) -> u64 {
-    let (row, col) = (row_col.0 + offset.0, row_col.1 + offset.1);
-
-    println!("{}, {}", row, col);
-    if row < 0 || row > 7 || col < 0 || col > 7 {
-        return bitboard;
-    }
-    return bitboard | (1 << (col + row * 8));
 }
 
 #[cfg(test)]
