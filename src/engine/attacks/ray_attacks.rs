@@ -30,6 +30,7 @@ macro_rules! define_ray {
     };
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Rays {
     n_rays: Vec<u64>,
     e_rays: Vec<u64>,
@@ -42,7 +43,7 @@ pub struct Rays {
 }
 
 impl Rays {
-    fn initialize() -> Self {
+    pub fn initialize() -> Self {
         let mut n_rays: Vec<u64> = make_rays!(n_ray);
         let mut e_rays: Vec<u64> = make_rays!(e_ray);
         let mut nw_rays: Vec<u64> = make_rays!(nw_ray);

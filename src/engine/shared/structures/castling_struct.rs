@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 
 bitflags! {
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
     pub struct CastlingRights: u8 {
         const NONE = 0;
         const WKINGSIDE = 1 << 0;

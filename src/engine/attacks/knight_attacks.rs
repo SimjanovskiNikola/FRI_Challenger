@@ -11,8 +11,9 @@ const knight_attack_arr: [(i64, i64); 8] = [
     (1, 2),
 ];
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct KnightAttacks {
-    knight_rays: Vec<u64>,
+    pub knight_rays: Vec<u64>,
 }
 
 impl KnightAttacks {
