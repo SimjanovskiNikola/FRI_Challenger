@@ -1,3 +1,5 @@
+use std::{ result, vec };
+
 /* A Chess board has files and ranks */
 /* Rank (Row) - horizontal from A to H */
 /* Files (Columns) - vertical from 1 to 8*/
@@ -20,6 +22,17 @@ fn bit_scan_simple(mut bit: u64) -> usize {
         leading_zeros += 1;
     }
     return leading_zeros;
+}
+
+pub fn extract_bits(mut bits: u64) -> Vec<usize> {
+    let mut result = vec![];
+    while bits != 0 {
+        let next_bit = bit_scan(bits);
+        result.push(next_bit);
+        bits ^= 1 << next_bit;
+    }
+
+    return result;
 }
 
 pub fn bit_scan(bit: u64) -> usize {
@@ -191,5 +204,13 @@ mod tests {
             let bit_scan_result = bit_scan(bit);
             assert_eq!(lowest_bit, bit_scan_result);
         }
+    }
+
+    #[test]
+    fn test_get_bits() {
+        let bits = (1 << 2) | (1 << 5) | (1 << 55);
+        let resp = extract_bits(bits);
+
+        assert_eq!(vec![2, 5, 55], resp)
     }
 }

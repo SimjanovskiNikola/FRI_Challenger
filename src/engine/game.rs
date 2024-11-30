@@ -1,5 +1,5 @@
 use core::panic;
-use std::usize;
+use std::{ io::Empty, usize };
 use std::collections::VecDeque;
 
 use crate::{
@@ -9,9 +9,12 @@ use crate::{
     engine::shared::structures::square_struct::{ Square, SquareType },
 };
 
+use super::attacks::all_attacks::Attacks;
+use super::shared::helper_func::utils::bit_scan;
+
 pub type PiecePosition = u64;
 pub type Bitboard = u64;
-
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Game {
     pub pieces: Vec<Piece>,
     pub squares: Vec<Square>,
@@ -20,6 +23,11 @@ pub struct Game {
     pub en_passant: Option<PiecePosition>,
     pub halfmove_clock: usize,
     pub fullmove_number: usize,
+
+    pub allAttacks: Attacks,
+
+    pub white_occupancy: u64,
+    pub black_occupancy: u64,
 }
 
 impl Game {
@@ -33,7 +41,7 @@ impl Game {
         let mut temp = "".to_owned();
         for (i, square) in self.squares.iter().enumerate() {
             match square.square_type {
-                SquareType::Empty => temp.push_str(&index_to_position(i)),
+                SquareType::Empty => temp.push_str(". "), //(&index_to_position(i)),
                 SquareType::Occupied(idx) => temp.push_str(&self.pieces[idx].to_string()),
             }
 
@@ -55,6 +63,9 @@ impl Game {
             en_passant: None,
             halfmove_clock: 0,
             fullmove_number: 1,
+            allAttacks: Attacks::initialize(),
+            white_occupancy: 0,
+            black_occupancy: 0,
         };
 
         let (position, rest) = split_on(fen, ' ');
@@ -64,7 +75,12 @@ impl Game {
 
         for row in position.splitn(8, '/') {
             piece_position -= 8;
-            let (pieces, sqares) = Self::parse_row(&row, piece_index, piece_position);
+            let (pieces, sqares) = Self::parse_row(
+                &mut game,
+                &row,
+                piece_index,
+                piece_position
+            );
             for p in pieces {
                 game.pieces.push(p);
                 piece_index += 1;
@@ -140,7 +156,42 @@ impl Game {
         return game;
     }
 
+    pub fn move_peace(self: &mut Self, mut piece_position: u64, new_position: usize) {
+        let square_idx = bit_scan(piece_position);
+        let square = self.squares[square_idx];
+        let piece_idx = match square.square_type {
+            SquareType::Empty => panic!("Tried to move a piece from an empty square"),
+            SquareType::Occupied(idx) => idx,
+        };
+        println!("{:?}", piece_idx);
+        let piece = self.pieces[piece_idx];
+
+        self.pieces[piece_idx].position = 1 << new_position;
+
+        self.squares[square_idx].square_type = SquareType::Empty;
+
+        match self.squares[new_position].square_type {
+            SquareType::Empty => {
+                self.squares[new_position].square_type = SquareType::Occupied(piece_idx);
+                println!("{:?}", self.squares[new_position]);
+            }
+            SquareType::Occupied(other_idx) => {
+                let other_piece = self.pieces[other_idx];
+                if piece.piece_color == other_piece.piece_color {
+                    panic!(
+                        "Cannot move a piece onto a square occupied by one of it's own color"
+                    );
+                }
+                self.pieces.remove(other_idx);
+                println!("{:?}", self.squares[new_position]);
+                self.squares[new_position].square_type = SquareType::Occupied(piece_idx);
+                println!("{:?}", self.squares[new_position]);
+            }
+        }
+    }
+
     pub fn parse_row(
+        &mut self,
         row: &str,
         mut piece_index: usize,
         mut piece_position: usize
@@ -185,6 +236,17 @@ impl Game {
             let square = Square { square_type: SquareType::Occupied(piece_index) };
             pieces.push(piece);
             squares.push_front(square);
+
+            let bitboard = 1 << piece_position;
+            match piece.piece_color {
+                PieceColor::White => {
+                    self.white_occupancy |= bitboard;
+                }
+                PieceColor::Black => {
+                    self.black_occupancy |= bitboard;
+                }
+            }
+
             piece_position += 1;
             piece_index += 1;
         }
@@ -194,6 +256,8 @@ impl Game {
 
 #[cfg(test)]
 mod tests {
+    use crate::engine::shared::helper_func::utils::bitboard_to_string;
+
     use super::*;
 
     #[test]
@@ -206,5 +270,38 @@ mod tests {
         assert_eq!(game.en_passant, None);
         assert_eq!(game.halfmove_clock, 1);
         assert_eq!(game.fullmove_number, 0);
+    }
+
+    #[test]
+    fn test_occupancy_start_position() {
+        let start = Game::initialize();
+        let mut white_occupancy = 0;
+        let mut black_occupancy = 0;
+
+        for i in 0..16 {
+            white_occupancy |= 1 << i;
+        }
+
+        for i in 48..64 {
+            black_occupancy |= 1 << i;
+        }
+
+        assert_eq!(start.white_occupancy, white_occupancy);
+        assert_eq!(start.black_occupancy, black_occupancy);
+
+        println!("{}", bitboard_to_string(black_occupancy, None))
+    }
+
+    #[test]
+    fn test_move_piece() {
+        // FIXME: He did it right, I should look more closely why it fails
+        let mut game = Game::initialize();
+        println!("{}", game.to_string());
+        game.move_peace(1 << 0, 16);
+        println!("{}", game.to_string());
+
+        assert_eq!(game.pieces[24].position, 1 << 16);
+        assert_eq!(game.squares[0].square_type, SquareType::Empty);
+        assert_eq!(game.squares[16].square_type, SquareType::Occupied(24));
     }
 }

@@ -3,6 +3,7 @@ use crate::engine::{
     shared::{ helper_func::utils::*, structures::piece_struct::PieceColor },
 };
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PawnAttacks {
     white_forward_moves: Vec<u64>,
     white_diagonal_moves: Vec<u64>,
@@ -11,7 +12,7 @@ pub struct PawnAttacks {
 }
 
 impl PawnAttacks {
-    fn initialize() -> Self {
+    pub fn initialize() -> Self {
         let mut w_forward = vec![];
         let mut w_diagonal = vec![];
         let mut b_forward = vec![];
