@@ -1,14 +1,11 @@
-use engine::game::{ self, Game };
+use engine::{ game::{ Game }, shared::helper_func::const_utility::* };
 pub mod engine;
 
+// This is where everything starts, In the main function of the project.
 fn main() {
-    let fen_str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    let not_alot = "5k2/8/8/4N3/8/8/8/5K2 w - - 0 1";
-    let not_alot2 = "5k2/8/8/4N3/2N5/8/8/5K2 w - - 0 1";
-    let game = Game::read_fen(&not_alot2);
+    let game = Game::read_fen(&FEN_2KING_2WKNIGHT);
     println!("{}", game.to_string());
-    println!("{:?}, {:?} {}", game.active_color, game.en_passant, game.fullmove_number);
+    // println!("{:?}, {:?} {}", game.active_color, game.en_passant, game.fullmove_number);
 
-    // println!("{}, 'Hello World'");
     game.to_string();
 }

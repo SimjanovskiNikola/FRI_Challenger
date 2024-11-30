@@ -1,6 +1,5 @@
 use crate::engine::{
-    attacks::knight_attacks::*,
-    shared::{ helper_func::utils::*, structures::piece_struct::PieceColor },
+    shared::{ helper_func::bit_pos_utility::*, structures::piece_struct::PieceColor },
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -49,17 +48,17 @@ fn forward_move(row: i64, col: i64, piece_color: PieceColor) -> u64 {
     let mut bitboard = 0;
     if piece_color == PieceColor::White {
         if row < 7 {
-            bitboard |= set_bit(bitboard, (row, col), (1, 0));
+            bitboard |= set_bit(bitboard, (row + 1) as usize, (col + 0) as usize);
         }
         if row == 1 {
-            bitboard |= set_bit(bitboard, (row, col), (2, 0));
+            bitboard |= set_bit(bitboard, (row + 2) as usize, (col + 0) as usize);
         }
     } else {
         if row > 0 {
-            bitboard |= set_bit(bitboard, (row, col), (-1, 0));
+            bitboard |= set_bit(bitboard, (row - 1) as usize, (col + 0) as usize);
         }
         if row == 6 {
-            bitboard |= set_bit(bitboard, (row, col), (-2, 0));
+            bitboard |= set_bit(bitboard, (row - 2) as usize, (col + 0) as usize);
         }
     }
     return bitboard;
@@ -73,13 +72,13 @@ fn diagonal_move(row: i64, col: i64, piece_color: PieceColor) -> u64 {
     let mut bitboard = 0;
     if piece_color == PieceColor::White {
         if row < 7 {
-            bitboard |= set_bit(bitboard, (row, col), (1, 1));
-            bitboard |= set_bit(bitboard, (row, col), (1, -1));
+            bitboard |= set_bit(bitboard, (row + 1) as usize, (col + 1) as usize);
+            bitboard |= set_bit(bitboard, (row + 1) as usize, (col - 1) as usize);
         }
     } else {
         if row > 0 {
-            bitboard |= set_bit(bitboard, (row, col), (-1, 1));
-            bitboard |= set_bit(bitboard, (row, col), (-1, -1));
+            bitboard |= set_bit(bitboard, (row - 1) as usize, (col + 1) as usize);
+            bitboard |= set_bit(bitboard, (row - 1) as usize, (col - 1) as usize);
         }
     }
     return bitboard;
@@ -102,10 +101,10 @@ mod tests {
         for col in 0..8 {
             let col: usize = col;
             let bitboard = forward_move(row as i64, col as i64, PieceColor::White);
-            let lsb = bit_scan(bitboard);
-            let msb = bit_scan_backward(bitboard);
-            assert_eq!(lsb, position_to_idx(row + 1, col));
-            assert_eq!(msb, position_to_idx(row + 2, col));
+            let lsb = bit_scan_lsb(bitboard);
+            let msb = bit_scan_msb(bitboard);
+            assert_eq!(lsb, position_to_idx(row + 1, col, None));
+            assert_eq!(msb, position_to_idx(row + 2, col, None));
         }
     }
 
@@ -115,8 +114,8 @@ mod tests {
         for col in 0..8 {
             let col: usize = col;
             let bitboard = forward_move(row as i64, col as i64, PieceColor::Black);
-            let lsb = bit_scan(bitboard);
-            assert_eq!(lsb, position_to_idx(row - 1, col));
+            let lsb = bit_scan_lsb(bitboard);
+            assert_eq!(lsb, position_to_idx(row - 1, col, None));
         }
     }
 
@@ -126,10 +125,10 @@ mod tests {
         for col in 0..8 {
             let col: usize = col;
             let bitboard = forward_move(row as i64, col as i64, PieceColor::Black);
-            let lsb = bit_scan(bitboard);
-            let msb = bit_scan_backward(bitboard);
-            assert_eq!(msb, position_to_idx(row - 1, col));
-            assert_eq!(lsb, position_to_idx(row - 2, col));
+            let lsb = bit_scan_lsb(bitboard);
+            let msb = bit_scan_msb(bitboard);
+            assert_eq!(msb, position_to_idx(row - 1, col, None));
+            assert_eq!(lsb, position_to_idx(row - 2, col, None));
         }
     }
 
@@ -138,8 +137,8 @@ mod tests {
         let row: usize = 6;
         for col in 0..8 {
             let bitboard = forward_move(row as i64, col as i64, PieceColor::White);
-            let lsb = bit_scan(bitboard);
-            assert_eq!(lsb, position_to_idx(row + 1, col));
+            let lsb = bit_scan_lsb(bitboard);
+            assert_eq!(lsb, position_to_idx(row + 1, col, None));
         }
     }
 
@@ -148,8 +147,8 @@ mod tests {
         for row in 2..7 {
             for col in 0..8 {
                 let bitboard = forward_move(row as i64, col as i64, PieceColor::White);
-                let lsb = bit_scan(bitboard);
-                assert_eq!(lsb, position_to_idx(row + 1, col));
+                let lsb = bit_scan_lsb(bitboard);
+                assert_eq!(lsb, position_to_idx(row + 1, col, None));
             }
         }
     }
@@ -159,8 +158,8 @@ mod tests {
         for row in 1..6 {
             for col in 0..8 {
                 let bitboard = forward_move(row as i64, col as i64, PieceColor::Black);
-                let lsb = bit_scan(bitboard);
-                assert_eq!(lsb, position_to_idx(row - 1, col));
+                let lsb = bit_scan_lsb(bitboard);
+                assert_eq!(lsb, position_to_idx(row - 1, col, None));
             }
         }
     }
@@ -194,11 +193,11 @@ mod tests {
         for row in 1..6 {
             for col in 1..6 {
                 let bitboard = diagonal_move(row as i64, col as i64, PieceColor::White);
-                let lsb = bit_scan(bitboard);
-                let msb = bit_scan_backward(bitboard);
+                let lsb = bit_scan_lsb(bitboard);
+                let msb = bit_scan_msb(bitboard);
 
-                assert_eq!(lsb, position_to_idx(row + 1, col - 1));
-                assert_eq!(msb, position_to_idx(row + 1, col + 1));
+                assert_eq!(lsb, position_to_idx(row + 1, col - 1, None));
+                assert_eq!(msb, position_to_idx(row + 1, col + 1, None));
             }
         }
     }
@@ -208,17 +207,17 @@ mod tests {
         for row in 1..6 {
             let col = 0;
             let bitboard = diagonal_move(row as i64, col as i64, PieceColor::White);
-            let lsb = bit_scan(bitboard);
+            let lsb = bit_scan_lsb(bitboard);
 
-            assert_eq!(lsb, position_to_idx(row + 1, col + 1));
+            assert_eq!(lsb, position_to_idx(row + 1, col + 1, None));
         }
 
         for row in 1..6 {
             let col = 6;
             let bitboard = diagonal_move(row as i64, col as i64, PieceColor::White);
-            let lsb = bit_scan(bitboard);
+            let lsb = bit_scan_lsb(bitboard);
 
-            assert_eq!(lsb, position_to_idx(row + 1, col - 1));
+            assert_eq!(lsb, position_to_idx(row + 1, col - 1, None));
         }
     }
 
@@ -227,11 +226,11 @@ mod tests {
         for row in 1..6 {
             for col in 1..6 {
                 let bitboard = diagonal_move(row as i64, col as i64, PieceColor::Black);
-                let lsb = bit_scan(bitboard);
-                let msb = bit_scan_backward(bitboard);
+                let lsb = bit_scan_lsb(bitboard);
+                let msb = bit_scan_msb(bitboard);
 
-                assert_eq!(lsb, position_to_idx(row - 1, col - 1));
-                assert_eq!(msb, position_to_idx(row - 1, col + 1));
+                assert_eq!(lsb, position_to_idx(row - 1, col - 1, None));
+                assert_eq!(msb, position_to_idx(row - 1, col + 1, None));
             }
         }
     }
@@ -241,17 +240,17 @@ mod tests {
         for row in 1..6 {
             let col = 0;
             let bitboard = diagonal_move(row as i64, col as i64, PieceColor::Black);
-            let lsb = bit_scan(bitboard);
+            let lsb = bit_scan_lsb(bitboard);
 
-            assert_eq!(lsb, position_to_idx(row - 1, col + 1));
+            assert_eq!(lsb, position_to_idx(row - 1, col + 1, None));
         }
 
         for row in 1..6 {
             let col = 6;
             let bitboard = diagonal_move(row as i64, col as i64, PieceColor::Black);
-            let lsb = bit_scan(bitboard);
+            let lsb = bit_scan_lsb(bitboard);
 
-            assert_eq!(lsb, position_to_idx(row - 1, col - 1));
+            assert_eq!(lsb, position_to_idx(row - 1, col - 1, None));
         }
     }
 }

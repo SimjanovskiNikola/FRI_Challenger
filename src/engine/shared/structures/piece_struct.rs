@@ -1,9 +1,11 @@
-/* Enums for the peaces */
+/** Determines the color of the peace. */
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PieceColor {
     White,
     Black,
 }
+
+/** Determines the Type of the peace. */
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PieceType {
     Pawn,

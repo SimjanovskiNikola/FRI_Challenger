@@ -3,6 +3,11 @@ use super::{
     pawn_attacks::PawnAttacks,
     ray_attacks::Rays,
 };
+use lazy_static::lazy_static;
+
+lazy_static! {
+    pub static ref ATTACKS: Attacks = Attacks::initialize();
+}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Attacks {

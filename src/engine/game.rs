@@ -1,16 +1,18 @@
 use core::panic;
 use std::{ io::Empty, usize };
 use std::collections::VecDeque;
+use crate::engine::shared::helper_func::bit_pos_utility::bit_scan_lsb;
+use crate::engine::shared::helper_func::print_utility::bitboard_to_string;
 
+use crate::FEN_START;
 use crate::{
-    engine::shared::helper_func::utils::{ index_to_position, position_to_bit, split_on },
+    engine::shared::helper_func::bit_pos_utility::{ position_to_bit },
     engine::shared::structures::castling_struct::CastlingRights,
     engine::shared::structures::piece_struct::{ Piece, PieceColor, PieceType },
     engine::shared::structures::square_struct::{ Square, SquareType },
 };
 
-use super::attacks::all_attacks::Attacks;
-use super::shared::helper_func::utils::bit_scan;
+use super::shared::helper_func::print_utility::split_on;
 
 pub type PiecePosition = u64;
 pub type Bitboard = u64;
@@ -24,16 +26,13 @@ pub struct Game {
     pub halfmove_clock: usize,
     pub fullmove_number: usize,
 
-    pub allAttacks: Attacks,
-
     pub white_occupancy: u64,
     pub black_occupancy: u64,
 }
 
 impl Game {
     pub fn initialize() -> Game {
-        let fen_str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        return Game::read_fen(fen_str);
+        return Game::read_fen(FEN_START);
     }
 
     pub fn to_string(&self) -> String {
@@ -63,7 +62,6 @@ impl Game {
             en_passant: None,
             halfmove_clock: 0,
             fullmove_number: 1,
-            allAttacks: Attacks::initialize(),
             white_occupancy: 0,
             black_occupancy: 0,
         };
@@ -108,7 +106,7 @@ impl Game {
                     castling |= CastlingRights::WKINGSIDE;
                 }
                 'Q' => {
-                    castling |= CastlingRights::WKINGSIDE;
+                    castling |= CastlingRights::WQUEENSIDE;
                 }
                 'k' => {
                     castling |= CastlingRights::BKINGSIDE;
@@ -157,7 +155,7 @@ impl Game {
     }
 
     pub fn move_peace(self: &mut Self, mut piece_position: u64, new_position: usize) {
-        let square_idx = bit_scan(piece_position);
+        let square_idx = bit_scan_lsb(piece_position);
         let square = self.squares[square_idx];
         let piece_idx = match square.square_type {
             SquareType::Empty => panic!("Tried to move a piece from an empty square"),
@@ -176,16 +174,8 @@ impl Game {
                 println!("{:?}", self.squares[new_position]);
             }
             SquareType::Occupied(other_idx) => {
-                let other_piece = self.pieces[other_idx];
-                if piece.piece_color == other_piece.piece_color {
-                    panic!(
-                        "Cannot move a piece onto a square occupied by one of it's own color"
-                    );
-                }
                 self.pieces.remove(other_idx);
-                println!("{:?}", self.squares[new_position]);
                 self.squares[new_position].square_type = SquareType::Occupied(piece_idx);
-                println!("{:?}", self.squares[new_position]);
             }
         }
     }
@@ -256,8 +246,6 @@ impl Game {
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::shared::helper_func::utils::bitboard_to_string;
-
     use super::*;
 
     #[test]
@@ -266,10 +254,10 @@ mod tests {
         // TODO: Add Square Assertion
         // TODO: Add Piece Assertion
         assert_eq!(game.active_color, PieceColor::White);
-        assert_eq!(game.castling_rights, CastlingRights::ALL);
+        assert_eq!(game.castling_rights, CastlingRights::ALL); //FIXME: The casteling rights are not summed together
         assert_eq!(game.en_passant, None);
-        assert_eq!(game.halfmove_clock, 1);
-        assert_eq!(game.fullmove_number, 0);
+        assert_eq!(game.halfmove_clock, 0);
+        assert_eq!(game.fullmove_number, 1);
     }
 
     #[test]

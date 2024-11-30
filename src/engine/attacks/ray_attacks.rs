@@ -1,4 +1,4 @@
-use crate::engine::shared::helper_func::utils::*;
+use crate::engine::shared::helper_func::bit_pos_utility::*;
 
 macro_rules! make_rays {
     ($ray_fn:ident) => {
@@ -94,9 +94,9 @@ pub fn blocked_ray_attack(
     let bit_idx;
 
     if forward_ray {
-        bit_idx = bit_scan(overlap);
+        bit_idx = bit_scan_lsb(overlap);
     } else {
-        bit_idx = bit_scan_backward(overlap);
+        bit_idx = bit_scan_msb(overlap);
     }
 
     let ray_after = ray_family[bit_idx];
@@ -106,6 +106,8 @@ pub fn blocked_ray_attack(
 // TESTS: Here Are the tests for the above functions
 #[cfg(test)]
 mod tests {
+    use crate::engine::shared::helper_func::print_utility::bitboard_to_string;
+
     use super::*;
 
     #[test]

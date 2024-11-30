@@ -1,5 +1,6 @@
 use bitflags::bitflags;
 
+// TODO: Needs a little reaserch because it does not sum all of this.
 bitflags! {
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
     pub struct CastlingRights: u8 {
