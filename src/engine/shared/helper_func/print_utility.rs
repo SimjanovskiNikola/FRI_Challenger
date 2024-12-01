@@ -1,4 +1,4 @@
-pub fn bitboard_to_string(bitboard: u64, mark: Option<usize>) -> String {
+pub fn bitboard_to_string(bitboard: u64, mark: Option<i8>) -> String {
     let mut row = "".to_owned();
     let mut board = "".to_owned();
 
@@ -23,6 +23,13 @@ pub fn bitboard_to_string(bitboard: u64, mark: Option<usize>) -> String {
         }
     }
     return board;
+}
+
+pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
+    println!(
+        "Bitboard: \n--------Start---------\n{}--------End---------",
+        bitboard_to_string(bitboard, mark)
+    );
 }
 
 pub fn split_on(s: &str, sep: char) -> (&str, &str) {
