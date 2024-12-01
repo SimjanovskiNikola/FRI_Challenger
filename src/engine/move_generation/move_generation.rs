@@ -39,7 +39,7 @@ fn generate_moves(game: &Game) -> Vec<Game> {
 fn generate_knight_moves(piece: &Piece, game: &Game) -> Vec<Game> {
     let idx = bit_scan_lsb(piece.position);
     let mut attacks = ATTACKS.knight_attacks.knight_rays[idx];
-    println!("{}", bitboard_to_string(attacks, Some(idx)));
+    println!("{}", bitboard_to_string(attacks, Some(idx as i8)));
 
     let own_occupancy = match piece.piece_color {
         PieceColor::White => game.white_occupancy,
@@ -56,7 +56,7 @@ fn generate_knight_moves(piece: &Piece, game: &Game) -> Vec<Game> {
         new_positions.push(new_position);
     }
 
-    println!("{}", bitboard_to_string(attacks, Some(idx)));
+    println!("{}", bitboard_to_string(attacks, Some(idx as i8)));
 
     return new_positions;
 }

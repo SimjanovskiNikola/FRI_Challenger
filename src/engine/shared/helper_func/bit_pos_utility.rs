@@ -55,7 +55,7 @@ pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
  It also checks if the row and col re in bounds.
  * Ex: set_bit(bitboard: 0, row: 0, col: 1) -> 0...010
 */
-pub fn set_bit(bitboard: u64, row: usize, col: usize) -> u64 {
+pub fn set_bit(bitboard: u64, row: i8, col: i8) -> u64 {
     if !is_inside_board_bounds_row_col(row, col) {
         return bitboard;
     }
@@ -67,7 +67,7 @@ pub fn set_bit(bitboard: u64, row: usize, col: usize) -> u64 {
  If Index is not in bounds it panics if the check_bounds is enabled.
  * Ex: position_to_idx(row: 6, col: 2, check_bounds: true) -> 50
 */
-pub fn idx_to_position(index: usize, check_bounds: Option<bool>) -> (usize, usize) {
+pub fn idx_to_position(index: i8, check_bounds: Option<bool>) -> (i8, i8) {
     let check_bounds = check_bounds.unwrap_or(true);
     if check_bounds && !is_inside_board_bounds_idx(index) {
         panic!("The row and col are not inside bounds");
@@ -81,7 +81,7 @@ pub fn idx_to_position(index: usize, check_bounds: Option<bool>) -> (usize, usiz
  If row and col are not in bounds it panics if the check_bounds is enabled
  * Ex: position_to_idx(row: 6, col: 2, check_bounds: true) -> 50
 */
-pub fn position_to_idx(row: usize, col: usize, check_bounds: Option<bool>) -> usize {
+pub fn position_to_idx(row: i8, col: i8, check_bounds: Option<bool>) -> i8 {
     let check_bounds = check_bounds.unwrap_or(true);
     if check_bounds && !is_inside_board_bounds_row_col(row, col) {
         panic!("The row and col are not inside bounds");
@@ -94,7 +94,7 @@ pub fn position_to_idx(row: usize, col: usize, check_bounds: Option<bool>) -> us
  Checks if the row and col are inside the board. They should be between 0 and 7 included.
  * Ex: is_inside_board_bounds_row_col(row: 8, col: 4) -> false
  */
-pub fn is_inside_board_bounds_row_col(row: usize, col: usize) -> bool {
+pub fn is_inside_board_bounds_row_col(row: i8, col: i8) -> bool {
     return 0 <= row && row <= 7 && 0 <= col && col <= 7;
 }
 
@@ -102,7 +102,7 @@ pub fn is_inside_board_bounds_row_col(row: usize, col: usize) -> bool {
  Checks if the idx is inside the board. It should be between 0 and 63 included .
  * Ex: is_inside_board_bounds_idx(63) -> true
  */
-pub fn is_inside_board_bounds_idx(idx: usize) -> bool {
+pub fn is_inside_board_bounds_idx(idx: i8) -> bool {
     return 0 <= idx && idx <= 63;
 }
 

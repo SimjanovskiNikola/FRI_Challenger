@@ -1,6 +1,6 @@
 use crate::engine::shared::helper_func::bit_pos_utility::*;
 
-const knight_attack_arr: [(i64, i64); 8] = [
+const knight_attack_arr: [(i8, i8); 8] = [
     (-2, -1),
     (-2, 1),
     (-1, -2),
@@ -29,14 +29,13 @@ impl KnightAttacks {
     }
 }
 
-pub fn knight_attacks(row: i64, col: i64) -> u64 {
+pub fn knight_attacks(row: i8, col: i8) -> u64 {
     let mut bitboard = 0;
 
     for idx in 0..8 {
         let x = knight_attack_arr[idx].0;
         let y = knight_attack_arr[idx].1;
-        bitboard = set_bit(bitboard, (row + x) as usize, (col + y) as usize);
-        // bitboard = set_bit(bitboard, (row, col), knight_attack_arr[idx]);
+        bitboard = set_bit(bitboard, row + x, col + y);
     }
 
     return bitboard;
