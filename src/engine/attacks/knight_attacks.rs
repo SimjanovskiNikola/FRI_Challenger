@@ -55,13 +55,9 @@ mod tests {
     #[test]
     fn test_knight_attacks() {
         let attacks = KnightAttacks::initialize();
-        // println!("{}", bitboard_to_string(attacks.knight_rays[0], Some(0)));
         assert_eq!(extract_all_bits(attacks.knight_rays[0]), [10, 17]);
-        // println!("{}", bitboard_to_string(attacks.knight_rays[40], Some(40)));
         assert_eq!(extract_all_bits(attacks.knight_rays[40]), [25, 34, 50, 57]);
-        // println!("{}", bitboard_to_string(attacks.knight_rays[17], Some(17)));
         assert_eq!(extract_all_bits(attacks.knight_rays[17]), [0, 2, 11, 27, 32, 34]);
-        // println!("{}", bitboard_to_string(attacks.knight_rays[55], Some(55)));
         assert_eq!(extract_all_bits(attacks.knight_rays[55]), [38, 45, 61]);
     }
 }

@@ -161,7 +161,6 @@ impl Game {
             SquareType::Empty => panic!("Tried to move a piece from an empty square"),
             SquareType::Occupied(idx) => idx,
         };
-        println!("{:?}", piece_idx);
         let piece = self.pieces[piece_idx];
 
         self.pieces[piece_idx].position = 1 << new_position;
@@ -171,7 +170,6 @@ impl Game {
         match self.squares[new_position].square_type {
             SquareType::Empty => {
                 self.squares[new_position].square_type = SquareType::Occupied(piece_idx);
-                println!("{:?}", self.squares[new_position]);
             }
             SquareType::Occupied(other_idx) => {
                 self.pieces.remove(other_idx);
