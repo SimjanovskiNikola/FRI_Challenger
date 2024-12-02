@@ -32,14 +32,14 @@ macro_rules! define_ray {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Rays {
-    n_rays: Vec<u64>,
-    e_rays: Vec<u64>,
-    nw_rays: Vec<u64>,
-    ne_rays: Vec<u64>,
-    w_rays: Vec<u64>,
-    s_rays: Vec<u64>,
-    sw_rays: Vec<u64>,
-    se_rays: Vec<u64>,
+    pub n_rays: Vec<u64>,
+    pub e_rays: Vec<u64>,
+    pub nw_rays: Vec<u64>,
+    pub ne_rays: Vec<u64>,
+    pub w_rays: Vec<u64>,
+    pub s_rays: Vec<u64>,
+    pub sw_rays: Vec<u64>,
+    pub se_rays: Vec<u64>,
 }
 
 impl Rays {
@@ -126,7 +126,7 @@ pub fn blocked_ray_attack(
         (Some(own_idx), Some(enemy_idx)) => {
             let own_after = ray_family[own_idx];
             let enemy_after = ray_family[enemy_idx];
-            return ray ^ ((own_after | (1 << own_idx)) | enemy_after);
+            return ray ^ (own_after | (1 << own_idx) | enemy_after);
         }
     }
 }
