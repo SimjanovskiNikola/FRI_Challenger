@@ -1,18 +1,35 @@
 use crate::engine::{
-    attacks::{
-        all_attacks::ATTACKS,
-        knight_attacks::KnightAttacks,
-        ray_attacks::blocked_ray_attack,
-    },
+    attacks::{ all_attacks::ATTACKS, ray_attacks::blocked_ray_attack },
     game::Game,
     shared::{
-        helper_func::{
-            bit_pos_utility::{ bit_scan_lsb, extract_all_bits },
-            print_utility::bitboard_to_string,
-        },
+        helper_func::{ bit_pos_utility::{ bit_scan_lsb, extract_all_bits } },
         structures::piece_struct::{ Piece, PieceColor, PieceType },
     },
 };
+
+macro_rules! get_attacks {
+    ($rays:ident, $forward:expr, $piece:ident, $game:ident, $moves:ident) => {
+            let idx = bit_scan_lsb($piece.position);
+
+            let (own_occupancy, enemy_occupancy) = match $piece.piece_color {
+                PieceColor::White => ($game.white_occupancy, $game.black_occupancy),
+                PieceColor::Black => ($game.black_occupancy, $game.white_occupancy),
+            };
+            let ray_attacks = blocked_ray_attack(
+                ATTACKS.ray_attacks.$rays[idx],
+                &ATTACKS.ray_attacks.$rays,
+                $forward,
+                own_occupancy,
+                enemy_occupancy
+            );
+            let potential_moves = extract_all_bits(ray_attacks);
+            for pmove in potential_moves {
+                let mut new_position = $game.clone();
+                new_position.move_peace($piece.position, pmove);
+                $moves.push(new_position);
+            }
+    };
+}
 
 fn generate_moves(game: &Game) -> Vec<Game> {
     let mut positions = vec![];
@@ -27,11 +44,12 @@ fn generate_moves(game: &Game) -> Vec<Game> {
                 PieceType::Bishop => {
                     position = generate_bishop_moves(&piece, &game);
                 }
-                piece_type =>
-                    panic!("Piece Type {:?} is not yet supported", piece.piece_type),
+                PieceType::Rook => {
+                    position = generate_bishop_moves(&piece, &game);
+                }
+                piece_type => panic!("Piece Type {:?} is not yet supported", piece.piece_type),
 
                 // PieceType::Pawn => panic!("Piece Type {} is not yet supported"),
-                // PieceType::Rook => panic!("Piece Type {} is not yet supported"),
                 // PieceType::Queen => panic!("Piece Type {} is not yet supported"),
                 // PieceType::King => panic!("Piece Type {} is not yet supported"),
             }
@@ -65,38 +83,21 @@ fn generate_knight_moves(piece: &Piece, game: &Game) -> Vec<Game> {
 }
 
 fn generate_bishop_moves(piece: &Piece, game: &Game) -> Vec<Game> {
-    let idx = bit_scan_lsb(piece.position);
-    let attacks = &ATTACKS.ray_attacks;
-
-    let (own_occupancy, enemy_occupancy) = match piece.piece_color {
-        PieceColor::White => (game.white_occupancy, game.black_occupancy),
-        PieceColor::Black => (game.black_occupancy, game.white_occupancy),
-    };
-
     let mut new_positions = vec![];
+    get_attacks!(nw_rays, true, piece, game, new_positions);
+    get_attacks!(sw_rays, false, piece, game, new_positions);
+    get_attacks!(ne_rays, true, piece, game, new_positions);
+    get_attacks!(se_rays, false, piece, game, new_positions);
 
-    macro_rules! get_attacks {
-        ($rays:ident, $forward:expr) => {
-            let ray_attacks = blocked_ray_attack(
-                attacks.$rays[idx],
-                &attacks.$rays,
-                $forward,
-                own_occupancy,
-                enemy_occupancy
-            );
-            let potential_moves = extract_all_bits(ray_attacks);
-            for pmove in potential_moves {
-                let mut new_position = game.clone();
-                new_position.move_peace(piece.position, pmove);
-                new_positions.push(new_position);
-            }
-        };
-    }
+    return new_positions;
+}
 
-    get_attacks!(nw_rays, true);
-    get_attacks!(sw_rays, false);
-    get_attacks!(ne_rays, true);
-    get_attacks!(se_rays, false);
+fn generate_rook_moves(piece: &Piece, game: &Game) -> Vec<Game> {
+    let mut new_positions = vec![];
+    get_attacks!(n_rays, true, piece, game, new_positions);
+    get_attacks!(s_rays, false, piece, game, new_positions);
+    get_attacks!(e_rays, true, piece, game, new_positions);
+    get_attacks!(w_rays, false, piece, game, new_positions);
 
     return new_positions;
 }
@@ -195,6 +196,40 @@ mod tests {
 
         for one_move in moves {
             let piece = &one_move.pieces[1];
+            let idx = bit_scan_lsb(piece.position);
+            assert!(test_positions.contains(&idx));
+        }
+    }
+
+    #[test]
+    fn test_generate_rook_moves_1_rook() {
+        let fen_one_bishop = "8/8/8/8/8/4R3/8/8 w - - 0 1";
+        let game = Game::read_fen(fen_one_bishop);
+        println!("{}", game.to_string());
+
+        let moves = generate_rook_moves(&game.pieces[0], &game);
+        let test_positions = [28, 36, 44, 52, 60, 12, 4, 19, 18, 17, 16, 21, 22, 23];
+        assert_eq!(moves.len(), test_positions.len());
+
+        for one_move in moves {
+            let piece = &one_move.pieces[0];
+            let idx = bit_scan_lsb(piece.position);
+            assert!(test_positions.contains(&idx));
+        }
+    }
+
+    #[test]
+    fn test_generate_rook_moves_1_rook_1enemy() {
+        let fen_one_bishop = "8/8/8/4r3/8/4R3/8/8 w - - 0 1";
+        let game = Game::read_fen(fen_one_bishop);
+        println!("{}", game.to_string());
+
+        let moves = generate_rook_moves(&game.pieces[1], &game);
+        let test_positions = [28, 36, 12, 4, 19, 18, 17, 16, 21, 22, 23];
+        assert_eq!(moves.len(), test_positions.len());
+
+        for one_move in moves {
+            let piece = &one_move.pieces[0];
             let idx = bit_scan_lsb(piece.position);
             assert!(test_positions.contains(&idx));
         }
