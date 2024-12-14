@@ -6,3 +6,7 @@ edition = "2021"
 [dependencies]
 bitflags = "2.6.0"
 lazy_static = "1.5.0"
+
+[[bin]]
+name = "chess-engine"
+path = "src/main.rs"
