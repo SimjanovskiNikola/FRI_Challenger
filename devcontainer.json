@@ -1,7 +1,7 @@
 {
     "name": "Chess Engine Dev Container",
     "build": {
-        "dockerfile": "Dockerfile"
+        "dockerfile": "docker-compose.yml"
     },
     "workspaceFolder": "/app",
     "customizations": {
@@ -23,5 +23,6 @@
                 "pkief.material-icon-theme"
             ]
         }
-    }
+    },
+    "postCreateCommand": "cargo build"
 }
