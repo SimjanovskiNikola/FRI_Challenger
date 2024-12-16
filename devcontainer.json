@@ -1,0 +1,28 @@
+{
+    "name": "Chess Engine Dev Container",
+    "build": {
+        "dockerfile": "docker-compose.yml"
+    },
+    "workspaceFolder": "/app",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash"
+            },
+            "extensions": [
+                "streetsidesoftware.code-spell-checker",
+                "eamodio.gitlens",
+                "SanaAjani.taskrunnercode",
+                "ms-vscode.test-adapter-converter",
+                "serayuzgur.crates",
+                "tamasfe.even-better-toml",
+                "rust-lang.rust-analyzer",
+                "mutantdino.resourcemonitor",
+                "vadimcn.vscode-lldb",
+                "todohighlight.keywords",
+                "pkief.material-icon-theme"
+            ]
+        }
+    },
+    "postCreateCommand": "cargo build"
+}
