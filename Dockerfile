@@ -8,7 +8,6 @@ COPY rustfmt.toml .
 
 RUN cargo fetch
 
-
 COPY . .
 
 RUN cargo build --release
