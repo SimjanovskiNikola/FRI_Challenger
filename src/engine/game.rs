@@ -1,17 +1,18 @@
 use core::panic;
-use std::{ io::Empty, usize };
+use std::{io::Empty, usize};
 use std::collections::VecDeque;
 use crate::engine::shared::helper_func::bit_pos_utility::bit_scan_lsb;
 use crate::engine::shared::helper_func::print_utility::bitboard_to_string;
 
 use crate::FEN_START;
 use crate::{
-    engine::shared::helper_func::bit_pos_utility::{ position_to_bit },
+    engine::shared::helper_func::bit_pos_utility::{position_to_bit},
     engine::shared::structures::castling_struct::CastlingRights,
-    engine::shared::structures::piece_struct::{ Piece, PieceColor, PieceType },
-    engine::shared::structures::square_struct::{ Square, SquareType },
+    engine::shared::structures::piece_struct::{Piece, PieceColor, PieceType},
+    engine::shared::structures::square_struct::{Square, SquareType},
 };
 
+use super::shared::helper_func::bit_pos_utility::{idx_to_position, position_to_idx};
 use super::shared::helper_func::print_utility::split_on;
 
 pub type PiecePosition = u64;
@@ -73,12 +74,8 @@ impl Game {
 
         for row in position.splitn(8, '/') {
             piece_position -= 8;
-            let (pieces, sqares) = Self::parse_row(
-                &mut game,
-                &row,
-                piece_index,
-                piece_position
-            );
+            let (pieces, sqares) =
+                Self::parse_row(&mut game, &row, piece_index, piece_position);
             for p in pieces {
                 game.pieces.push(p);
                 piece_index += 1;
@@ -126,13 +123,12 @@ impl Game {
             "-" => {
                 game.en_passant = None;
             }
-            s =>
-                match position_to_bit(s) {
-                    Err(msg) => panic!("{}", msg),
-                    Ok(bit) => {
-                        game.en_passant = Some(bit);
-                    }
+            s => match position_to_bit(s) {
+                Err(msg) => panic!("{}", msg),
+                Ok(bit) => {
+                    game.en_passant = Some(bit);
                 }
+            },
         }
         // halfmove_clock
         let (halfmove_clock, rest) = split_on(rest, ' ');
@@ -172,17 +168,89 @@ impl Game {
                 self.squares[new_position].square_type = SquareType::Occupied(piece_idx);
             }
             SquareType::Occupied(other_idx) => {
-                self.pieces.remove(other_idx);
+                self.pieces[other_idx].alive = false;
                 self.squares[new_position].square_type = SquareType::Occupied(piece_idx);
             }
         }
+
+        match self.pieces[piece_idx].piece_type {
+            PieceType::Pawn => {
+                let (old_row, old_col) = idx_to_position(square_idx as i8, None);
+                let (new_row, new_col) = idx_to_position(new_position as i8, None);
+                if (old_row - new_row).abs() == 2 {
+                    let direction = (new_row - old_row).signum();
+                    let pawn_left = self
+                        .get_square_piece_type((old_row + 2 * direction, old_col + 1));
+                    let pawn_right = self
+                        .get_square_piece_type((old_row + 2 * direction, old_col - 1));
+
+                    if pawn_left == Some(PieceType::Pawn)
+                        || pawn_right == Some(PieceType::Pawn)
+                    {
+                        self.en_passant = Some(
+                            1 << position_to_idx(old_row + 1 * direction, old_col, None),
+                        )
+                    } else {
+                        self.en_passant = None
+                    }
+                }
+            }
+            _ => self.en_passant = None,
+        }
+    }
+
+    pub fn get_square_piece_type(&self, row_col: (i8, i8)) -> Option<PieceType> {
+        let idx = position_to_idx(row_col.0, row_col.1, None);
+        let square = self.squares[idx as usize];
+        match square.square_type {
+            SquareType::Empty => return None,
+            SquareType::Occupied(other_idx) => {
+                return Some(self.pieces[other_idx].piece_type)
+            }
+        }
+    }
+
+    pub fn take_en_passant(self: &mut Self, mut piece_position: u64, new_position: u64) {
+        let square_idx = bit_scan_lsb(piece_position);
+        let square = self.squares[square_idx];
+        let piece_idx = match square.square_type {
+            SquareType::Empty => panic!("Tried to move a peace from an empty square"),
+            SquareType::Occupied(idx) => idx,
+        };
+        self.pieces[piece_idx].position = 1 << new_position;
+        self.squares[square_idx].square_type = SquareType::Empty;
+
+        if let SquareType::Occupied(_) =
+            self.squares[bit_scan_lsb(new_position)].square_type
+        {
+            panic!("Tried to take en passant onto an occupied square");
+        }
+
+        let (old_row, old_col) = idx_to_position(square_idx as i8, None);
+        let (new_row, new_col) = idx_to_position(new_position as i8, None);
+        let direction = (new_row - old_row).signum();
+
+        let taken_square = (new_row - direction, new_col);
+        let taken_idx = position_to_idx(taken_square.0, taken_square.1, None) as usize;
+
+        match self.squares[taken_idx].square_type {
+            SquareType::Occupied(idx) => {
+                self.pieces[idx].alive = false;
+                self.squares[taken_idx].square_type = SquareType::Empty;
+            }
+            SquareType::Empty => {
+                panic!("Tried to en passant but there was no pawn in expected square")
+            }
+        }
+
+        self.en_passant = None
     }
 
     pub fn parse_row(
         &mut self,
         row: &str,
         mut piece_index: usize,
-        mut piece_position: usize
+        mut piece_position: usize,
     ) -> (Vec<Piece>, Vec<Square>) {
         let mut pieces = Vec::new();
         let mut squares = VecDeque::new();
@@ -217,6 +285,7 @@ impl Game {
             }
 
             let piece = Piece {
+                alive: true,
                 position: (1 as u64) << piece_position,
                 piece_color: piece_color,
                 piece_type: piece_type,
@@ -280,7 +349,6 @@ mod tests {
 
     #[test]
     fn test_move_piece() {
-        // FIXME: He did it right, I should look more closely why it fails
         let mut game = Game::initialize();
         println!("{}", game.to_string());
         game.move_peace(1 << 0, 16);
@@ -289,5 +357,19 @@ mod tests {
         assert_eq!(game.pieces[24].position, 1 << 16);
         assert_eq!(game.squares[0].square_type, SquareType::Empty);
         assert_eq!(game.squares[16].square_type, SquareType::Occupied(24));
+        assert_eq!(game.en_passant, None);
+    }
+
+    #[test]
+    fn test_en_passant_is_set() {
+        let mut game = Game::initialize();
+        println!("{}", game.to_string());
+        game.move_peace(1 << 12, 36);
+        println!("{}", game.to_string());
+
+        game.move_peace(1 << 51, 35);
+        println!("{}", game.to_string());
+
+        assert_eq!(game.en_passant, Some(1 << 43));
     }
 }
