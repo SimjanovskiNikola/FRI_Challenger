@@ -1,17 +1,49 @@
-use std::{ vec };
-use crate::engine::{ game::* };
+use std::{collections::HashMap, vec};
+use lazy_static::lazy_static;
+
+use crate::engine::{game::*};
 
 /* A Chess board has files and ranks */
 /* Rank (Row) - horizontal from A to H */
 /* Files (Columns) - vertical from 1 to 8*/
 
-static RANK_MAP: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+lazy_static! {
+    static ref RANK_MAP: HashMap<char, usize> = {
+        let mut map = HashMap::new();
+        map.insert('a', 0);
+        map.insert('b', 1);
+        map.insert('c', 2);
+        map.insert('d', 3);
+        map.insert('e', 4);
+        map.insert('f', 5);
+        map.insert('g', 6);
+        map.insert('h', 7);
+        return map;
+    };
+}
+
 static MOD67TABLE: [usize; 67] = [
     64, 0, 1, 39, 2, 15, 40, 23, 3, 12, 16, 59, 41, 19, 24, 54, 4, 64, 13, 10, 17, 62,
     60, 28, 42, 30, 20, 51, 25, 44, 55, 47, 5, 32, 64, 38, 14, 22, 11, 58, 18, 53, 63, 9,
     61, 27, 29, 50, 43, 46, 31, 37, 21, 57, 52, 8, 26, 49, 45, 36, 56, 7, 48, 35, 6, 34,
     33,
 ];
+
+pub fn notation_to_idx(positions: &[&str]) -> Vec<usize> {
+    let mut pos_idx_arr = vec![];
+    for pos in positions {
+        if pos.len() == 2 {
+            // println!("{:?}", pos.chars().nth(0).unwrap());
+            let file = pos.chars().nth(0).unwrap();
+            let rank = pos.chars().nth(1).unwrap().to_digit(10).unwrap() as usize;
+            let idx = RANK_MAP.get(&file).unwrap() + (rank - 1) * 8;
+            pos_idx_arr.push(idx);
+        } else {
+            panic!("One of the positions is not correct!!!")
+        }
+    }
+    return pos_idx_arr;
+}
 
 /**
  TEST: Not sure if the resonse is like that, and not sure if this is for the msb or lsb
@@ -51,7 +83,7 @@ pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
 }
 
 /**
- Sets one bit to the given bitboard(u64) by getting the row and col.  
+ Sets one bit to the given bitboard(u64) by getting the row and col.
  It also checks if the row and col re in bounds.
  * Ex: set_bit(bitboard: 0, row: 0, col: 1) -> 0...010
 */
@@ -63,9 +95,9 @@ pub fn set_bit(bitboard: u64, row: i8, col: i8) -> u64 {
 }
 
 /**
- Converts index to row and col tuple.  
+ Converts index to row and col tuple.
  If Index is not in bounds it panics if the check_bounds is enabled.
- * Ex: position_to_idx(row: 6, col: 2, check_bounds: true) -> 50
+ * Ex: idx_to_position(idx: 50, check_bounds: true) -> (6, 2)
 */
 pub fn idx_to_position(index: i8, check_bounds: Option<bool>) -> (i8, i8) {
     let check_bounds = check_bounds.unwrap_or(true);
@@ -77,7 +109,7 @@ pub fn idx_to_position(index: i8, check_bounds: Option<bool>) -> (i8, i8) {
 }
 
 /**
- Converts given row and col to position index.  
+ Converts given row and col to position index.
  If row and col are not in bounds it panics if the check_bounds is enabled
  * Ex: position_to_idx(row: 6, col: 2, check_bounds: true) -> 50
 */
@@ -91,17 +123,17 @@ pub fn position_to_idx(row: i8, col: i8, check_bounds: Option<bool>) -> i8 {
 }
 
 /**
- Checks if the row and col are inside the board. They should be between 0 and 7 included.
- * Ex: is_inside_board_bounds_row_col(row: 8, col: 4) -> false
- */
+Checks if the row and col are inside the board. They should be between 0 and 7 included.
+* Ex: is_inside_board_bounds_row_col(row: 8, col: 4) -> false
+*/
 pub fn is_inside_board_bounds_row_col(row: i8, col: i8) -> bool {
     return 0 <= row && row <= 7 && 0 <= col && col <= 7;
 }
 
 /**
- Checks if the idx is inside the board. It should be between 0 and 63 included .
- * Ex: is_inside_board_bounds_idx(63) -> true
- */
+Checks if the idx is inside the board. It should be between 0 and 63 included .
+* Ex: is_inside_board_bounds_idx(63) -> true
+*/
 pub fn is_inside_board_bounds_idx(idx: i8) -> bool {
     return 0 <= idx && idx <= 63;
 }
@@ -109,15 +141,20 @@ pub fn is_inside_board_bounds_idx(idx: i8) -> bool {
 // TODO: Needs a rework in the future
 pub fn position_to_bit(position: &str) -> Result<PiecePosition, String> {
     if position.len() != 2 {
-        return Err(format!("Invalid length: {}, string: '{}'", position.len(), position));
+        return Err(format!(
+            "Invalid length: {}, string: '{}'",
+            position.len(),
+            position
+        ));
     }
 
     let bytes = position.as_bytes();
     let byte0 = bytes[0];
     if byte0 < 97 || byte0 >= 97 + 8 {
-        return Err(
-            format!("Invalid Column character: {}, string: '{}'", byte0 as char, position)
-        );
+        return Err(format!(
+            "Invalid Column character: {}, string: '{}'",
+            byte0 as char, position
+        ));
     }
 
     let column = (byte0 - 97) as u32;
@@ -127,25 +164,19 @@ pub fn position_to_bit(position: &str) -> Result<PiecePosition, String> {
     match (byte1 as char).to_digit(10) {
         Some(number) => {
             if number < 1 || number > 8 {
-                return Err(
-                    format!(
-                        "Invalid Row character: {}, string: '{}'",
-                        byte1 as char,
-                        position
-                    )
-                );
+                return Err(format!(
+                    "Invalid Row character: {}, string: '{}'",
+                    byte1 as char, position
+                ));
             } else {
                 row = number - 1;
             }
         }
         None => {
-            return Err(
-                format!(
-                    "Invalid Row character: {}, string: '{}'",
-                    byte1 as char,
-                    position
-                )
-            );
+            return Err(format!(
+                "Invalid Row character: {}, string: '{}'",
+                byte1 as char, position
+            ));
         }
     }
 
