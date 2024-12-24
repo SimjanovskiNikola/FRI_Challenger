@@ -53,9 +53,12 @@ fn generate_moves(game: &Game) -> Vec<Game> {
                 PieceType::King => {
                     position = generate_king_moves(&piece, &game);
                 }
+                PieceType::Pawn => {
+                    position = generate_pawn_moves(&piece, &game);
+                }
                 piece_type => {
                     panic!("Piece Type {:?} is not yet supported", piece.piece_type)
-                } // PieceType::Pawn => panic!("Piece Type {} is not yet supported"),
+                }
             }
             positions.extend(position);
         }
@@ -146,6 +149,63 @@ fn generate_king_moves(piece: &Piece, game: &Game) -> Vec<Game> {
         new_position.move_peace(piece.position, pmove);
         new_positions.push(new_position);
     }
+    return new_positions;
+}
+
+fn generate_pawn_moves(piece: &Piece, game: &Game) -> Vec<Game> {
+    let idx = bit_scan_lsb(piece.position);
+    let row_col = idx_to_position(idx as i8, Some(false));
+
+    let (own_occupancy, enemy_occupancy) = match piece.piece_color {
+        PieceColor::White => (game.white_occupancy, game.black_occupancy),
+        PieceColor::Black => (game.black_occupancy, game.white_occupancy),
+    };
+
+    let direction = match piece.piece_color {
+        PieceColor::White => 1,
+        PieceColor::Black => -1,
+    };
+
+    let mut potential_moves = vec![];
+    potential_moves
+        .push(position_to_idx(row_col.0 + 1 * direction, row_col.1, None) as usize);
+
+    if piece.piece_color == PieceColor::White && row_col.0 == 2 {
+        potential_moves.push(position_to_idx(row_col.0 + 2, row_col.1, None) as usize);
+    }
+    if piece.piece_color == PieceColor::Black && row_col.0 == 7 {
+        potential_moves.push(position_to_idx(row_col.0 - 2, row_col.1, None) as usize);
+    }
+
+    if is_inside_board_bounds_row_col(row_col.0 + 1 * direction, row_col.1 + 1)
+        && (1 << position_to_idx(row_col.0 + 1 * direction, row_col.1 + 1, None))
+            & enemy_occupancy
+            != 0
+    {
+        potential_moves.push(idx);
+    }
+
+    if is_inside_board_bounds_row_col(row_col.0 + 1 * direction, row_col.1 - 1)
+        && (1 << position_to_idx(row_col.0 + 1 * direction, row_col.1 - 1, None))
+            & enemy_occupancy
+            != 0
+    {
+        potential_moves.push(idx);
+    }
+
+    let mut new_positions = vec![];
+    for pmove in potential_moves {
+        let mut new_position = game.clone();
+        new_position.move_peace(piece.position, pmove);
+        new_positions.push(new_position);
+    }
+
+    if let Some(square) = game.en_passant {
+        let mut new_position = game.clone();
+        new_position.take_en_passant(piece.position, square);
+        new_positions.push(new_position);
+    }
+
     return new_positions;
 }
 

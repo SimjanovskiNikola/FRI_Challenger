@@ -18,6 +18,7 @@ pub enum PieceType {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Piece {
+    pub alive: bool,
     pub position: u64,
     pub piece_color: PieceColor,
     pub piece_type: PieceType,
