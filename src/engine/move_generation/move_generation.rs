@@ -10,24 +10,14 @@ use crate::engine::{
 macro_rules! get_attacks {
     ($rays:ident, $forward:expr, $piece:ident, $game:ident, $moves:ident) => {
         let idx = bit_scan_lsb($piece.position);
+        let attacks = &ATTACKS.ray_attacks.$rays;
 
-        let (own_occupancy, enemy_occupancy) = match $piece.piece_color {
-            PieceColor::White => ($game.white_occupancy, $game.black_occupancy),
-            PieceColor::Black => ($game.black_occupancy, $game.white_occupancy),
-        };
-        let ray_attacks = blocked_ray_attack(
-            ATTACKS.ray_attacks.$rays[idx],
-            &ATTACKS.ray_attacks.$rays,
-            $forward,
-            own_occupancy,
-            enemy_occupancy,
-        );
-        let potential_moves = extract_all_bits(ray_attacks);
-        for pmove in potential_moves {
-            let mut new_position = $game.clone();
-            new_position.move_peace($piece.position, pmove);
-            $moves.push(new_position);
-        }
+        let (own_occ, enemy_occ) = get_occupancy($piece, $game);
+
+        let ray_attacks =
+            blocked_ray_attack(attacks[idx], &attacks, $forward, own_occ, enemy_occ);
+
+        $moves.extend(get_new_positions(ray_attacks, $piece, $game))
     };
 }
 
@@ -38,55 +28,27 @@ fn generate_moves(game: &Game) -> Vec<Game> {
         if piece.piece_color == game.active_color {
             let position;
             match piece.piece_type {
-                PieceType::Knight => {
-                    position = generate_knight_moves(&piece, &game);
-                }
-                PieceType::Bishop => {
-                    position = generate_bishop_moves(&piece, &game);
-                }
-                PieceType::Rook => {
-                    position = generate_bishop_moves(&piece, &game);
-                }
-                PieceType::Queen => {
-                    position = generate_queen_moves(&piece, &game);
-                }
-                PieceType::King => {
-                    position = generate_king_moves(&piece, &game);
-                }
-                PieceType::Pawn => {
-                    position = generate_pawn_moves(&piece, &game);
-                }
-                piece_type => {
-                    panic!("Piece Type {:?} is not yet supported", piece.piece_type)
-                }
+                PieceType::Knight => position = generate_knight_moves(&piece, &game),
+                PieceType::Bishop => position = generate_bishop_moves(&piece, &game),
+                PieceType::Rook => position = generate_bishop_moves(&piece, &game),
+                PieceType::Queen => position = generate_queen_moves(&piece, &game),
+                PieceType::King => position = generate_king_moves(&piece, &game),
+                _ => panic!("Piece Type {:?} is not yet supported", piece.piece_type),
             }
             positions.extend(position);
         }
     }
-
     return positions;
 }
 
 fn generate_knight_moves(piece: &Piece, game: &Game) -> Vec<Game> {
     let idx = bit_scan_lsb(piece.position);
-    let mut attacks = ATTACKS.knight_attacks.knight_rays[idx];
+    let mut attacks = ATTACKS.knight_attacks.knight_attacks[idx];
 
-    let own_occupancy = match piece.piece_color {
-        PieceColor::White => game.white_occupancy,
-        PieceColor::Black => game.black_occupancy,
-    };
-
+    let (own_occupancy, _) = get_occupancy(piece, game);
     attacks &= !own_occupancy;
 
-    let mut new_positions = vec![];
-    let potential_moves = extract_all_bits(attacks);
-    for pmove in potential_moves {
-        let mut new_position = game.clone();
-        new_position.move_peace(piece.position, pmove);
-        new_positions.push(new_position);
-    }
-
-    return new_positions;
+    return get_new_positions(attacks, piece, game);
 }
 
 fn generate_bishop_moves(piece: &Piece, game: &Game) -> Vec<Game> {
@@ -118,105 +80,35 @@ fn generate_queen_moves(piece: &Piece, game: &Game) -> Vec<Game> {
 
 fn generate_king_moves(piece: &Piece, game: &Game) -> Vec<Game> {
     let idx = bit_scan_lsb(piece.position);
-    let row_col = idx_to_position(idx as i8, Some(false));
+    let mut attacks = ATTACKS.king_attacks.king_attacks[idx];
 
-    let (own_occupancy, enemy_occupancy) = match piece.piece_color {
-        PieceColor::White => (game.white_occupancy, game.black_occupancy),
-        PieceColor::Black => (game.black_occupancy, game.white_occupancy),
-    };
+    let (own_occupancy, _) = get_occupancy(piece, game);
+    attacks &= !own_occupancy;
 
-    // FIXME: Need to generate this like the queen, rook and bishop
-    let mut potential_moves = vec![];
-    for row_offset in -1..=1 {
-        for col_offset in -1..=1 {
-            if row_offset == 0 && col_offset == 0 {
-                continue;
-            }
-            let new_row_col = (row_col.0 + row_offset, row_col.1 + col_offset);
-            if is_inside_board_bounds_row_col(new_row_col.0, new_row_col.1) {
-                let new_idx =
-                    position_to_idx(new_row_col.0, new_row_col.1, Some(false)) as usize;
-                if (1 << new_idx) & own_occupancy == 0 {
-                    potential_moves.push(new_idx);
-                }
-            }
-        }
-    }
-
-    let mut new_positions = vec![];
-    for pmove in potential_moves {
-        let mut new_position = game.clone();
-        new_position.move_peace(piece.position, pmove);
-        new_positions.push(new_position);
-    }
-    return new_positions;
+    return get_new_positions(attacks, piece, game);
 }
 
-fn generate_pawn_moves(piece: &Piece, game: &Game) -> Vec<Game> {
-    let idx = bit_scan_lsb(piece.position);
-    let row_col = idx_to_position(idx as i8, Some(false));
-
-    let (own_occupancy, enemy_occupancy) = match piece.piece_color {
-        PieceColor::White => (game.white_occupancy, game.black_occupancy),
-        PieceColor::Black => (game.black_occupancy, game.white_occupancy),
+fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
+    match piece.piece_color {
+        PieceColor::White => return (game.white_occupancy, game.black_occupancy),
+        PieceColor::Black => return (game.black_occupancy, game.white_occupancy),
     };
+}
 
-    let direction = match piece.piece_color {
-        PieceColor::White => 1,
-        PieceColor::Black => -1,
-    };
-
-    let mut potential_moves = vec![];
-    potential_moves
-        .push(position_to_idx(row_col.0 + 1 * direction, row_col.1, None) as usize);
-
-    if piece.piece_color == PieceColor::White && row_col.0 == 2 {
-        potential_moves.push(position_to_idx(row_col.0 + 2, row_col.1, None) as usize);
-    }
-    if piece.piece_color == PieceColor::Black && row_col.0 == 7 {
-        potential_moves.push(position_to_idx(row_col.0 - 2, row_col.1, None) as usize);
-    }
-
-    if is_inside_board_bounds_row_col(row_col.0 + 1 * direction, row_col.1 + 1)
-        && (1 << position_to_idx(row_col.0 + 1 * direction, row_col.1 + 1, None))
-            & enemy_occupancy
-            != 0
-    {
-        potential_moves.push(idx);
-    }
-
-    if is_inside_board_bounds_row_col(row_col.0 + 1 * direction, row_col.1 - 1)
-        && (1 << position_to_idx(row_col.0 + 1 * direction, row_col.1 - 1, None))
-            & enemy_occupancy
-            != 0
-    {
-        potential_moves.push(idx);
-    }
-
+fn get_new_positions(attacks: u64, piece: &Piece, game: &Game) -> Vec<Game> {
+    let potential_moves = extract_all_bits(attacks);
     let mut new_positions = vec![];
     for pmove in potential_moves {
         let mut new_position = game.clone();
         new_position.move_peace(piece.position, pmove);
         new_positions.push(new_position);
     }
-
-    if let Some(square) = game.en_passant {
-        let mut new_position = game.clone();
-        new_position.take_en_passant(piece.position, square);
-        new_positions.push(new_position);
-    }
-
     return new_positions;
 }
 
 #[cfg(test)]
 mod tests {
-    use std::usize;
-
-    use crate::engine::shared::helper_func::{
-        bit_pos_utility::notation_to_idx, print_utility::print_bitboard,
-    };
-
+    use crate::engine::shared::helper_func::bit_pos_utility::notation_to_idx;
     use super::*;
 
     #[test]
