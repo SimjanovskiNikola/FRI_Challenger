@@ -1,4 +1,8 @@
 use crate::{engine::shared::helper_func::bit_pos_utility::*, make_rays};
+//FIXME: Learn if there is a better way to import the above things
+
+const KING_OFFSET_POS: [(i8, i8); 8] =
+    [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct KingAttacks {
@@ -13,12 +17,10 @@ impl KingAttacks {
 
 fn king_attacks(row: i8, col: i8) -> u64 {
     let mut bitboard = 0;
-    for row_offset in -1..=1 {
-        for col_offset in -1..=1 {
-            if !(row_offset == 0 && col_offset == 0) {
-                bitboard |= set_bit(bitboard, row + row_offset, col + col_offset);
-            }
-        }
+
+    for idx in 0..8 {
+        let (row_offset, col_offset) = KING_OFFSET_POS[idx];
+        bitboard = set_bit(bitboard, row + row_offset, col + col_offset);
     }
 
     return bitboard;

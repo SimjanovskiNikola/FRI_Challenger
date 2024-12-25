@@ -4,6 +4,7 @@ use super::{
 };
 use lazy_static::lazy_static;
 
+// FIXME: Change the name of the Make Rays
 #[macro_export]
 macro_rules! make_rays {
     ($ray_fn:ident) => {{

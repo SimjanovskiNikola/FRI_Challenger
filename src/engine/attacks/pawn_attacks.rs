@@ -1,6 +1,4 @@
-use crate::engine::{
-    shared::{helper_func::bit_pos_utility::*, structures::piece_struct::*},
-};
+use crate::engine::shared::{helper_func::bit_pos_utility::*, structures::piece_struct::*};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PawnAttacks {
