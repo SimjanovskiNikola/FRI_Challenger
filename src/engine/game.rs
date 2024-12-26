@@ -6,7 +6,7 @@ use crate::engine::shared::helper_func::print_utility::bitboard_to_string;
 
 use crate::FEN_START;
 use crate::{
-    engine::shared::helper_func::bit_pos_utility::{position_to_bit},
+    engine::shared::helper_func::bit_pos_utility::position_to_bit,
     engine::shared::structures::castling_struct::CastlingRights,
     engine::shared::structures::piece_struct::{Piece, PieceColor, PieceType},
     engine::shared::structures::square_struct::{Square, SquareType},
