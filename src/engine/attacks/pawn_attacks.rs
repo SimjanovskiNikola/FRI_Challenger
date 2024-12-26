@@ -1,6 +1,4 @@
-use crate::engine::{
-    shared::{ helper_func::bit_pos_utility::*, structures::piece_struct::PieceColor },
-};
+use crate::engine::shared::{helper_func::bit_pos_utility::*, structures::piece_struct::*};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PawnAttacks {
@@ -11,7 +9,7 @@ pub struct PawnAttacks {
 }
 
 impl PawnAttacks {
-    pub fn initialize() -> Self {
+    pub fn init() -> Self {
         let mut w_forward = vec![];
         let mut w_diagonal = vec![];
         let mut b_forward = vec![];
@@ -91,8 +89,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pawn_attacks_initialize() {
-        let attacks = PawnAttacks::initialize();
+    fn test_pawn_attacks_init() {
+        let attacks = PawnAttacks::init();
     }
 
     #[test]
