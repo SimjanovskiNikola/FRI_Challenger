@@ -6,4 +6,7 @@ pub enum Error {
     /// The FEN string is invalid
     #[fail(display = "Invalid FEN string: {}", fen)]
     InvalidFen { fen: String },
+
+    #[fail(display = "Index not in bounds: {}", idx)]
+    InvalidIdxToPos { idx: usize },
 }
