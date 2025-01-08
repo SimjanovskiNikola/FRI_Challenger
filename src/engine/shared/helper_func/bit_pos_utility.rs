@@ -1,34 +1,8 @@
-use std::{collections::HashMap, vec};
-use lazy_static::lazy_static;
+use std::vec;
+use crate::engine::game::*;
+use super::const_utility::*;
 
-use crate::engine::{game::*};
-
-/* A Chess board has files and ranks */
-/* Rank (Row) - horizontal from A to H */
-/* Files (Columns) - vertical from 1 to 8*/
-
-lazy_static! {
-    static ref RANK_MAP: HashMap<char, usize> = {
-        let mut map = HashMap::new();
-        map.insert('a', 0);
-        map.insert('b', 1);
-        map.insert('c', 2);
-        map.insert('d', 3);
-        map.insert('e', 4);
-        map.insert('f', 5);
-        map.insert('g', 6);
-        map.insert('h', 7);
-        return map;
-    };
-}
-
-static MOD67TABLE: [usize; 67] = [
-    64, 0, 1, 39, 2, 15, 40, 23, 3, 12, 16, 59, 41, 19, 24, 54, 4, 64, 13, 10, 17, 62,
-    60, 28, 42, 30, 20, 51, 25, 44, 55, 47, 5, 32, 64, 38, 14, 22, 11, 58, 18, 53, 63, 9,
-    61, 27, 29, 50, 43, 46, 31, 37, 21, 57, 52, 8, 26, 49, 45, 36, 56, 7, 48, 35, 6, 34,
-    33,
-];
-
+//DEPRECATE: UGLY
 pub fn notation_to_idx(positions: &[&str]) -> Vec<usize> {
     let mut pos_idx_arr = vec![];
     for pos in positions {
@@ -82,7 +56,67 @@ pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
     return result;
 }
 
+pub fn pop_lsb(mut bitboard: u64) -> usize {
+    let idx = bit_scan_lsb(bitboard);
+    bitboard ^= (1 << bit_scan_lsb(bitboard));
+    return idx;
+}
+
+pub fn set_bit_sq(mut bitboard: u64, square: usize) -> u64 {
+    bitboard |= SET_MASK[square];
+    return bitboard;
+}
+
+pub fn clear_bit(mut bitboard: u64, square: usize) -> u64 {
+    bitboard &= CLEAR_MASK[square];
+    return bitboard;
+}
+
+pub fn get_bit_rank(square: usize) -> Rank {
+    match Rank::try_from(square / 8) {
+        Ok(rank) => return rank,
+        Err(e) => panic!("Invalid Thing"),
+    }
+}
+
+pub fn get_bit_file(square: usize) -> File {
+    match File::try_from(square % 8) {
+        Ok(file) => return file,
+        Err(e) => panic!("Invalid Thing"),
+    }
+}
+
+pub fn get_rank_bits(square: usize) -> File {
+    match File::try_from(square % 8) {
+        Ok(file) => return file,
+        Err(e) => panic!("Invalid Thing"),
+    }
+}
+
+pub fn exclude_file_rank(bitboard: u64, file: Option<usize>, rank: Option<usize>) -> u64 {
+    match (rank, file) {
+        (Some(r), Some(f)) => return (bitboard & !RANK_BITBOARD[r]) & !FILE_BITBOARD[f],
+        (Some(r), None) => return bitboard & !RANK_BITBOARD[r],
+        (None, Some(f)) => return bitboard & !FILE_BITBOARD[f],
+        (None, None) => return bitboard,
+    }
+}
+
+pub fn include_only_file_rank(bitboard: u64, file: Option<usize>, rank: Option<usize>) -> u64 {
+    match (rank, file) {
+        (Some(r), Some(f)) => return (bitboard & RANK_BITBOARD[r]) & FILE_BITBOARD[f],
+        (Some(r), None) => return bitboard & RANK_BITBOARD[r],
+        (None, Some(f)) => return bitboard & FILE_BITBOARD[f],
+        (None, None) => return bitboard,
+    }
+}
+
+pub fn is_bit_set(bitboard: u64, square: usize) -> bool {
+    return bitboard & (1 << square) != 0;
+}
+
 /**
+ * FIXME: Remove this or change name
  Sets one bit to the given bitboard(u64) by getting the row and col.
  It also checks if the row and col re in bounds.
  * Ex: set_bit(bitboard: 0, row: 0, col: 1) -> 0...010
@@ -141,20 +175,13 @@ pub fn is_inside_board_bounds_idx(idx: i8) -> bool {
 // TODO: Needs a rework in the future
 pub fn position_to_bit(position: &str) -> Result<PiecePosition, String> {
     if position.len() != 2 {
-        return Err(format!(
-            "Invalid length: {}, string: '{}'",
-            position.len(),
-            position
-        ));
+        return Err(format!("Invalid length: {}, string: '{}'", position.len(), position));
     }
 
     let bytes = position.as_bytes();
     let byte0 = bytes[0];
     if byte0 < 97 || byte0 >= 97 + 8 {
-        return Err(format!(
-            "Invalid Column character: {}, string: '{}'",
-            byte0 as char, position
-        ));
+        return Err(format!("Invalid Column character: {}, string: '{}'", byte0 as char, position));
     }
 
     let column = (byte0 - 97) as u32;
@@ -185,33 +212,6 @@ pub fn position_to_bit(position: &str) -> Result<PiecePosition, String> {
 
     Ok(bit)
 }
-
-// DEPRECATE:
-// fn bit_scan_simple(mut bit: u64) -> usize {
-//     let mut leading_zeros = 0;
-//     while (bit & 1) == 0 {
-//         bit >>= 1;
-//         leading_zeros += 1;
-//     }
-//     return leading_zeros;
-// }
-
-//DEPRECATE:
-// pub fn bit_to_position(bit: u64) -> Result<String, String> {
-//     if bit == 0 {
-//         return Err("No piece present!".to_string());
-//     } else {
-//         let bit = bit_scan_lsb(bit);
-//         return Ok(index_to_position(bit).to_string());
-//     }
-// }
-
-//DEPRECATE:
-// pub fn index_to_position(index: usize) -> String {
-//     let file = index / 8 + 1;
-//     let rank = index % 8;
-//     return format!("{}{}", RANK_MAP[rank], file);
-// }
 
 //**** START: TESTS ****
 #[cfg(test)]
@@ -266,6 +266,24 @@ mod tests {
         let resp = extract_all_bits(bits);
 
         assert_eq!(vec![2, 5, 55], resp)
+    }
+
+    #[test]
+    fn test_get_bit_file() {
+        assert_eq!(get_bit_file(0), File::A);
+        assert_eq!(get_bit_file(3), File::D);
+        assert_eq!(get_bit_file(15), File::H);
+        assert_eq!(get_bit_file(17), File::B);
+        assert_eq!(get_bit_file(26), File::C);
+    }
+
+    #[test]
+    fn test_get_bit_rank() {
+        assert_eq!(get_bit_rank(0), Rank::One);
+        assert_eq!(get_bit_rank(3), Rank::One);
+        assert_eq!(get_bit_rank(15), Rank::Two);
+        assert_eq!(get_bit_rank(17), Rank::Three);
+        assert_eq!(get_bit_rank(26), Rank::Four);
     }
 }
 //**** END: TESTS ****
