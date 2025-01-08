@@ -141,7 +141,7 @@ impl Game {
                     '6' => idx -= 5,
                     '7' => idx -= 6,
                     '8' => idx -= 7,
-                    _ => panic!("Invalid Character"),
+                    c => panic!("Invalid Character: {c}"),
                 };
                 match piece {
                     Some((p_color, p_type)) => {
