@@ -17,6 +17,8 @@ pub const FEN_2KING_2WKNIGHT: &str = "5k2/8/8/4N3/2N5/8/8/5K2 w - - 0 1";
 /* Rank (Row) - horizontal from A to H */
 /* Files (Columns) - vertical from 1 to 8*/
 
+pub static FILE_LETTERS: [&str; 8] = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
 lazy_static! {
 // DEPRECATE: UGLY
     pub static ref RANK_MAP: HashMap<char, usize> = {

@@ -1,5 +1,5 @@
 use std::vec;
-use crate::engine::game::*;
+use crate::engine::{game::*, shared::helper_func::error_msg::Error};
 use super::const_utility::*;
 
 //DEPRECATE: UGLY
@@ -133,13 +133,12 @@ pub fn set_bit(bitboard: u64, row: i8, col: i8) -> u64 {
  If Index is not in bounds it panics if the check_bounds is enabled.
  * Ex: idx_to_position(idx: 50, check_bounds: true) -> (6, 2)
 */
-pub fn idx_to_position(index: i8, check_bounds: Option<bool>) -> (i8, i8) {
+pub fn idx_to_position(idx: usize, check_bounds: Option<bool>) -> (usize, usize) {
     let check_bounds = check_bounds.unwrap_or(true);
-    if check_bounds && !is_inside_board_bounds_idx(index) {
-        panic!("The row and col are not inside bounds");
+    if check_bounds && !is_inside_board_bounds_idx(idx) {
+        panic!("{}", Error::InvalidIdxToPos { idx }.to_string());
     }
-
-    return ((index - (index % 8)) / 8, index % 8);
+    return ((idx - (idx % 8)) / 8, idx % 8);
 }
 
 /**
@@ -168,7 +167,7 @@ pub fn is_inside_board_bounds_row_col(row: i8, col: i8) -> bool {
 Checks if the idx is inside the board. It should be between 0 and 63 included .
 * Ex: is_inside_board_bounds_idx(63) -> true
 */
-pub fn is_inside_board_bounds_idx(idx: i8) -> bool {
+pub fn is_inside_board_bounds_idx(idx: usize) -> bool {
     return 0 <= idx && idx <= 63;
 }
 

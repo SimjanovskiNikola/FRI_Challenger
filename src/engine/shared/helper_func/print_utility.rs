@@ -1,6 +1,9 @@
 use crate::engine::{
     game::Game,
-    shared::{helper_func::bit_pos_utility::*, structures::square_struct::Square},
+    shared::{
+        helper_func::{bit_pos_utility::*, const_utility::FILE_LETTERS},
+        structures::{piece_struct::Piece, square_struct::Square},
+    },
 };
 
 pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
@@ -60,6 +63,21 @@ pub fn print_chess(game: &Game) {
         if (idx + 1) % 8 == 0 {
             println!("");
         }
+    }
+}
+
+pub fn sq_notation(square: usize) -> String {
+    let (rank, file) = idx_to_position(square, None);
+    return format!("{}{}", FILE_LETTERS[file], rank);
+}
+
+pub fn move_notation(sq_from: usize, sq_to: usize, promoted: Option<Piece>) -> String {
+    match promoted {
+        Some(piece) => {
+            let p_notation = piece.to_string();
+            return format!("{}{}{}", sq_notation(sq_from), sq_notation(sq_to), p_notation.trim());
+        }
+        None => return format!("{}{}", sq_notation(sq_from), sq_notation(sq_to)),
     }
 }
 
