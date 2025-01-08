@@ -1,298 +1,408 @@
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
+
 use crate::engine::{
-    attacks::{all_attacks::ATTACKS, ray_attacks::blocked_ray_attack},
+    attacks::{
+        self,
+        all_attacks::{Attacks, ATTACKS},
+        ray_attacks::blocked_ray_attack,
+    },
     game::Game,
     shared::{
-        helper_func::bit_pos_utility::*,
-        structures::piece_struct::{Piece, PieceColor, PieceType},
+        helper_func::{
+            bit_pos_utility::*,
+            const_utility::{File, Rank},
+        },
+        structures::{
+            internal_move::InternalMove,
+            piece_struct::{self, Color, Piece, PieceType},
+            square_struct::Square,
+        },
     },
 };
 
 macro_rules! get_attacks {
     ($rays:ident, $forward:expr, $piece:ident, $game:ident, $moves:ident) => {
-        let idx = bit_scan_lsb($piece.position);
+        let idx = bit_scan_lsb($piece.pos);
         let attacks = &ATTACKS.ray_attacks.$rays;
 
         let (own_occ, enemy_occ) = get_occupancy($piece, $game);
 
-        let ray_attacks =
-            blocked_ray_attack(attacks[idx], &attacks, $forward, own_occ, enemy_occ);
+        let ray_attacks = blocked_ray_attack(attacks[idx], &attacks, $forward, own_occ, enemy_occ);
 
-        $moves.extend(get_new_positions(ray_attacks, $piece, $game))
+        $moves |= ray_attacks
     };
 }
 
-fn generate_moves(game: &Game) -> Vec<Game> {
-    let mut positions = vec![];
+fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
+    let mut positions: Vec<InternalMove> = vec![];
 
-    for piece in &game.pieces {
-        if piece.piece_color == game.active_color {
-            let position;
-            match piece.piece_type {
-                PieceType::Knight => position = generate_knight_moves(&piece, &game),
-                PieceType::Bishop => position = generate_bishop_moves(&piece, &game),
-                PieceType::Rook => position = generate_bishop_moves(&piece, &game),
-                PieceType::Queen => position = generate_queen_moves(&piece, &game),
-                PieceType::King => position = generate_king_moves(&piece, &game),
-                _ => panic!("Piece Type {:?} is not yet supported", piece.piece_type),
-            }
-            positions.extend(position);
+    for bitboard in game.piece_bitboard[color as usize] {
+        for pos in extract_all_bits(bitboard) {
+            let piece = match game.squares[pos] {
+                Square::Occupied(piece) => piece,
+                Square::Empty => panic!("Shouldn't be empty"),
+            };
+
+            let all_mov_att = get_all_moves(piece, game) | get_all_attacks(piece, game);
+            positions.extend(get_internal_moves(all_mov_att, &piece, game));
         }
     }
     return positions;
 }
 
-fn generate_knight_moves(piece: &Piece, game: &Game) -> Vec<Game> {
-    let idx = bit_scan_lsb(piece.position);
+fn gen_attacks(game: &Game, color: Color) -> u64 {
+    let mut attacked_sq: u64 = 0;
+    for bitboard in game.piece_bitboard[color as usize] {
+        for square in extract_all_bits(bitboard) {
+            let piece = match game.squares[square] {
+                Square::Empty => continue,
+                Square::Occupied(piece) => piece,
+            };
+            attacked_sq |= get_all_attacks(piece, game);
+        }
+    }
+    return attacked_sq;
+}
+
+fn get_all_moves(piece: Piece, game: &Game) -> u64 {
+    match piece.p_type {
+        PieceType::Pawn => return gen_pawn_mov(&piece, &game),
+        PieceType::Knight => return gen_knight_mov_att(&piece, &game),
+        PieceType::Bishop => return gen_bishop_mov_att(&piece, &game),
+        PieceType::Rook => return gen_rook_mov_att(&piece, &game),
+        PieceType::Queen => return gen_queen_mov_att(&piece, &game),
+        PieceType::King => return gen_king_mov_att(&piece, &game),
+    }
+}
+
+fn get_all_attacks(piece: Piece, game: &Game) -> u64 {
+    match piece.p_type {
+        PieceType::Pawn => return gen_pawn_att(&piece, game),
+        PieceType::Knight => return gen_knight_mov_att(&piece, &game),
+        PieceType::Bishop => return gen_bishop_mov_att(&piece, &game),
+        PieceType::Rook => return gen_rook_mov_att(&piece, &game),
+        PieceType::Queen => return gen_queen_mov_att(&piece, &game),
+        PieceType::King => return gen_king_mov_att(&piece, &game),
+    };
+}
+
+fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
+    let (white_idx, black_idx) = (Color::White as usize, Color::Black as usize);
+    match piece.p_color {
+        Color::White => return (game.occupancy[white_idx], game.occupancy[black_idx]),
+        Color::Black => return (game.occupancy[black_idx], game.occupancy[white_idx]),
+    };
+}
+
+fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalMove> {
+    let potential_moves = extract_all_bits(attacks);
+    let mut new_positions = vec![];
+    for p_move in potential_moves {
+        new_positions.push(InternalMove {
+            position_key: 0, //FIXME:
+            active_color: piece.p_color,
+            from: bit_scan_lsb(piece.pos),
+            to: p_move,
+            piece: *piece,
+            captured: match game.squares[p_move] {
+                Square::Empty => None,
+                Square::Occupied(piece) => Some(piece),
+            },
+            promotion: None, //FIXME:
+        })
+    }
+    return new_positions;
+}
+
+// TODO: IMPLEMNET
+fn gen_pawn_att(piece: &Piece, game: &Game) -> u64 {
+    let idx = bit_scan_lsb(piece.pos);
+
+    let mut attacks = match piece.p_color {
+        Color::Black => ATTACKS.pawn_attacks.black_diagonal_moves[idx],
+        Color::White => ATTACKS.pawn_attacks.white_diagonal_moves[idx],
+    };
+
+    let (own_occupancy, enemy_occupancy) = get_occupancy(piece, game);
+    attacks &= !own_occupancy;
+    attacks &= enemy_occupancy;
+    // TODO: Include El Passant
+    return attacks;
+}
+
+fn gen_pawn_mov(piece: &Piece, game: &Game) -> u64 {
+    let idx = bit_scan_lsb(piece.pos);
+
+    let mut attacks = match piece.p_color {
+        Color::Black => ATTACKS.pawn_attacks.black_forward_moves[idx],
+        Color::White => ATTACKS.pawn_attacks.white_forward_moves[idx],
+    };
+
+    for (i, attack) in extract_all_bits(attacks).iter().enumerate() {
+        match game.squares[*attack] {
+            Square::Empty => continue,
+            Square::Occupied(piece) => {
+                if i == 0 {
+                    return 0;
+                } else if i == 1 {
+                    attacks = clear_bit(attacks, *attack)
+                }
+            }
+        }
+    }
+
+    // TODO: Somewhere I need the promotions
+    return attacks;
+}
+
+fn gen_knight_mov_att(piece: &Piece, game: &Game) -> u64 {
+    let idx = bit_scan_lsb(piece.pos);
     let mut attacks = ATTACKS.knight_attacks.knight_attacks[idx];
 
     let (own_occupancy, _) = get_occupancy(piece, game);
     attacks &= !own_occupancy;
 
-    return get_new_positions(attacks, piece, game);
+    return attacks;
 }
 
-fn generate_bishop_moves(piece: &Piece, game: &Game) -> Vec<Game> {
-    let mut new_positions = vec![];
-    get_attacks!(nw_rays, true, piece, game, new_positions);
-    get_attacks!(sw_rays, false, piece, game, new_positions);
-    get_attacks!(ne_rays, true, piece, game, new_positions);
-    get_attacks!(se_rays, false, piece, game, new_positions);
+fn gen_bishop_mov_att(piece: &Piece, game: &Game) -> u64 {
+    let mut attacks: u64 = 0;
+    get_attacks!(nw_rays, true, piece, game, attacks);
+    get_attacks!(sw_rays, false, piece, game, attacks);
+    get_attacks!(ne_rays, true, piece, game, attacks);
+    get_attacks!(se_rays, false, piece, game, attacks);
 
-    return new_positions;
+    println!("{:?}", attacks);
+
+    return attacks;
 }
 
-fn generate_rook_moves(piece: &Piece, game: &Game) -> Vec<Game> {
-    let mut new_positions = vec![];
-    get_attacks!(n_rays, true, piece, game, new_positions);
-    get_attacks!(s_rays, false, piece, game, new_positions);
-    get_attacks!(e_rays, true, piece, game, new_positions);
-    get_attacks!(w_rays, false, piece, game, new_positions);
+fn gen_rook_mov_att(piece: &Piece, game: &Game) -> u64 {
+    let mut attacks: u64 = 0;
+    get_attacks!(n_rays, true, piece, game, attacks);
+    get_attacks!(s_rays, false, piece, game, attacks);
+    get_attacks!(e_rays, true, piece, game, attacks);
+    get_attacks!(w_rays, false, piece, game, attacks);
 
-    return new_positions;
+    return attacks;
 }
 
-fn generate_queen_moves(piece: &Piece, game: &Game) -> Vec<Game> {
-    let mut new_positions = vec![];
-    new_positions.extend(generate_bishop_moves(piece, game));
-    new_positions.extend(generate_rook_moves(piece, game));
-    return new_positions;
+fn gen_queen_mov_att(piece: &Piece, game: &Game) -> u64 {
+    let mut attacks: u64 = 0;
+    attacks |= gen_bishop_mov_att(piece, game);
+    attacks |= gen_rook_mov_att(piece, game);
+    return attacks;
 }
 
-fn generate_king_moves(piece: &Piece, game: &Game) -> Vec<Game> {
-    let idx = bit_scan_lsb(piece.position);
+fn gen_king_mov_att(piece: &Piece, game: &Game) -> u64 {
+    // FIXME: Cannot go to the places that is attacked
+    let idx = bit_scan_lsb(piece.pos);
     let mut attacks = ATTACKS.king_attacks.king_attacks[idx];
+
+    println!("{:?}", attacks);
 
     let (own_occupancy, _) = get_occupancy(piece, game);
     attacks &= !own_occupancy;
 
-    return get_new_positions(attacks, piece, game);
-}
-
-fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
-    match piece.piece_color {
-        PieceColor::White => return (game.white_occupancy, game.black_occupancy),
-        PieceColor::Black => return (game.black_occupancy, game.white_occupancy),
-    };
-}
-
-fn get_new_positions(attacks: u64, piece: &Piece, game: &Game) -> Vec<Game> {
-    let potential_moves = extract_all_bits(attacks);
-    let mut new_positions = vec![];
-    for pmove in potential_moves {
-        let mut new_position = game.clone();
-        new_position.move_peace(piece.position, pmove);
-        new_positions.push(new_position);
-    }
-    return new_positions;
+    return attacks;
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::shared::helper_func::bit_pos_utility::notation_to_idx;
+
+    use crate::engine::shared::helper_func::{
+        bit_pos_utility::*, const_utility::SqPos::*, print_utility::print_bitboard,
+    };
     use super::*;
+
+    fn test_mov_att(fen: &str, p_type: PieceType, p_color: Color, idx: usize) -> Vec<usize> {
+        let game = Game::read_fen(&fen);
+        // println!("{}", game.to_string());
+
+        let allPieces = extract_all_bits(game.piece_bitboard[p_color as usize][p_type as usize]);
+        let piece = match game.squares[allPieces[idx]] {
+            Square::Empty => panic!("The Piece Must exist"),
+            Square::Occupied(piece) => piece,
+        };
+        println!("{:?}", piece.p_type);
+        return extract_all_bits(get_all_moves(piece, &game) | get_all_attacks(piece, &game));
+
+        // print_bitboard(
+        //     generate_knight_moves(&piece, &game),
+        //     Some(bit_scan_lsb(piece.position) as i8),
+        // );
+    }
+
+    #[test]
+    fn test_attacks() {
+        let fen = "8/8/2q5/3Q4/8/8/8/8 w - - 0 1";
+        let game = Game::read_fen(&fen);
+        print_bitboard(
+            gen_attacks(&game, Color::Black),
+            Some(bit_scan_lsb(game.piece_bitboard[1][4]) as i8),
+        );
+        print_bitboard(
+            gen_attacks(&game, Color::White),
+            Some(bit_scan_lsb(game.piece_bitboard[0][4]) as i8),
+        );
+    }
+
+    // KNIGHT
 
     #[test]
     fn test_generate_knight_moves() {
-        let not_alot = "8/8/8/4N3/2N5/8/8/8 w - - 0 1";
-
-        let game = Game::read_fen(not_alot);
-        println!("{}", game.to_string());
-
-        let moves = generate_knight_moves(&game.pieces[0], &game);
-        assert_eq!(moves.len(), 7);
-
-        let test_positions = [19, 21, 30, 42, 46, 51, 53];
-        for one_move in moves {
-            assert_eq!(one_move.pieces.len(), 2);
-            let piece = &one_move.pieces[0];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-            println!("{:?}", bit_scan_lsb(piece.position));
-        }
+        let fen = "8/8/8/4N3/2N5/8/8/8 w - - 0 1";
+        let moves = test_mov_att(&fen, PieceType::Knight, Color::White, 1);
+        let test_positions = vec![19, 21, 30, 42, 46, 51, 53];
+        assert_eq!(test_positions, moves);
     }
 
     #[test]
     fn test_generate_3_knight_moves() {
-        let not_alot = "8/5N2/8/4N3/2N5/8/8/8 w - - 0 1";
-
-        let game = Game::read_fen(not_alot);
-        println!("{}", game.to_string());
-
-        let moves = generate_knight_moves(&game.pieces[1], &game);
-        assert_eq!(moves.len(), 6);
-
-        let test_positions = [19, 21, 30, 42, 46, 51];
-        for one_move in moves {
-            assert_eq!(one_move.pieces.len(), 3);
-            let piece = &one_move.pieces[1];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-            println!("{:?}", bit_scan_lsb(piece.position));
-        }
+        let fen_knight = "8/5N2/8/4N3/2N5/8/8/8 w - - 0 1";
+        let moves = test_mov_att(&fen_knight, PieceType::Knight, Color::White, 1);
+        let test_positions = vec![19, 21, 30, 42, 46, 51];
+        assert_eq!(test_positions, moves);
     }
+
+    // BISHOP
 
     #[test]
     fn test_generate_bishop_moves_1_bishop() {
         let fen_one_bishop = "7B/8/8/8/8/8/8/8 w - - 0 1";
-        let game = Game::read_fen(fen_one_bishop);
-        println!("{}", game.to_string());
-
-        let moves = generate_bishop_moves(&game.pieces[0], &game);
-        let test_positions = [0, 9, 18, 27, 36, 45, 54];
-        assert_eq!(moves.len(), test_positions.len());
-
-        for one_move in moves {
-            let piece = &one_move.pieces[0];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-        }
+        let moves = test_mov_att(&fen_one_bishop, PieceType::Bishop, Color::White, 0);
+        let test_positions = vec![0, 9, 18, 27, 36, 45, 54];
+        assert_eq!(test_positions, moves);
     }
 
     #[test]
     fn test_generate_bishop_moves_1_bishop_middle() {
         let fen_one_bishop = "8/8/8/4B3/8/8/8/8 w - - 0 1";
-        let game = Game::read_fen(fen_one_bishop);
-        println!("{}", game.to_string());
+        let moves = test_mov_att(&fen_one_bishop, PieceType::Bishop, Color::White, 0);
 
-        let moves = generate_bishop_moves(&game.pieces[0], &game);
-        let test_positions = [45, 54, 63, 27, 18, 9, 0, 43, 50, 57, 29, 22, 15];
-        assert_eq!(moves.len(), test_positions.len());
-
-        for one_move in moves {
-            let piece = &one_move.pieces[0];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-        }
+        let test_positions = vec![0, 9, 15, 18, 22, 27, 29, 43, 45, 50, 54, 57, 63];
+        assert_eq!(test_positions, moves);
     }
 
     #[test]
     fn test_generate_bishop_moves_2_bishop() {
         let fen_one_bishop = "8/8/5B2/4B3/8/8/8/8 w - - 0 1";
-        let game = Game::read_fen(fen_one_bishop);
-        println!("{}", game.to_string());
+        let moves = test_mov_att(&fen_one_bishop, PieceType::Bishop, Color::White, 0);
 
-        let moves = generate_bishop_moves(&game.pieces[1], &game);
-        let test_positions = [27, 18, 9, 0, 43, 50, 57, 29, 22, 15];
-        assert_eq!(moves.len(), test_positions.len());
-
-        for one_move in moves {
-            let piece = &one_move.pieces[1];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-        }
+        let test_positions = vec![0, 9, 15, 18, 22, 27, 29, 43, 50, 57];
+        assert_eq!(test_positions, moves);
     }
+
+    // ROOK
 
     #[test]
     fn test_generate_rook_moves_1_rook() {
-        let fen_one_bishop = "8/8/8/8/8/4R3/8/8 w - - 0 1";
-        let game = Game::read_fen(fen_one_bishop);
-        println!("{}", game.to_string());
-
-        let moves = generate_rook_moves(&game.pieces[0], &game);
-        let test_positions = [28, 36, 44, 52, 60, 12, 4, 19, 18, 17, 16, 21, 22, 23];
-        assert_eq!(moves.len(), test_positions.len());
-
-        for one_move in moves {
-            let piece = &one_move.pieces[0];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-        }
+        let fen_rook = "8/8/8/8/8/4R3/8/8 w - - 0 1";
+        let moves = test_mov_att(&fen_rook, PieceType::Rook, Color::White, 0);
+        let test_positions = vec![4, 12, 16, 17, 18, 19, 21, 22, 23, 28, 36, 44, 52, 60];
+        assert_eq!(test_positions, moves);
     }
 
     #[test]
     fn test_generate_rook_moves_1_rook_1enemy() {
-        let fen_one_bishop = "8/8/8/4r3/8/4R3/8/8 w - - 0 1";
-        let game = Game::read_fen(fen_one_bishop);
-        println!("{}", game.to_string());
-
-        let moves = generate_rook_moves(&game.pieces[1], &game);
-        let test_positions = [28, 36, 12, 4, 19, 18, 17, 16, 21, 22, 23];
-        assert_eq!(moves.len(), test_positions.len());
-
-        for one_move in moves {
-            let piece = &one_move.pieces[0];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-        }
+        let fen_rook = "8/8/8/4r3/8/4R3/8/8 w - - 0 1";
+        let moves = test_mov_att(&fen_rook, PieceType::Rook, Color::White, 0);
+        let test_positions = vec![4, 12, 16, 17, 18, 19, 21, 22, 23, 28, 36];
+        assert_eq!(test_positions, moves);
     }
+
+    // QUEEN
 
     #[test]
     fn test_generate_queen_moves() {
-        let fen_one_bishop = "8/8/8/3Q4/8/8/8/8 w - - 0 1";
-        let game = Game::read_fen(fen_one_bishop);
-        println!("{}", game.to_string());
-
-        let moves = generate_queen_moves(&game.pieces[0], &game);
-        let test_positions = notation_to_idx(&[
-            "a2", "b3", "c4", "e6", "f7", "g8", "a8", "b7", "c6", "e4", "f3", "g2", "h1",
-            "d1", "d2", "d3", "d4", "d6", "d7", "d8", "a5", "b5", "c5", "e5", "f5", "g5",
-            "h5",
-        ]);
-        assert_eq!(moves.len(), test_positions.len());
-
-        for one_move in moves {
-            let piece = &one_move.pieces[0];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-        }
+        let fen_queen = "8/8/8/3Q4/8/8/8/8 w - - 0 1";
+        let moves = test_mov_att(&fen_queen, PieceType::Queen, Color::White, 0);
+        let test_positions = vec![
+            D1 as usize,
+            H1 as usize,
+            A2 as usize,
+            D2 as usize,
+            G2 as usize,
+            B3 as usize,
+            D3 as usize,
+            F3 as usize,
+            C4 as usize,
+            D4 as usize,
+            E4 as usize,
+            A5 as usize,
+            B5 as usize,
+            C5 as usize,
+            E5 as usize,
+            F5 as usize,
+            G5 as usize,
+            H5 as usize,
+            C6 as usize,
+            D6 as usize,
+            E6 as usize,
+            B7 as usize,
+            D7 as usize,
+            F7 as usize,
+            A8 as usize,
+            D8 as usize,
+            G8 as usize,
+        ];
+        assert_eq!(test_positions, moves);
     }
 
     #[test]
     fn test_generate_queen_moves_one_enemy() {
-        let fen_one_bishop = "8/8/2q5/3Q4/8/8/8/8 w - - 0 1";
-        let game = Game::read_fen(fen_one_bishop);
-        println!("{}", game.to_string());
+        let fen_queen = "8/8/2q5/3Q4/8/8/8/8 w - - 0 1";
+        let moves = test_mov_att(&fen_queen, PieceType::Queen, Color::White, 0);
 
-        let moves = generate_queen_moves(&game.pieces[1], &game);
-        let test_positions = notation_to_idx(&[
-            "a2", "b3", "c4", "e6", "f7", "g8", "c6", "e4", "f3", "g2", "h1", "d1", "d2",
-            "d3", "d4", "d6", "d7", "d8", "a5", "b5", "c5", "e5", "f5", "g5", "h5",
-        ]);
-        assert_eq!(moves.len(), test_positions.len());
-
-        for one_move in moves {
-            let piece = &one_move.pieces[0];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-        }
+        let test_positions = vec![
+            D1 as usize,
+            H1 as usize,
+            A2 as usize,
+            D2 as usize,
+            G2 as usize,
+            B3 as usize,
+            D3 as usize,
+            F3 as usize,
+            C4 as usize,
+            D4 as usize,
+            E4 as usize,
+            A5 as usize,
+            B5 as usize,
+            C5 as usize,
+            E5 as usize,
+            F5 as usize,
+            G5 as usize,
+            H5 as usize,
+            C6 as usize,
+            D6 as usize,
+            E6 as usize,
+            D7 as usize,
+            F7 as usize,
+            D8 as usize,
+            G8 as usize,
+        ];
+        assert_eq!(test_positions, moves);
     }
+
+    // KING
 
     #[test]
     fn test_generate_king_moves() {
-        let fen_one_bishop = "8/8/8/3K4/8/8/8/8 w - - 0 1";
-        let game = Game::read_fen(fen_one_bishop);
-        println!("{}", game.to_string());
-
-        let moves = generate_king_moves(&game.pieces[0], &game);
-        let test_positions =
-            notation_to_idx(&["c4", "c5", "c6", "d4", "d6", "e4", "e5", "e6"]);
-        assert_eq!(moves.len(), test_positions.len());
-
-        for one_move in moves {
-            let piece = &one_move.pieces[0];
-            let idx = bit_scan_lsb(piece.position);
-            assert!(test_positions.contains(&idx));
-        }
+        let fen_king = "8/8/8/3K4/8/8/8/8 w - - 0 1";
+        let moves = test_mov_att(&fen_king, PieceType::King, Color::White, 0);
+        let test_positions = vec![26, 27, 28, 34, 36, 42, 43, 44];
+        assert_eq!(test_positions, moves);
     }
-    // FIXME: Not covered that the kings (Black and White) should be 1 square appart from each other. They make wall one another
 }

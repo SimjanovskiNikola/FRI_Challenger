@@ -76,7 +76,7 @@ impl PerftPosParameters {
 
 #[cfg(test)]
 mod tests {
-    use crate::{engine::game::Game, FEN_START};
+    use crate::engine::{game::Game, shared::helper_func::const_utility::FEN_START};
 
     use super::*;
 

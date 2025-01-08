@@ -1,5 +1,8 @@
 {
     "editor.formatOnSave": true,
     "editor.fontWeight": "normal",
-    "editor.fontVariations": false
+    "editor.fontVariations": false,
+    "cSpell.words": [
+        "bitboard"
+    ]
 }
