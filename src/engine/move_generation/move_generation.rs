@@ -23,6 +23,7 @@ use crate::engine::{
         helper_func::{
             bit_pos_utility::*,
             const_utility::{File, Rank},
+            print_utility::{move_notation, print_bitboard, sq_notation},
         },
         structures::{
             internal_move::InternalMove,
@@ -49,6 +50,9 @@ fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     let mut positions: Vec<InternalMove> = vec![];
 
     for bitboard in game.piece_bitboard[color as usize] {
+        if bitboard != game.piece_bitboard[color as usize][0] {
+            continue;
+        }
         for pos in extract_all_bits(bitboard) {
             let piece = match game.squares[pos] {
                 Square::Occupied(piece) => piece,
@@ -59,6 +63,7 @@ fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
             positions.extend(get_internal_moves(all_mov_att, &piece, game));
         }
     }
+
     return positions;
 }
 
@@ -110,7 +115,7 @@ fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalM
     let potential_moves = extract_all_bits(attacks);
     let mut new_positions = vec![];
     for p_move in potential_moves {
-        new_positions.push(InternalMove {
+        let mut new_move = InternalMove {
             position_key: 0, //FIXME:
             active_color: piece.p_color,
             from: bit_scan_lsb(piece.pos),
@@ -120,10 +125,57 @@ fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalM
                 Square::Empty => None,
                 Square::Occupied(piece) => Some(piece),
             },
-            promotion: None, //FIXME:
-        })
+            promotion: None,
+            ep: None,
+        };
+        match new_move.piece.p_type {
+            PieceType::Pawn => {
+                add_ep_move(&mut new_move, game);
+                new_positions.extend(add_promotion_move(&mut new_move, game));
+            }
+            _ => new_positions.push(new_move),
+        }
     }
     return new_positions;
+}
+
+pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
+    match mv.piece.p_type {
+        PieceType::Pawn => {
+            if mv.from.abs_diff(mv.to) == 16 {
+                mv.ep = Some(1 << (mv.from + 8))
+            }
+        }
+        _ => (),
+    };
+}
+pub fn add_promotion_move(mv: &InternalMove, game: &Game) -> Vec<InternalMove> {
+    let mut new_moves: Vec<InternalMove> = vec![];
+    if (mv.piece.p_type == PieceType::Pawn)
+        && ((mv.active_color == Color::White && get_bit_rank(mv.to) == Rank::Eight)
+            || (mv.active_color == Color::Black && get_bit_rank(mv.to) == Rank::One))
+    {
+        new_moves.push(InternalMove {
+            promotion: Some(Piece { p_type: PieceType::Queen, ..mv.piece }),
+            ..*mv
+        });
+        new_moves.push(InternalMove {
+            promotion: Some(Piece { p_type: PieceType::Rook, ..mv.piece }),
+            ..*mv
+        });
+        new_moves.push(InternalMove {
+            promotion: Some(Piece { p_type: PieceType::Bishop, ..mv.piece }),
+            ..*mv
+        });
+        new_moves.push(InternalMove {
+            promotion: Some(Piece { p_type: PieceType::Knight, ..mv.piece }),
+            ..*mv
+        });
+    } else {
+        new_moves.push(*mv);
+    }
+
+    return new_moves;
 }
 
 // TODO: IMPLEMNET
@@ -136,9 +188,24 @@ fn gen_pawn_att(piece: &Piece, game: &Game) -> u64 {
     };
 
     let (own_occupancy, enemy_occupancy) = get_occupancy(piece, game);
+
     attacks &= !own_occupancy;
-    attacks &= enemy_occupancy;
-    // TODO: Include El Passant
+    attacks &= match game.en_passant {
+        Some(bitboard) => {
+            let rez;
+            let rank = get_bit_rank(bit_scan_lsb(bitboard));
+            if (rank == Rank::Six && piece.p_color == Color::White)
+                || (rank == Rank::Three && piece.p_color == Color::Black)
+            {
+                rez = enemy_occupancy | bitboard;
+            } else {
+                rez = enemy_occupancy;
+            }
+            rez
+        }
+        None => enemy_occupancy,
+    };
+
     return attacks;
 }
 
@@ -150,7 +217,12 @@ fn gen_pawn_mov(piece: &Piece, game: &Game) -> u64 {
         Color::White => ATTACKS.pawn_attacks.white_forward_moves[idx],
     };
 
-    for (i, attack) in extract_all_bits(attacks).iter().enumerate() {
+    let mut all_bits = extract_all_bits(attacks);
+    if piece.p_color == Color::Black {
+        all_bits.reverse();
+    }
+
+    for (i, attack) in all_bits.iter().enumerate() {
         match game.squares[*attack] {
             Square::Empty => continue,
             Square::Occupied(piece) => {
@@ -223,7 +295,9 @@ fn gen_king_mov_att(piece: &Piece, game: &Game) -> u64 {
 mod tests {
 
     use crate::engine::shared::helper_func::{
-        bit_pos_utility::*, const_utility::SqPos::*, print_utility::print_bitboard,
+        bit_pos_utility::*,
+        const_utility::{SqPos::*, FEN_PAWNS_BLACK, FEN_PAWNS_WHITE},
+        print_utility::{print_bitboard, print_chess, print_move_list},
     };
     use super::*;
 
@@ -243,6 +317,22 @@ mod tests {
         //     generate_knight_moves(&piece, &game),
         //     Some(bit_scan_lsb(piece.position) as i8),
         // );
+    }
+
+    #[test]
+    fn test_white_pawns_mv_gen() {
+        let mut game = Game::read_fen(&FEN_PAWNS_WHITE);
+        game.moves = gen_moves(Color::White, &game);
+        assert_eq!(26, game.moves.len());
+        print_move_list(&game);
+    }
+
+    #[test]
+    fn test_white_black_mv_gen() {
+        let mut game = Game::read_fen(&FEN_PAWNS_BLACK);
+        game.moves = gen_moves(Color::Black, &game);
+        assert_eq!(26, game.moves.len());
+        print_move_list(&game);
     }
 
     #[test]

@@ -21,6 +21,9 @@ pub struct InternalMove {
     pub piece: Piece,
     pub captured: Option<Piece>,
     pub promotion: Option<Piece>,
+    pub ep: Option<u64>,
+    //TODO: Add Score
+    //TODO: Add Pawn Start
 }
 
 pub fn generate_unique_key() {}

@@ -65,24 +65,24 @@ impl Piece {
         }
     }
 
-    pub fn chess_figure(&self) -> &str {
+    pub fn chess_figure(&self) -> String {
         return match self.p_color {
             Color::White => match self.p_type {
-                PieceType::Pawn => "♙",
-                PieceType::Knight => "♘",
-                PieceType::Bishop => "♗",
-                PieceType::Rook => "♖",
-                PieceType::Queen => "♕",
-                PieceType::King => "♔",
+                PieceType::Pawn => "♟".to_string(),
+                PieceType::Knight => "♞".to_string(),
+                PieceType::Bishop => "♝".to_string(),
+                PieceType::Rook => "♜".to_string(),
+                PieceType::Queen => "♛".to_string(),
+                PieceType::King => "♚".to_string(),
             },
 
             Color::Black => match self.p_type {
-                PieceType::Pawn => "♟",
-                PieceType::Knight => "♞",
-                PieceType::Bishop => "♝",
-                PieceType::Rook => "♜",
-                PieceType::Queen => "♛",
-                PieceType::King => "♚",
+                PieceType::Pawn => "♙".to_string(),
+                PieceType::Knight => "♘".to_string(),
+                PieceType::Bishop => "♗".to_string(),
+                PieceType::Rook => "♖".to_string(),
+                PieceType::Queen => "♕".to_string(),
+                PieceType::King => "♔".to_string(),
             },
         };
     }
