@@ -1,4 +1,7 @@
-use super::piece_struct::{Piece, Color};
+use super::{
+    castling_struct::CastlingRights,
+    piece_struct::{Color, Piece},
+};
 
 // Check about BigPawn Flag and what it does
 // DEPRECATE:
@@ -22,8 +25,8 @@ pub struct InternalMove {
     pub captured: Option<Piece>,
     pub promotion: Option<Piece>,
     pub ep: Option<u64>,
+    pub castle: Option<CastlingRights>,
     //TODO: Add Score
-    //TODO: Add Pawn Start
 }
 
 pub fn generate_unique_key() {}

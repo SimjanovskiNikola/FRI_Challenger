@@ -22,10 +22,11 @@ use crate::engine::{
     shared::{
         helper_func::{
             bit_pos_utility::*,
-            const_utility::{File, Rank},
+            const_utility::{File, Rank, SqPos},
             print_utility::{move_notation, print_bitboard, sq_notation},
         },
         structures::{
+            castling_struct::CastlingRights,
             internal_move::InternalMove,
             piece_struct::{self, Color, Piece, PieceType},
             square_struct::Square,
@@ -50,9 +51,6 @@ fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     let mut positions: Vec<InternalMove> = vec![];
 
     for bitboard in game.piece_bitboard[color as usize] {
-        if bitboard != game.piece_bitboard[color as usize][0] {
-            continue;
-        }
         for pos in extract_all_bits(bitboard) {
             let piece = match game.squares[pos] {
                 Square::Occupied(piece) => piece,
@@ -127,6 +125,7 @@ fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalM
             },
             promotion: None,
             ep: None,
+            castle: None,
         };
         match new_move.piece.p_type {
             PieceType::Pawn => {
@@ -134,6 +133,85 @@ fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalM
                 new_positions.extend(add_promotion_move(&mut new_move, game));
             }
             _ => new_positions.push(new_move),
+        }
+    }
+    if piece.p_type == PieceType::King {
+        new_positions.extend(add_castling_moves(piece, game));
+    }
+    return new_positions;
+}
+
+#[rustfmt::skip]
+pub fn add_castling_moves(piece: &Piece, game: &Game) -> Vec<InternalMove> {
+    let mut new_positions = vec![];
+
+    match piece.p_color {
+        Color::White => {
+            let attacked_sq = gen_attacks(game, Color::Black);
+            if (game.castling_rights.bits() & CastlingRights::WKINGSIDE.bits() != 0) && 
+               (game.squares[SqPos::F1 as usize] == Square::Empty && game.squares[SqPos::G1 as usize] == Square::Empty) && 
+               (!is_bit_set(attacked_sq, SqPos::E1 as usize) && !is_bit_set(attacked_sq, SqPos::F1 as usize)){
+               new_positions.push(InternalMove {
+                    position_key: 0, //FIXME:
+                    active_color: piece.p_color,
+                    from: bit_scan_lsb(piece.pos),
+                    to: SqPos::G1 as usize,
+                    piece: *piece,
+                    captured: None,
+                    promotion: None,
+                    ep: None,
+                    castle: Some(CastlingRights::WKINGSIDE),
+                });
+            }
+            if (game.castling_rights.bits() & CastlingRights::WQUEENSIDE.bits() != 0) && 
+               (game.squares[SqPos::D1 as usize] == Square::Empty && game.squares[SqPos::C1 as usize] == Square::Empty && game.squares[SqPos::B1 as usize] == Square::Empty) && 
+               (!is_bit_set(attacked_sq, SqPos::E1 as usize) && !is_bit_set(attacked_sq, SqPos::D1 as usize)){
+                new_positions.push(InternalMove {
+                    position_key: 0, //FIXME:
+                    active_color: piece.p_color,
+                    from: bit_scan_lsb(piece.pos),
+                    to: SqPos::C1 as usize,
+                    piece: *piece,
+                    captured: None,
+                    promotion: None,
+                    ep: None,
+                    castle: Some(CastlingRights::WQUEENSIDE),
+
+                });
+            }
+        }
+         Color::Black => {
+            let attacked_sq = gen_attacks(game, Color::White);
+            if (game.castling_rights.bits() & CastlingRights::BKINGSIDE.bits() != 0) && 
+               (game.squares[SqPos::F8 as usize] == Square::Empty && game.squares[SqPos::G8 as usize] == Square::Empty) && 
+               (!is_bit_set(attacked_sq, SqPos::E8 as usize) && !is_bit_set(attacked_sq, SqPos::F8 as usize)){
+               new_positions.push(InternalMove {
+                    position_key: 0, //FIXME:
+                    active_color: piece.p_color,
+                    from: bit_scan_lsb(piece.pos),
+                    to: SqPos::G8 as usize,
+                    piece: *piece,
+                    captured: None,
+                    promotion: None,
+                    ep: None,
+                    castle: Some(CastlingRights::BKINGSIDE),
+                });
+            }
+            if (game.castling_rights.bits() & CastlingRights::BQUEENSIDE.bits() != 0) && 
+               (game.squares[SqPos::D8 as usize] == Square::Empty && game.squares[SqPos::C8 as usize] == Square::Empty && game.squares[SqPos::B8 as usize] == Square::Empty) && 
+               (!is_bit_set(attacked_sq, SqPos::E8 as usize) && !is_bit_set(attacked_sq, SqPos::D8 as usize)){
+               new_positions.push(InternalMove {
+                    position_key: 0, //FIXME:
+                    active_color: piece.p_color,
+                    from: bit_scan_lsb(piece.pos),
+                    to: SqPos::C1 as usize,
+                    piece: *piece,
+                    captured: None,
+                    promotion: None,
+                    ep: None,
+                    castle: Some(CastlingRights::BQUEENSIDE),
+                });
+            }
         }
     }
     return new_positions;
@@ -296,7 +374,7 @@ mod tests {
 
     use crate::engine::shared::helper_func::{
         bit_pos_utility::*,
-        const_utility::{SqPos::*, FEN_PAWNS_BLACK, FEN_PAWNS_WHITE},
+        const_utility::{SqPos::*, FEN_CASTLE_TWO, FEN_PAWNS_BLACK, FEN_PAWNS_WHITE},
         print_utility::{print_bitboard, print_chess, print_move_list},
     };
     use super::*;
@@ -324,6 +402,15 @@ mod tests {
         let mut game = Game::read_fen(&FEN_PAWNS_WHITE);
         game.moves = gen_moves(Color::White, &game);
         assert_eq!(26, game.moves.len());
+        print_move_list(&game);
+    }
+
+    #[test]
+    fn test_mv_gen() {
+        let mut game = Game::read_fen(&FEN_CASTLE_TWO);
+        game.moves = gen_moves(Color::White, &game);
+        assert_eq!(48, game.moves.len());
+        print_chess(&game);
         print_move_list(&game);
     }
 
