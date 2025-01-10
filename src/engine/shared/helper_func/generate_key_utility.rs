@@ -22,14 +22,18 @@ fn generate_pos_key(game: &Game) -> u64 {
     let mut final_key: u64 = 0;
 
     for idx in 0..64 {
-        let piece = match game.squares[idx] {
-            Square::Empty => continue,
-            Square::Occupied(piece) => piece,
-        };
-
-        if piece.pos != 0 {
+        if let Square::Occupied(piece) = game.squares[idx] {
             final_key ^= PieceKeys[idx][piece.p_color as usize][piece.p_type as usize];
         }
+
+        // let piece = match game.squares[idx] {
+        //     Square::Empty => continue,
+        //     Square::Occupied(piece) => piece,
+        // };
+
+        // if piece.pos != 0 {
+        //     final_key ^= PieceKeys[idx][piece.p_color as usize][piece.p_type as usize];
+        // }
     }
 
     if game.active_color == Color::White {
@@ -60,3 +64,5 @@ mod tests {
         println!("{:?}", generate_pos_key(&game));
     }
 }
+
+// NOTE: IMPROVEMENTS

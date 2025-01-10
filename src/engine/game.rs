@@ -10,19 +10,18 @@ use crate::{
 };
 
 use super::shared::helper_func::bit_pos_utility::{idx_to_position, position_to_idx, set_bit_sq};
+use super::shared::helper_func::bitboard::{Bitboard, BitboardTrait};
 use super::shared::helper_func::const_utility::FEN_START;
 use super::shared::helper_func::print_utility::split_on;
 use super::shared::structures::internal_move::InternalMove;
-pub type PiecePosition = u64;
-pub type Bitboard = u64;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Game {
     pub squares: [Square; 64],
-    pub occupancy: [u64; 2],
-    pub piece_bitboard: [[u64; 6]; 2],
+    pub occupancy: [Bitboard; 2],
+    pub piece_bitboard: [[Bitboard; 6]; 2],
     pub active_color: Color,
     pub castling_rights: CastlingRights,
-    pub en_passant: Option<PiecePosition>,
+    pub en_passant: Option<Bitboard>,
     pub halfmove_clock: usize,
     pub fullmove_number: usize,
 
@@ -55,9 +54,9 @@ impl Game {
 
     pub fn reset_board(&mut self) {
         self.squares = [Square::Empty; 64];
-        self.occupancy = [0 as u64; 2];
+        self.occupancy = [0 as Bitboard; 2];
         // FIXME: Rename it to pieces and use 2D Array
-        self.piece_bitboard = [[0 as u64; 6]; 2];
+        self.piece_bitboard = [[0 as Bitboard; 6]; 2];
 
         self.active_color = Color::White;
         self.castling_rights = CastlingRights::NONE;
@@ -75,8 +74,8 @@ impl Game {
     pub fn read_fen(fen: &str) -> Game {
         let mut game: Game = Game {
             squares: [Square::Empty; 64],
-            occupancy: [0 as u64; 2],
-            piece_bitboard: [[0 as u64; 6]; 2],
+            occupancy: [0 as Bitboard; 2],
+            piece_bitboard: [[0 as Bitboard; 6]; 2],
             active_color: Color::White,
             castling_rights: CastlingRights::NONE,
             en_passant: None,
@@ -147,7 +146,7 @@ impl Game {
                     Some((p_color, p_type)) => {
                         let pos: u64 = 1 << idx;
                         let (c, t): (usize, usize) = (p_color.into(), p_type.into());
-                        game.piece_bitboard[c][t] |= set_bit_sq(game.piece_bitboard[c][t], idx);
+                        game.piece_bitboard[c][t].set_bit(idx);
                         game.squares[idx] =
                             Square::Occupied(Piece::init(p_color, p_type, Some(pos)));
                     }
@@ -160,10 +159,10 @@ impl Game {
         Game::set_occupancy(game, Color::Black);
     }
 
-    pub fn set_occupancy(game: &mut Game, color: Color) {
-        game.occupancy[color as usize] = 0;
-        for bitboard in game.piece_bitboard[color as usize] {
-            game.occupancy[color as usize] |= bitboard;
+    pub fn set_occupancy(&mut self, color: Color) {
+        self.occupancy[color as usize] = 0;
+        for bitboard in self.piece_bitboard[color as usize] {
+            self.occupancy[color as usize].union(bitboard);
         }
     }
 
@@ -242,91 +241,6 @@ impl Game {
     pub fn undo_move() {
         todo!()
     }
-
-    // pub fn move_peace(self: &mut Self, mut piece_position: u64, new_position: usize) {
-    //     let square_idx = bit_scan_lsb(piece_position);
-    //     let square = self.squares[square_idx];
-    //     let piece_idx = match square.square_type {
-    //         SquareType::Empty => panic!("Tried to move a piece from an empty square"),
-    //         SquareType::Occupied(idx) => idx,
-    //     };
-    //     let piece = self.pieces[piece_idx];
-
-    //     self.pieces[piece_idx].position = 1 << new_position;
-
-    //     self.squares[square_idx].square_type = SquareType::Empty;
-
-    //     match self.squares[new_position].square_type {
-    //         SquareType::Empty => {
-    //             self.squares[new_position].square_type = SquareType::Occupied(piece_idx);
-    //         }
-    //         SquareType::Occupied(other_idx) => {
-    //             self.pieces[other_idx].alive = false;
-    //             self.squares[new_position].square_type = SquareType::Occupied(piece_idx);
-    //         }
-    //     }
-
-    //     match self.pieces[piece_idx].piece_type {
-    //         PieceType::Pawn => {
-    //             let (old_row, old_col) = idx_to_position(square_idx as i8, None);
-    //             let (new_row, new_col) = idx_to_position(new_position as i8, None);
-    //             if (old_row - new_row).abs() == 2 {
-    //                 let direction = (new_row - old_row).signum();
-    //                 let pawn_left = self
-    //                     .get_square_piece_type((old_row + 2 * direction, old_col + 1));
-    //                 let pawn_right = self
-    //                     .get_square_piece_type((old_row + 2 * direction, old_col - 1));
-
-    //                 if pawn_left == Some(PieceType::Pawn)
-    //                     || pawn_right == Some(PieceType::Pawn)
-    //                 {
-    //                     self.en_passant = Some(
-    //                         1 << position_to_idx(old_row + 1 * direction, old_col, None),
-    //                     )
-    //                 } else {
-    //                     self.en_passant = None
-    //                 }
-    //             }
-    //         }
-    //         _ => self.en_passant = None,
-    //     }
-    // }
-
-    // pub fn take_en_passant(self: &mut Self, mut piece_position: u64, new_position: u64) {
-    //     let square_idx = bit_scan_lsb(piece_position);
-    //     let square = self.squares[square_idx];
-    //     let piece_idx = match square.square_type {
-    //         SquareType::Empty => panic!("Tried to move a peace from an empty square"),
-    //         SquareType::Occupied(idx) => idx,
-    //     };
-    //     self.pieces[piece_idx].position = 1 << new_position;
-    //     self.squares[square_idx].square_type = SquareType::Empty;
-
-    //     if let SquareType::Occupied(_) =
-    //         self.squares[bit_scan_lsb(new_position)].square_type
-    //     {
-    //         panic!("Tried to take en passant onto an occupied square");
-    //     }
-
-    //     let (old_row, old_col) = idx_to_position(square_idx as i8, None);
-    //     let (new_row, new_col) = idx_to_position(new_position as i8, None);
-    //     let direction = (new_row - old_row).signum();
-
-    //     let taken_square = (new_row - direction, new_col);
-    //     let taken_idx = position_to_idx(taken_square.0, taken_square.1, None) as usize;
-
-    //     match self.squares[taken_idx].square_type {
-    //         SquareType::Occupied(idx) => {
-    //             self.pieces[idx].alive = false;
-    //             self.squares[taken_idx].square_type = SquareType::Empty;
-    //         }
-    //         SquareType::Empty => {
-    //             panic!("Tried to en passant but there was no pawn in expected square")
-    //         }
-    //     }
-
-    //     self.en_passant = None
-    // }
 }
 
 #[cfg(test)]
@@ -349,7 +263,7 @@ mod tests {
         assert_eq!(game.halfmove_clock, 0);
         assert_eq!(game.fullmove_number, 1);
 
-        print_bitboard(game.piece_bitboard[Color::White as usize][PieceType::Pawn as usize], None);
+        game.piece_bitboard[Color::White as usize][PieceType::Pawn as usize].print(None)
     }
 
     #[test]
@@ -361,8 +275,7 @@ mod tests {
         assert_eq!(game.halfmove_clock, 0);
         assert_eq!(game.fullmove_number, 1);
 
-        print_bitboard(game.piece_bitboard[Color::White as usize][PieceType::Pawn as usize], None);
-        print_bitboard(game.piece_bitboard[Color::White as usize][PieceType::Pawn as usize], None);
+        game.piece_bitboard[Color::White as usize][PieceType::Pawn as usize].print(None);
     }
 
     #[test]

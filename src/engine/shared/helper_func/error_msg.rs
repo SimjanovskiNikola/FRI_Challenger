@@ -10,3 +10,7 @@ pub enum Error {
     #[fail(display = "Index not in bounds: {}", idx)]
     InvalidIdxToPos { idx: usize },
 }
+
+// NOTE: IMPROVEMENTS
+// Add More Errors for all panic!
+// Add More panic into the code

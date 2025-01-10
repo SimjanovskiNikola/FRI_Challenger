@@ -1,7 +1,4 @@
-use engine::{
-    game::{self, Game},
-    shared::helper_func::print_utility::print_chess,
-};
+use engine::{game::Game};
 
 pub mod engine;
 

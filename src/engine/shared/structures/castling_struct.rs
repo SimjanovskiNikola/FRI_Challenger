@@ -22,3 +22,6 @@ impl CastlingRights {
         return self.bits() as usize;
     }
 }
+
+// TODO: Add u4
+// NOTE: Remove the Castling Rights struct and add the rights in one u4 integer

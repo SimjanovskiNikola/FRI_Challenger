@@ -3,22 +3,23 @@ use crate::engine::{game::*, shared::helper_func::error_msg::Error};
 use super::const_utility::*;
 
 //DEPRECATE: UGLY
-pub fn notation_to_idx(positions: &[&str]) -> Vec<usize> {
-    let mut pos_idx_arr = vec![];
-    for pos in positions {
-        if pos.len() == 2 {
-            // println!("{:?}", pos.chars().nth(0).unwrap());
-            let file = pos.chars().nth(0).unwrap();
-            let rank = pos.chars().nth(1).unwrap().to_digit(10).unwrap() as usize;
-            let idx = RANK_MAP.get(&file).unwrap() + (rank - 1) * 8;
-            pos_idx_arr.push(idx);
-        } else {
-            panic!("One of the positions is not correct!!!")
-        }
-    }
-    return pos_idx_arr;
-}
+// pub fn notation_to_idx(positions: &[&str]) -> Vec<usize> {
+//     let mut pos_idx_arr = vec![];
+//     for pos in positions {
+//         if pos.len() == 2 {
+//             // println!("{:?}", pos.chars().nth(0).unwrap());
+//             let file = pos.chars().nth(0).unwrap();
+//             let rank = pos.chars().nth(1).unwrap().to_digit(10).unwrap() as usize;
+//             let idx = RANK_MAP.get(&file).unwrap() + (rank - 1) * 8;
+//             pos_idx_arr.push(idx);
+//         } else {
+//             panic!("One of the positions is not correct!!!")
+//         }
+//     }
+//     return pos_idx_arr;
+// }
 
+// DEPRECATE:
 /**
  TEST: Not sure if the resonse is like that, and not sure if this is for the msb or lsb
  Get least segnificant bit from a bitboard(u64);
@@ -30,6 +31,7 @@ pub fn bit_scan_lsb(bitboard: u64) -> usize {
     return MOD67TABLE[(bit % 67) as usize];
 }
 
+// DEPRECATE:
 /**
  TEST: Not sure if the resonse is like that, and not sure if this is for the msb or lsb
  Get most segnificant bit from a bitboard(u64);
@@ -39,6 +41,7 @@ pub fn bit_scan_msb(bitboard: u64) -> usize {
     return (bitboard as f64).log2().floor() as usize;
 }
 
+// DEPRECATE:
 /**
  TEST: Not sure if the resonse is like that
  Extracts all of the bits from a bitboard(u64);
@@ -56,17 +59,20 @@ pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
     return result;
 }
 
+// DEPRECATE:
 pub fn pop_lsb(mut bitboard: u64) -> usize {
     let idx = bit_scan_lsb(bitboard);
     bitboard ^= (1 << bit_scan_lsb(bitboard));
     return idx;
 }
 
+// DEPRECATE:
 pub fn set_bit_sq(mut bitboard: u64, square: usize) -> u64 {
     bitboard |= SET_MASK[square];
     return bitboard;
 }
 
+// DEPRECATE:
 pub fn clear_bit(mut bitboard: u64, square: usize) -> u64 {
     bitboard &= CLEAR_MASK[square];
     return bitboard;
@@ -111,6 +117,7 @@ pub fn include_only_file_rank(bitboard: u64, file: Option<usize>, rank: Option<u
     }
 }
 
+// DEPRECATE:
 pub fn is_bit_set(bitboard: u64, square: usize) -> bool {
     return bitboard & (1 << square) != 0;
 }
@@ -172,7 +179,7 @@ pub fn is_inside_board_bounds_idx(idx: usize) -> bool {
 }
 
 // TODO: Needs a rework in the future
-pub fn position_to_bit(position: &str) -> Result<PiecePosition, String> {
+pub fn position_to_bit(position: &str) -> Result<u64, String> {
     if position.len() != 2 {
         return Err(format!("Invalid length: {}, string: '{}'", position.len(), position));
     }

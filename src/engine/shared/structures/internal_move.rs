@@ -31,4 +31,18 @@ pub struct InternalMove {
 
 pub fn generate_unique_key() {}
 
+// NOTE: If Performance is better without enum and struct
+// Change InternalMove from struct to u128 where you will store all relevant information as one integer
+// 64 bits -> position key (IF NECESSARY)
+// 8 bits -> color and piece
+// 7 bits -> from position
+// 7 bits -> to position
+// 8 bits -> color and piece captured
+// 4 bits -> promotion piece (knight, bishop, rook, queen)
+// 4 bits -> Castling Rights (wKingSIde, wQueenSide, bKingSIde, bQueenSide)
+// 7 bits -> ep position
+// other bits -> maybe for score
+
+
+
 // TODO: Generate position key every time a move is created
