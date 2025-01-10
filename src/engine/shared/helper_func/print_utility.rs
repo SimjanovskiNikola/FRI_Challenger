@@ -11,6 +11,7 @@ use crate::engine::{
     },
 };
 
+//DEPRECATE:
 pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
     println!(
         "Bitboard: \n------Start------\n{}-------End-------",
@@ -18,6 +19,7 @@ pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
     );
 }
 
+//DEPRECATE:
 pub fn bitboard_to_string(bitboard: u64, mark: Option<i8>) -> String {
     let mut row = "".to_owned();
     let mut board = "".to_owned();
@@ -107,3 +109,25 @@ pub fn split_on(s: &str, sep: char) -> (&str, &str) {
     }
     return (&s[..], "");
 }
+
+// NOTE: IMPROVEMENTS
+// Make the board look better like this:
+
+//   +---+---+---+---+---+---+---+---+
+//   | r | n | b | q | k | b | n | r | 8
+//   +---+---+---+---+---+---+---+---+
+//   | p | p | p | p | p | p | p | p | 7
+//   +---+---+---+---+---+---+---+---+
+//   |   |   |   |   |   |   |   |   | 6
+//   +---+---+---+---+---+---+---+---+
+//   |   |   |   |   |   |   |   |   | 5
+//   +---+---+---+---+---+---+---+---+
+//   |   |   |   |   | P |   |   |   | 4
+//   +---+---+---+---+---+---+---+---+
+//   |   |   |   |   |   |   |   |   | 3
+//   +---+---+---+---+---+---+---+---+
+//   | P | P | P | P |   | P | P | P | 2
+//   +---+---+---+---+---+---+---+---+
+//   | R | N | B | Q | K | B | N | R | 1
+//   +---+---+---+---+---+---+---+---+
+//     a   b   c   d   e   f   g   h

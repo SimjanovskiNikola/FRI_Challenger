@@ -6,3 +6,6 @@ pub enum Square {
     Empty,
     Occupied(Piece),
 }
+
+// NOTE: If Performance is better without enum and struct
+// Remove Square and instead use u8 (6 bits for the peaces and 2 for black or white)

@@ -1,17 +1,3 @@
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-// FIXME: RENAME ALL OF THE FUNCTIONS TO HAVE GOOD NAME
-
 use crate::engine::{
     attacks::{
         self,
@@ -22,6 +8,7 @@ use crate::engine::{
     shared::{
         helper_func::{
             bit_pos_utility::*,
+            bitboard::{Bitboard, BitboardTrait},
             const_utility::{File, Rank, SqPos},
             print_utility::{move_notation, print_bitboard, sq_notation},
         },
@@ -65,15 +52,13 @@ fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     return positions;
 }
 
-fn gen_attacks(game: &Game, color: Color) -> u64 {
-    let mut attacked_sq: u64 = 0;
+fn gen_attacks(game: &Game, color: Color) -> Bitboard {
+    let mut attacked_sq: Bitboard = 0;
     for bitboard in game.piece_bitboard[color as usize] {
         for square in extract_all_bits(bitboard) {
-            let piece = match game.squares[square] {
-                Square::Empty => continue,
-                Square::Occupied(piece) => piece,
-            };
-            attacked_sq |= get_all_attacks(piece, game);
+            if let Square::Occupied(piece) = game.squares[square] {
+                attacked_sq.union(get_all_attacks(piece, game));
+            }
         }
     }
     return attacked_sq;

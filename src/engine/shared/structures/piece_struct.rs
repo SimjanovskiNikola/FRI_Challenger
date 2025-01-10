@@ -87,3 +87,10 @@ impl Piece {
         };
     }
 }
+
+// NOTE: If Performance is better without enum and struct
+// Remove Piece, PieceType and Color
+// Make Piece as a u8 type (6 bits for piece and two for color)
+// Create functions where you check what type there are
+// Keep the chess_figure and to_string functions
+// Find alternative for the position (it is mostly used inside the generator)
