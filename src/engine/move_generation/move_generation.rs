@@ -14,7 +14,7 @@ use crate::engine::{
         },
         structures::{
             castling_struct::CastlingRights,
-            internal_move::InternalMove,
+            internal_move::{Flag, InternalMove},
             piece_struct::{self, Color, Piece, PieceType},
             square_struct::Square,
         },
@@ -52,7 +52,7 @@ fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     return positions;
 }
 
-fn gen_attacks(game: &Game, color: Color) -> Bitboard {
+pub fn gen_attacks(game: &Game, color: Color) -> Bitboard {
     let mut attacked_sq: Bitboard = 0;
     for bitboard in game.piece_bitboard[color as usize] {
         for square in extract_all_bits(bitboard) {
@@ -100,7 +100,7 @@ fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalM
     for p_move in potential_moves {
         let mut new_move = InternalMove {
             position_key: 0, //FIXME:
-            active_color: piece.p_color,
+            active_color: game.active_color,
             from: bit_scan_lsb(piece.pos),
             to: p_move,
             piece: *piece,
@@ -109,9 +109,12 @@ fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalM
                 Square::Occupied(piece) => Some(piece),
             },
             promotion: None,
-            ep: None,
-            castle: None,
+            ep: game.en_passant,
+            castle: game.castling_rights,
+            half_move: game.halfmove_clock,
+            flag: Flag::Normal,
         };
+
         match new_move.piece.p_type {
             PieceType::Pawn => {
                 add_ep_move(&mut new_move, game);
@@ -206,7 +209,9 @@ pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
     match mv.piece.p_type {
         PieceType::Pawn => {
             if mv.from.abs_diff(mv.to) == 16 {
-                mv.ep = Some(1 << (mv.from + 8))
+                mv.ep = Some(1 << (mv.from + 8));
+                mv.captured = Some(());
+                mv.flag = Flag::EP;
             }
         }
         _ => (),

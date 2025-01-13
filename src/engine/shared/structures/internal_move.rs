@@ -6,7 +6,7 @@ use super::{
 // Check about BigPawn Flag and what it does
 // DEPRECATE:
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Flags {
+pub enum Flag {
     Normal = 1,
     Capture = 2,
     EP = 4,
@@ -25,11 +25,11 @@ pub struct InternalMove {
     pub captured: Option<Piece>,
     pub promotion: Option<Piece>,
     pub ep: Option<u64>,
-    pub castle: Option<CastlingRights>,
+    pub castle: CastlingRights,
+    pub flag: Flag,
+    pub half_move: usize,
     //TODO: Add Score
 }
-
-pub fn generate_unique_key() {}
 
 // NOTE: If Performance is better without enum and struct
 // Change InternalMove from struct to u128 where you will store all relevant information as one integer
@@ -42,7 +42,5 @@ pub fn generate_unique_key() {}
 // 4 bits -> Castling Rights (wKingSIde, wQueenSide, bKingSIde, bQueenSide)
 // 7 bits -> ep position
 // other bits -> maybe for score
-
-
 
 // TODO: Generate position key every time a move is created
