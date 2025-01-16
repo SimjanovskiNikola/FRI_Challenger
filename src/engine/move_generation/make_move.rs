@@ -7,6 +7,7 @@ use crate::engine::{
             bit_pos_utility::{bit_scan_lsb, is_bit_set},
             bitboard::{Bitboard, BitboardTrait},
             const_utility::SqPos::*,
+            print_utility::{print_bitboard, print_chess},
         },
         structures::{
             castling_struct::CastlingRights,
@@ -32,7 +33,7 @@ lazy_static! {
 }
 
 pub trait GameMoveTrait {
-    fn make_move(&mut self, mv: InternalMove);
+    fn make_move(&mut self, mv: InternalMove) -> bool;
     fn undo_move(&mut self);
     fn generate_pos_key(&self) -> u64;
     fn add_piece(&mut self, sq: usize, piece: Piece);
@@ -41,9 +42,20 @@ pub trait GameMoveTrait {
 }
 
 impl GameMoveTrait for Game {
-    fn make_move(&mut self, mv: InternalMove) {
+    fn make_move(&mut self, mv: InternalMove) -> bool {
+        // if mv.from == 51 && mv.to == 35 && mv.piece.p_type == PieceType::Pawn {
+        //     println!("{:?}", "MAKE MOVE START");
+        //     print_chess(self);
+        // }
+
         match mv.flag {
-            Flag::Normal => self.replace_piece(mv.from, mv.to),
+            Flag::Normal => match self.squares[mv.from] {
+                Square::Empty => {
+                    print_chess(self);
+                    panic!("Panic at Normal Flag {:#?}", mv);
+                }
+                Square::Occupied(_) => self.replace_piece(mv.from, mv.to),
+            },
             Flag::Capture => self.replace_piece(mv.from, mv.to),
             Flag::EP => {
                 self.replace_piece(mv.from, mv.to);
@@ -67,10 +79,18 @@ impl GameMoveTrait for Game {
                     Color::Black => self.replace_piece(H8 as usize, F8 as usize),
                 }
             }
-            Flag::QueenSideCastle => match mv.active_color {
-                Color::White => self.replace_piece(A1 as usize, D1 as usize),
-                Color::Black => self.replace_piece(A8 as usize, D8 as usize),
-            },
+            Flag::QueenSideCastle => {
+                // println!("{:?}", mv.active_color);
+                // print_chess(self);
+
+                self.replace_piece(mv.from, mv.to);
+                match mv.active_color {
+                    Color::White => self.replace_piece(A1 as usize, D1 as usize),
+                    Color::Black => self.replace_piece(A8 as usize, D8 as usize),
+                }
+
+                // print_chess(self);
+            }
         }
 
         self.set_occupancy(Color::White);
@@ -113,7 +133,7 @@ impl GameMoveTrait for Game {
         }
 
         if mv.piece.p_type == PieceType::Pawn && mv.from.abs_diff(mv.to) == 16 {
-            self.en_passant = match self.active_color {
+            self.en_passant = match mv.active_color {
                 Color::White => Some(Bitboard::init(mv.to - 8)),
                 Color::Black => Some(Bitboard::init(mv.to + 8)),
             }
@@ -127,7 +147,7 @@ impl GameMoveTrait for Game {
             self.halfmove_clock = mv.half_move + 1;
         }
 
-        if self.moves.len() % 2 == 1 {
+        if self.moves.len() % 2 == 0 {
             self.fullmove_number += 1;
         }
 
@@ -136,16 +156,34 @@ impl GameMoveTrait for Game {
         let king_sq =
             self.piece_bitboard[mv.active_color as usize][PieceType::King as usize].get_lsb();
 
+        // if mv.from == 51 && mv.to == 35 && mv.piece.p_type == PieceType::Pawn {
+        //     print_chess(self);
+        //     println!("{:?}", "MAKE MOVE END");
+        //     println!(
+        //         "King is attacked: {:?}",
+        //         gen_attacks(self, self.active_color).is_set(king_sq)
+        //     );
+        // }
+
         if gen_attacks(self, self.active_color).is_set(king_sq) {
             self.undo_move();
+            return false;
         }
+
+        return true;
     }
 
     fn undo_move(&mut self) {
+        // println!("Before Taking move: {:#?}", self.moves);
+        // print_chess(self);
+
         let mv = match self.moves.pop() {
             Some(mv) => mv,
             None => return,
         };
+
+        // println!("After Taking move: {:#?}", self.moves);
+        // print_chess(self);
 
         self.fullmove_number -= if self.moves.len() % 2 == 0 { 1 } else { 0 };
         self.halfmove_clock = mv.half_move;
@@ -154,7 +192,14 @@ impl GameMoveTrait for Game {
         self.change_active_color();
 
         match mv.flag {
-            Flag::Normal => self.replace_piece(mv.to, mv.from),
+            // DEPRECATE: Here should be one liner -> Only self.replace
+            Flag::Normal => match self.squares[mv.to] {
+                Square::Empty => {
+                    print_chess(self);
+                    panic!("Panic at Normal Flag {:#?}", mv);
+                }
+                Square::Occupied(_) => self.replace_piece(mv.to, mv.from),
+            },
             Flag::Capture => {
                 self.replace_piece(mv.to, mv.from);
                 match mv.captured {
@@ -175,7 +220,7 @@ impl GameMoveTrait for Game {
                 self.clear_piece(mv.to);
                 match mv.captured {
                     Some(piece) => self.add_piece(mv.to, piece),
-                    None => panic!("Error regarding placing back ep move"),
+                    None => (),
                 }
                 self.add_piece(mv.from, mv.piece);
             }
@@ -204,20 +249,31 @@ impl GameMoveTrait for Game {
             Square::Empty => (),
             Square::Occupied(_) => self.clear_piece(sq),
         }
-        self.squares[sq] = Square::Occupied(piece);
+        self.squares[sq] = Square::Occupied(Piece { pos: 1 << sq, ..piece });
         self.piece_bitboard[piece.p_color as usize][piece.p_type as usize].set_bit(sq);
     }
 
     fn clear_piece(&mut self, sq: usize) {
-        if let Square::Occupied(piece) = self.squares[sq] {
-            self.piece_bitboard[piece.p_color as usize][piece.p_type as usize].clear_bit(sq);
-            self.squares[sq] = Square::Empty;
+        match self.squares[sq] {
+            Square::Empty => {
+                panic!("Clearing a Peace that does not exist")
+            }
+            Square::Occupied(piece) => {
+                self.piece_bitboard[piece.p_color as usize][piece.p_type as usize].clear_bit(sq);
+                self.squares[sq] = Square::Empty;
+            }
         }
     }
 
     fn replace_piece(&mut self, from_sq: usize, to_sq: usize) {
         let piece = match self.squares[from_sq] {
-            Square::Empty => panic!("There is no piece on this specific square"),
+            Square::Empty => {
+                print_chess(&self);
+                panic!(
+                    "There is no piece on square: {:#?}, \n other data: {:#?}",
+                    from_sq, self.squares[from_sq]
+                )
+            }
             Square::Occupied(piece) => piece,
         };
 
@@ -230,9 +286,9 @@ impl GameMoveTrait for Game {
 
         for idx in 0..64 {
             if let Square::Occupied(piece) = self.squares[idx] {
-                if piece.pos == 0 {
-                    panic!("Something wrong with the position of the peace")
-                }
+                // if piece.pos == 0 {
+                //     panic!("Something wrong with the position of the peace")
+                // }
                 final_key ^= PieceKeys[idx][piece.p_color as usize][piece.p_type as usize];
             }
         }
@@ -252,55 +308,3 @@ impl GameMoveTrait for Game {
         return final_key;
     }
 }
-
-//  let mut new_move = InternalMove {
-//             position_key: 0,
-//             active_color: piece.p_color,
-//             from: bit_scan_lsb(piece.pos),
-//             to: p_move,
-//             piece: *piece,
-//             captured: match game.squares[p_move] {
-//                 Square::Empty => None,
-//                 Square::Occupied(piece) => Some(piece),
-//             },
-//             promotion: None, //NOTE:
-//             ep: None, //NOTE:
-//             castle: None, //NOTE:
-//         };
-
-//     pub squares: [Square; 64],
-//     pub occupancy: [u64; 2],
-//     pub piece_bitboard: [[u64; 6]; 2],
-//     pub active_color: Color,
-//     pub castling_rights: CastlingRights,
-//     pub en_passant: Option<PiecePosition>,
-//     pub halfmove_clock: usize,
-//     pub fullmove_number: usize,
-
-//     pub moves: Vec<InternalMove>,
-
-// game holds the current state of the game after making a move or reading a fen string
-
-// With that being said internal_move should hold data that tells what is changed inside game and how to take that back
-
-// fn Make_move should change the state of the game forward
-
-// fn Undo_move should change the state of the game backward. Steps for taking the step back:
-// 1. Take away from move the last made move
-// 2. Take the fullmove_number by one (Or check if i should wait to hit certain color)
-// 3. Take half_move counter from the last made move
-// 4. Take and place if there was an elPassant move before the move
-// 5. Take and place the castling rights that were before making the move
-// 6. Change the color back
-// 7. Change the piece_board and squares and update occupancy
-
-//     pub squares: [Square; 64],
-//     pub occupancy: [Bitboard; 2],
-//     pub piece_bitboard: [[Bitboard; 6]; 2],
-//     pub active_color: Color,
-//     pub castling_rights: CastlingRights,
-//     pub en_passant: Option<Bitboard>,
-//     pub halfmove_clock: usize,
-//     pub fullmove_number: usize,
-
-//     pub moves: Vec<InternalMove>,

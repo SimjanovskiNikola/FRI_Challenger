@@ -5,6 +5,7 @@ use crate::engine::{
     shared::{
         helper_func::{bit_pos_utility::*, const_utility::FILE_LETTERS},
         structures::{
+            internal_move::InternalMove,
             piece_struct::{Color, Piece, PieceType},
             square_struct::Square,
         },
@@ -26,7 +27,7 @@ pub fn bitboard_to_string(bitboard: u64, mark: Option<i8>) -> String {
 
     for i in 0..64 {
         let value = (bitboard >> i) & 1;
-        let s = if value == 0 { ". ".to_owned() } else { format!("{} ", value.to_string()) };
+        let s = if value == 0 { ".".to_owned() } else { value.to_string() };
         match mark {
             Some(idx) => {
                 if i == idx {
@@ -95,8 +96,8 @@ pub fn move_notation(sq_from: usize, sq_to: usize, promotion: Option<Piece>) -> 
     }
 }
 
-pub fn print_move_list(game: &Game) {
-    for (idx, mv) in game.moves.iter().enumerate() {
+pub fn print_move_list(moves: Vec<InternalMove>) {
+    for (idx, mv) in moves.iter().enumerate() {
         println!("{}. Move: {}, (Score: {})", idx, move_notation(mv.from, mv.to, mv.promotion), 0);
     }
 }
