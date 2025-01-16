@@ -3,6 +3,7 @@
     "editor.fontWeight": "normal",
     "editor.fontVariations": false,
     "cSpell.words": [
-        "bitboard"
+        "bitboard",
+        "perft"
     ]
 }

@@ -10,11 +10,11 @@ use crate::engine::{
             bit_pos_utility::*,
             bitboard::{Bitboard, BitboardTrait},
             const_utility::{File, Rank, SqPos},
-            print_utility::{move_notation, print_bitboard, sq_notation},
+            print_utility::{move_notation, print_bitboard, print_chess, sq_notation},
         },
         structures::{
             castling_struct::CastlingRights,
-            internal_move::InternalMove,
+            internal_move::{Flag, InternalMove},
             piece_struct::{self, Color, Piece, PieceType},
             square_struct::Square,
         },
@@ -34,7 +34,10 @@ macro_rules! get_attacks {
     };
 }
 
-fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
+pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
+    // println!("{:?}", "Here");
+    // print_chess(game);
+
     let mut positions: Vec<InternalMove> = vec![];
 
     for bitboard in game.piece_bitboard[color as usize] {
@@ -52,7 +55,7 @@ fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     return positions;
 }
 
-fn gen_attacks(game: &Game, color: Color) -> Bitboard {
+pub fn gen_attacks(game: &Game, color: Color) -> Bitboard {
     let mut attacked_sq: Bitboard = 0;
     for bitboard in game.piece_bitboard[color as usize] {
         for square in extract_all_bits(bitboard) {
@@ -100,7 +103,7 @@ fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalM
     for p_move in potential_moves {
         let mut new_move = InternalMove {
             position_key: 0, //FIXME:
-            active_color: piece.p_color,
+            active_color: game.active_color,
             from: bit_scan_lsb(piece.pos),
             to: p_move,
             piece: *piece,
@@ -109,9 +112,15 @@ fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalM
                 Square::Occupied(piece) => Some(piece),
             },
             promotion: None,
-            ep: None,
-            castle: None,
+            ep: game.en_passant,
+            castle: game.castling_rights,
+            half_move: game.halfmove_clock,
+            flag: match game.squares[p_move] {
+                Square::Empty => Flag::Normal,
+                Square::Occupied(_) => Flag::Capture,
+            },
         };
+
         match new_move.piece.p_type {
             PieceType::Pawn => {
                 add_ep_move(&mut new_move, game);
@@ -129,39 +138,39 @@ fn get_internal_moves(attacks: u64, piece: &Piece, game: &Game) -> Vec<InternalM
 #[rustfmt::skip]
 pub fn add_castling_moves(piece: &Piece, game: &Game) -> Vec<InternalMove> {
     let mut new_positions = vec![];
+    let mut mv = InternalMove {
+            position_key: 0, 
+            active_color: game.active_color,
+            from: bit_scan_lsb(piece.pos),
+            to: 0,
+            piece: *piece,
+            captured: None,
+            promotion: None,
+            ep: game.en_passant,
+            castle: game.castling_rights,
+            half_move: game.halfmove_clock,
+            flag: Flag::Normal,
+        };
 
-    match piece.p_color {
+    match mv.active_color {
         Color::White => {
             let attacked_sq = gen_attacks(game, Color::Black);
             if (game.castling_rights.bits() & CastlingRights::WKINGSIDE.bits() != 0) && 
                (game.squares[SqPos::F1 as usize] == Square::Empty && game.squares[SqPos::G1 as usize] == Square::Empty) && 
-               (!is_bit_set(attacked_sq, SqPos::E1 as usize) && !is_bit_set(attacked_sq, SqPos::F1 as usize)){
+               (!is_bit_set(attacked_sq, SqPos::E1 as usize) && !is_bit_set(attacked_sq, SqPos::F1 as usize) && !is_bit_set(attacked_sq, SqPos::G1 as usize)){
                new_positions.push(InternalMove {
-                    position_key: 0, //FIXME:
-                    active_color: piece.p_color,
-                    from: bit_scan_lsb(piece.pos),
                     to: SqPos::G1 as usize,
-                    piece: *piece,
-                    captured: None,
-                    promotion: None,
-                    ep: None,
-                    castle: Some(CastlingRights::WKINGSIDE),
+                    flag: Flag::KingSideCastle,
+                    ..mv
                 });
             }
             if (game.castling_rights.bits() & CastlingRights::WQUEENSIDE.bits() != 0) && 
                (game.squares[SqPos::D1 as usize] == Square::Empty && game.squares[SqPos::C1 as usize] == Square::Empty && game.squares[SqPos::B1 as usize] == Square::Empty) && 
-               (!is_bit_set(attacked_sq, SqPos::E1 as usize) && !is_bit_set(attacked_sq, SqPos::D1 as usize)){
+               (!is_bit_set(attacked_sq, SqPos::E1 as usize) && !is_bit_set(attacked_sq, SqPos::D1 as usize) && !is_bit_set(attacked_sq, SqPos::C1 as usize)){
                 new_positions.push(InternalMove {
-                    position_key: 0, //FIXME:
-                    active_color: piece.p_color,
-                    from: bit_scan_lsb(piece.pos),
                     to: SqPos::C1 as usize,
-                    piece: *piece,
-                    captured: None,
-                    promotion: None,
-                    ep: None,
-                    castle: Some(CastlingRights::WQUEENSIDE),
-
+                    flag: Flag::QueenSideCastle,
+                    ..mv
                 });
             }
         }
@@ -169,47 +178,60 @@ pub fn add_castling_moves(piece: &Piece, game: &Game) -> Vec<InternalMove> {
             let attacked_sq = gen_attacks(game, Color::White);
             if (game.castling_rights.bits() & CastlingRights::BKINGSIDE.bits() != 0) && 
                (game.squares[SqPos::F8 as usize] == Square::Empty && game.squares[SqPos::G8 as usize] == Square::Empty) && 
-               (!is_bit_set(attacked_sq, SqPos::E8 as usize) && !is_bit_set(attacked_sq, SqPos::F8 as usize)){
+               (!is_bit_set(attacked_sq, SqPos::E8 as usize) && !is_bit_set(attacked_sq, SqPos::F8 as usize) && !is_bit_set(attacked_sq, SqPos::G8 as usize)){
                new_positions.push(InternalMove {
-                    position_key: 0, //FIXME:
-                    active_color: piece.p_color,
-                    from: bit_scan_lsb(piece.pos),
                     to: SqPos::G8 as usize,
-                    piece: *piece,
-                    captured: None,
-                    promotion: None,
-                    ep: None,
-                    castle: Some(CastlingRights::BKINGSIDE),
+                    flag: Flag::KingSideCastle,
+                    ..mv
                 });
             }
             if (game.castling_rights.bits() & CastlingRights::BQUEENSIDE.bits() != 0) && 
                (game.squares[SqPos::D8 as usize] == Square::Empty && game.squares[SqPos::C8 as usize] == Square::Empty && game.squares[SqPos::B8 as usize] == Square::Empty) && 
-               (!is_bit_set(attacked_sq, SqPos::E8 as usize) && !is_bit_set(attacked_sq, SqPos::D8 as usize)){
+               (!is_bit_set(attacked_sq, SqPos::E8 as usize) && !is_bit_set(attacked_sq, SqPos::D8 as usize) && !is_bit_set(attacked_sq, SqPos::C8 as usize)){
                new_positions.push(InternalMove {
-                    position_key: 0, //FIXME:
-                    active_color: piece.p_color,
-                    from: bit_scan_lsb(piece.pos),
-                    to: SqPos::C1 as usize,
-                    piece: *piece,
-                    captured: None,
-                    promotion: None,
-                    ep: None,
-                    castle: Some(CastlingRights::BQUEENSIDE),
+                    to: SqPos::C8 as usize,
+                    flag: Flag::QueenSideCastle,
+                    ..mv
                 });
             }
         }
     }
+
+    // println!("{:#?}", new_positions);
     return new_positions;
 }
 
 pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
-    match mv.piece.p_type {
-        PieceType::Pawn => {
-            if mv.from.abs_diff(mv.to) == 16 {
-                mv.ep = Some(1 << (mv.from + 8))
+    // if game.en_passant == Some(33554432) {
+    //     println!("{:?}", game.en_passant);
+    // }
+    match (mv.piece.p_type, game.en_passant) {
+        (PieceType::Pawn, Some(bb)) => {
+            if mv.to == bb.get_lsb() {
+                mv.flag = Flag::EP;
+                match mv.active_color {
+                    Color::White => match game.squares[bb.get_lsb() - 8] {
+                        Square::Empty => {
+                            print_chess(game);
+                            println!("EP Move: {:?}", bb.get_lsb());
+                            println!("Move: {:?}", bb.get_lsb() - 8);
+                            panic!("No Pawn on a specified place")
+                        }
+                        Square::Occupied(piece) => mv.captured = Some(piece),
+                    },
+                    Color::Black => match game.squares[bb.get_lsb() + 8] {
+                        Square::Empty => {
+                            print_chess(game);
+                            println!("EP Move: {:?}", bb.get_lsb());
+                            println!("Move: {:?}", bb.get_lsb() + 8);
+                            panic!("No Pawn on a specified place")
+                        }
+                        Square::Occupied(piece) => mv.captured = Some(piece),
+                    },
+                }
             }
         }
-        _ => (),
+        (_, _) => (),
     };
 }
 pub fn add_promotion_move(mv: &InternalMove, game: &Game) -> Vec<InternalMove> {
@@ -220,18 +242,22 @@ pub fn add_promotion_move(mv: &InternalMove, game: &Game) -> Vec<InternalMove> {
     {
         new_moves.push(InternalMove {
             promotion: Some(Piece { p_type: PieceType::Queen, ..mv.piece }),
+            flag: Flag::Promotion,
             ..*mv
         });
         new_moves.push(InternalMove {
             promotion: Some(Piece { p_type: PieceType::Rook, ..mv.piece }),
+            flag: Flag::Promotion,
             ..*mv
         });
         new_moves.push(InternalMove {
             promotion: Some(Piece { p_type: PieceType::Bishop, ..mv.piece }),
+            flag: Flag::Promotion,
             ..*mv
         });
         new_moves.push(InternalMove {
             promotion: Some(Piece { p_type: PieceType::Knight, ..mv.piece }),
+            flag: Flag::Promotion,
             ..*mv
         });
     } else {
@@ -319,8 +345,6 @@ fn gen_bishop_mov_att(piece: &Piece, game: &Game) -> u64 {
     get_attacks!(ne_rays, true, piece, game, attacks);
     get_attacks!(se_rays, false, piece, game, attacks);
 
-    println!("{:?}", attacks);
-
     return attacks;
 }
 
@@ -342,15 +366,11 @@ fn gen_queen_mov_att(piece: &Piece, game: &Game) -> u64 {
 }
 
 fn gen_king_mov_att(piece: &Piece, game: &Game) -> u64 {
-    // FIXME: Cannot go to the places that is attacked
     let idx = bit_scan_lsb(piece.pos);
     let mut attacks = ATTACKS.king_attacks.king_attacks[idx];
 
-    println!("{:?}", attacks);
-
     let (own_occupancy, _) = get_occupancy(piece, game);
     attacks &= !own_occupancy;
-
     return attacks;
 }
 
@@ -384,27 +404,27 @@ mod tests {
 
     #[test]
     fn test_white_pawns_mv_gen() {
-        let mut game = Game::read_fen(&FEN_PAWNS_WHITE);
-        game.moves = gen_moves(Color::White, &game);
-        assert_eq!(26, game.moves.len());
-        print_move_list(&game);
+        let game = Game::read_fen(&FEN_PAWNS_WHITE);
+        let moves = gen_moves(Color::White, &game);
+        assert_eq!(26, moves.len());
+        print_move_list(moves);
     }
 
     #[test]
     fn test_mv_gen() {
-        let mut game = Game::read_fen(&FEN_CASTLE_TWO);
-        game.moves = gen_moves(Color::White, &game);
-        assert_eq!(48, game.moves.len());
+        let game = Game::read_fen(&FEN_CASTLE_TWO);
+        let moves = gen_moves(Color::White, &game);
+        assert_eq!(48, moves.len());
         print_chess(&game);
-        print_move_list(&game);
+        print_move_list(moves);
     }
 
     #[test]
     fn test_white_black_mv_gen() {
-        let mut game = Game::read_fen(&FEN_PAWNS_BLACK);
-        game.moves = gen_moves(Color::Black, &game);
-        assert_eq!(26, game.moves.len());
-        print_move_list(&game);
+        let game = Game::read_fen(&FEN_PAWNS_BLACK);
+        let moves = gen_moves(Color::Black, &game);
+        assert_eq!(26, moves.len());
+        print_move_list(moves);
     }
 
     #[test]
