@@ -1,1 +1,1 @@
-# inFx Chess Engine
+# Simple Man Chess Engine
