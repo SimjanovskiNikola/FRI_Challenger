@@ -1,24 +1,23 @@
 use core::panic;
-use std::{io::Empty, usize};
-use crate::engine::shared::helper_func::bit_pos_utility::bit_scan_lsb;
-use crate::engine::shared::helper_func::print_utility::bitboard_to_string;
+use std::usize;
 
 use crate::{
     engine::shared::helper_func::bit_pos_utility::position_to_bit,
     engine::shared::structures::castling_struct::CastlingRights,
-    engine::shared::structures::piece_struct::*, engine::shared::structures::square_struct::*,
+    engine::shared::structures::piece::*, engine::shared::structures::square::*,
 };
 
-use super::shared::helper_func::bit_pos_utility::{idx_to_position, position_to_idx, set_bit_sq};
 use super::shared::helper_func::bitboard::{Bitboard, BitboardTrait};
 use super::shared::helper_func::const_utility::FEN_START;
-use super::shared::helper_func::print_utility::split_on;
+use super::shared::helper_func::print_utility::*;
+use super::shared::structures::color::{Color, BLACK, WHITE};
 use super::shared::structures::internal_move::InternalMove;
+use super::shared::structures::piece;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Game {
     pub squares: [Square; 64],
     pub occupancy: [Bitboard; 2],
-    pub piece_bitboard: [[Bitboard; 6]; 2],
+    pub bitboard: [Bitboard; 14],
     pub active_color: Color,
     pub castling_rights: CastlingRights,
     pub en_passant: Option<Bitboard>,
@@ -56,9 +55,8 @@ impl Game {
         self.squares = [Square::Empty; 64];
         self.occupancy = [0 as Bitboard; 2];
         // FIXME: Rename it to pieces and use 2D Array
-        self.piece_bitboard = [[0 as Bitboard; 6]; 2];
-
-        self.active_color = Color::White;
+        self.bitboard = [0 as Bitboard; 14];
+        self.active_color = WHITE;
         self.castling_rights = CastlingRights::NONE;
         self.en_passant = None;
         self.halfmove_clock = 0;
@@ -75,8 +73,8 @@ impl Game {
         let mut game: Game = Game {
             squares: [Square::Empty; 64],
             occupancy: [0 as Bitboard; 2],
-            piece_bitboard: [[0 as Bitboard; 6]; 2],
-            active_color: Color::White,
+            bitboard: [0 as Bitboard; 14],
+            active_color: WHITE,
             castling_rights: CastlingRights::NONE,
             en_passant: None,
             halfmove_clock: 0,
@@ -118,20 +116,20 @@ impl Game {
         for row in position.splitn(8, '/') {
             for ch in row.chars().rev() {
                 idx -= 1;
-                let mut piece: Option<(Color, PieceType)> = None;
+                let mut piece: Option<Piece> = None;
                 match ch {
-                    'p' => piece = Some((Color::Black, PieceType::Pawn)),
-                    'n' => piece = Some((Color::Black, PieceType::Knight)),
-                    'b' => piece = Some((Color::Black, PieceType::Bishop)),
-                    'r' => piece = Some((Color::Black, PieceType::Rook)),
-                    'q' => piece = Some((Color::Black, PieceType::Queen)),
-                    'k' => piece = Some((Color::Black, PieceType::King)),
-                    'P' => piece = Some((Color::White, PieceType::Pawn)),
-                    'N' => piece = Some((Color::White, PieceType::Knight)),
-                    'B' => piece = Some((Color::White, PieceType::Bishop)),
-                    'R' => piece = Some((Color::White, PieceType::Rook)),
-                    'Q' => piece = Some((Color::White, PieceType::Queen)),
-                    'K' => piece = Some((Color::White, PieceType::King)),
+                    'p' => piece = Some(BLACK_PAWN),
+                    'n' => piece = Some(BLACK_KNIGHT),
+                    'b' => piece = Some(BLACK_BISHOP),
+                    'r' => piece = Some(BLACK_ROOK),
+                    'q' => piece = Some(BLACK_QUEEN),
+                    'k' => piece = Some(BLACK_KING),
+                    'P' => piece = Some(WHITE_PAWN),
+                    'N' => piece = Some(WHITE_KNIGHT),
+                    'B' => piece = Some(WHITE_BISHOP),
+                    'R' => piece = Some(WHITE_ROOK),
+                    'Q' => piece = Some(WHITE_QUEEN),
+                    'K' => piece = Some(WHITE_KING),
                     '1' => idx -= 0,
                     '2' => idx -= 1,
                     '3' => idx -= 2,
@@ -143,34 +141,31 @@ impl Game {
                     c => panic!("Invalid Character: {c}"),
                 };
                 match piece {
-                    Some((p_color, p_type)) => {
-                        let pos: u64 = 1 << idx;
-                        let (c, t): (usize, usize) = (p_color.into(), p_type.into());
-                        game.piece_bitboard[c][t].set_bit(idx);
-                        game.squares[idx] =
-                            Square::Occupied(Piece::init(p_color, p_type, Some(pos)));
+                    Some(piece) => {
+                        game.bitboard[piece.idx()].set_bit(idx);
+                        game.squares[idx] = Square::Occupied(piece);
                     }
                     _ => (),
                 }
             }
         }
 
-        Game::set_occupancy(game, Color::White);
-        Game::set_occupancy(game, Color::Black);
+        Game::set_occupancy(game, WHITE);
+        Game::set_occupancy(game, BLACK);
     }
 
     pub fn set_occupancy(&mut self, color: Color) {
         self.occupancy[color as usize] = 0;
-        for bitboard in self.piece_bitboard[color as usize] {
-            self.occupancy[color as usize].union(bitboard);
+        for idx in ((color as usize)..self.bitboard.len()).step_by(2) {
+            self.occupancy[color as usize].union(self.bitboard[idx]);
         }
     }
 
     // NOTE: Sets the active color of the Fen String
-    pub fn set_active_color(mut game: &mut Game, active_color: &str) {
+    pub fn set_active_color(game: &mut Game, active_color: &str) {
         game.active_color = match active_color {
-            "w" => Color::White,
-            "b" => Color::Black,
+            "w" => WHITE,
+            "b" => BLACK,
             _ => panic!("Unknown color: {}", active_color),
         };
     }
@@ -257,25 +252,25 @@ mod tests {
         let game = Game::initialize();
         // TODO: Add Square Assertion
         // TODO: Add Piece Assertion
-        assert_eq!(game.active_color, Color::White);
+        assert_eq!(game.active_color, WHITE);
         assert_eq!(game.castling_rights.as_usize(), CastlingRights::ALL.as_usize()); //FIXME: The casteling rights are not summed together
         assert_eq!(game.en_passant, None);
         assert_eq!(game.halfmove_clock, 0);
         assert_eq!(game.fullmove_number, 1);
 
-        game.piece_bitboard[Color::White as usize][PieceType::Pawn as usize].print(None)
+        game.bitboard[WHITE_PAWN.idx()].print(None)
     }
 
     #[test]
     fn test_fen_middle_game() {
         let game = Game::read_fen(FEN_MIDDLE_GAME);
-        assert_eq!(game.active_color, Color::White);
+        assert_eq!(game.active_color, WHITE);
         assert_eq!(game.castling_rights.as_usize(), CastlingRights::ALL.as_usize()); //FIXME: The casteling rights are not summed together
         assert_eq!(game.en_passant, None);
         assert_eq!(game.halfmove_clock, 0);
         assert_eq!(game.fullmove_number, 1);
 
-        game.piece_bitboard[Color::White as usize][PieceType::Pawn as usize].print(None);
+        game.bitboard[WHITE_PAWN.idx()].print(None);
     }
 
     #[test]
@@ -292,8 +287,8 @@ mod tests {
             black_occupancy |= 1 << i;
         }
 
-        assert_eq!(game.occupancy[Color::White as usize], white_occupancy);
-        assert_eq!(game.occupancy[Color::Black as usize], black_occupancy);
+        assert_eq!(game.occupancy[WHITE.idx()], white_occupancy);
+        assert_eq!(game.occupancy[BLACK.idx()], black_occupancy);
 
         println!("{}", bitboard_to_string(black_occupancy, None))
     }

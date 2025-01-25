@@ -1,16 +1,11 @@
 use std::array;
 
-use crate::engine::{
-    game::Game,
-    shared::{
-        helper_func::{bit_pos_utility::*, const_utility::FILE_LETTERS},
-        structures::{
-            internal_move::InternalMove,
-            piece_struct::{Color, Piece, PieceType},
-            square_struct::Square,
-        },
-    },
-};
+use crate::engine::game::*;
+use crate::engine::shared::helper_func::bit_pos_utility::*;
+use crate::engine::shared::helper_func::const_utility::*;
+use crate::engine::shared::structures::internal_move::*;
+use crate::engine::shared::structures::piece::*;
+use crate::engine::shared::structures::square::*;
 
 //DEPRECATE:
 pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
@@ -51,15 +46,11 @@ pub fn bitboard_to_string(bitboard: u64, mark: Option<i8>) -> String {
 pub fn print_chess(game: &Game) {
     let mut chess_board: [String; 64] = array::from_fn(|_| ".".to_string());
 
-    for i in 0..2 {
-        for bitboard in game.piece_bitboard[i] {
-            for pos in extract_all_bits(bitboard) {
-                match game.squares[pos] {
-                    Square::Empty => continue,
-                    Square::Occupied(piece) => chess_board[pos] = piece.chess_figure(),
-                };
-            }
-        }
+    for (idx, sq) in game.squares.iter().enumerate() {
+        match sq {
+            Square::Empty => continue,
+            Square::Occupied(piece) => chess_board[idx] = piece.to_figure(),
+        };
     }
 
     for i in (0..9).rev() {

@@ -1,18 +1,10 @@
-use crate::engine::{game::Game, shared::structures::piece_struct::Color};
+use crate::engine::game::Game;
 
 pub trait FenTrait {
-    fn change_active_color(&mut self);
     fn set_en_passant(&mut self, sq: Option<usize>);
 }
 
 impl FenTrait for Game {
-    fn change_active_color(&mut self) {
-        match self.active_color {
-            Color::White => self.active_color = Color::Black,
-            Color::Black => self.active_color = Color::White,
-        }
-    }
-
     fn set_en_passant(&mut self, sq: Option<usize>) {
         // TODO: Add Validation
         match sq {

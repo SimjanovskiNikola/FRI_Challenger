@@ -11,9 +11,10 @@ use crate::engine::{
         },
         structures::{
             castling_struct::CastlingRights,
+            color::{Color, BLACK, WHITE},
             internal_move::{Flag, InternalMove},
-            piece_struct::{Color, Piece, PieceType},
-            square_struct::Square,
+            piece::{Piece, PieceTrait, KING},
+            square::Square,
         },
     },
 };
@@ -26,14 +27,14 @@ use rand::Rng;
 use super::{fen::FenTrait, move_generation::gen_attacks};
 
 lazy_static! {
-    pub static ref PieceKeys: [[[u64; 6]; 2]; 64] = [[[rand::thread_rng().gen(); 6]; 2]; 64];
+    pub static ref PieceKeys: [[u64; 14]; 64] = [[rand::thread_rng().gen(); 14]; 64];
     pub static ref EpKeys: [u64; 64] = [rand::thread_rng().gen(); 64];
     pub static ref CastleKeys: [u64; 16] = [rand::thread_rng().gen(); 16];
     pub static ref SideKey: u64 = rand::thread_rng().gen();
 }
 
 pub trait GameMoveTrait {
-    fn make_move(&mut self, mv: InternalMove) -> bool;
+    fn make_move(&mut self, mv: &mut InternalMove) -> bool;
     fn undo_move(&mut self);
     fn generate_pos_key(&self) -> u64;
     fn add_piece(&mut self, sq: usize, piece: Piece);
@@ -42,7 +43,7 @@ pub trait GameMoveTrait {
 }
 
 impl GameMoveTrait for Game {
-    fn make_move(&mut self, mv: InternalMove) -> bool {
+    fn make_move(&mut self, mv: &mut InternalMove) -> bool {
         // if mv.from == 51 && mv.to == 35 && mv.piece.p_type == PieceType::Pawn {
         //     println!("{:?}", "MAKE MOVE START");
         //     print_chess(self);
@@ -60,8 +61,9 @@ impl GameMoveTrait for Game {
             Flag::EP => {
                 self.replace_piece(mv.from, mv.to);
                 match mv.active_color {
-                    Color::White => self.clear_piece(mv.to - 8),
-                    Color::Black => self.clear_piece(mv.to + 8),
+                    WHITE => self.clear_piece(mv.to - 8),
+                    BLACK => self.clear_piece(mv.to + 8),
+                    _ => panic!("Invalid Color"),
                 }
             }
             Flag::Promotion => {
@@ -75,8 +77,9 @@ impl GameMoveTrait for Game {
             Flag::KingSideCastle => {
                 self.replace_piece(mv.from, mv.to);
                 match mv.active_color {
-                    Color::White => self.replace_piece(H1 as usize, F1 as usize),
-                    Color::Black => self.replace_piece(H8 as usize, F8 as usize),
+                    WHITE => self.replace_piece(H1 as usize, F1 as usize),
+                    BLACK => self.replace_piece(H8 as usize, F8 as usize),
+                    _ => panic!("Invalid Color"),
                 }
             }
             Flag::QueenSideCastle => {
@@ -85,25 +88,26 @@ impl GameMoveTrait for Game {
 
                 self.replace_piece(mv.from, mv.to);
                 match mv.active_color {
-                    Color::White => self.replace_piece(A1 as usize, D1 as usize),
-                    Color::Black => self.replace_piece(A8 as usize, D8 as usize),
+                    WHITE => self.replace_piece(A1 as usize, D1 as usize),
+                    BLACK => self.replace_piece(A8 as usize, D8 as usize),
+                    _ => panic!("Invalid Color"),
                 }
 
                 // print_chess(self);
             }
         }
 
-        self.set_occupancy(Color::White);
-        self.set_occupancy(Color::Black);
+        self.set_occupancy(WHITE);
+        self.set_occupancy(BLACK);
 
-        self.change_active_color();
+        self.active_color.change_color();
 
         //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
         let castle_tuple: [(usize, usize, CastlingRights, Color); 4] = [
-            (H1 as usize, E1 as usize, CastlingRights::WKINGSIDE, Color::White),
-            (A1 as usize, E1 as usize, CastlingRights::WQUEENSIDE, Color::White),
-            (H8 as usize, E8 as usize, CastlingRights::BKINGSIDE, Color::Black),
-            (A8 as usize, E8 as usize, CastlingRights::BQUEENSIDE, Color::Black),
+            (H1 as usize, E1 as usize, CastlingRights::WKINGSIDE, WHITE),
+            (A1 as usize, E1 as usize, CastlingRights::WQUEENSIDE, WHITE),
+            (H8 as usize, E8 as usize, CastlingRights::BKINGSIDE, BLACK),
+            (A8 as usize, E8 as usize, CastlingRights::BQUEENSIDE, BLACK),
         ];
         for c in castle_tuple {
             let mut clear_castle = false;
@@ -113,7 +117,7 @@ impl GameMoveTrait for Game {
             match self.squares[c.1] {
                 Square::Empty => clear_castle = true,
                 Square::Occupied(piece) => {
-                    if piece.p_type != PieceType::King {
+                    if !piece.is_king() {
                         clear_castle = true
                     }
                 }
@@ -121,7 +125,7 @@ impl GameMoveTrait for Game {
             match self.squares[c.0] {
                 Square::Empty => clear_castle = true,
                 Square::Occupied(piece) => {
-                    if piece.p_type != PieceType::Rook {
+                    if !piece.is_rook() {
                         clear_castle = true
                     }
                 }
@@ -132,16 +136,17 @@ impl GameMoveTrait for Game {
             }
         }
 
-        if mv.piece.p_type == PieceType::Pawn && mv.from.abs_diff(mv.to) == 16 {
+        if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {
             self.en_passant = match mv.active_color {
-                Color::White => Some(Bitboard::init(mv.to - 8)),
-                Color::Black => Some(Bitboard::init(mv.to + 8)),
+                WHITE => Some(Bitboard::init(mv.to - 8)),
+                BLACK => Some(Bitboard::init(mv.to + 8)),
+                _ => panic!("Invalid Color"),
             }
         } else {
             self.en_passant = None
         }
 
-        if mv.piece.p_type == PieceType::Pawn || mv.captured != None {
+        if mv.piece.is_pawn() || mv.captured != None {
             self.halfmove_clock = 0
         } else {
             self.halfmove_clock = mv.half_move + 1;
@@ -151,10 +156,10 @@ impl GameMoveTrait for Game {
             self.fullmove_number += 1;
         }
 
-        self.moves.push(InternalMove { position_key: self.generate_pos_key(), ..mv });
+        mv.position_key = self.generate_pos_key();
+        self.moves.push(*mv);
 
-        let king_sq =
-            self.piece_bitboard[mv.active_color as usize][PieceType::King as usize].get_lsb();
+        let king_sq = self.bitboard[(KING + mv.active_color) as usize].get_lsb();
 
         // if mv.from == 51 && mv.to == 35 && mv.piece.p_type == PieceType::Pawn {
         //     print_chess(self);
@@ -189,7 +194,7 @@ impl GameMoveTrait for Game {
         self.halfmove_clock = mv.half_move;
         self.en_passant = mv.ep;
         self.castling_rights = mv.castle;
-        self.change_active_color();
+        self.active_color.change_color();
 
         match mv.flag {
             // DEPRECATE: Here should be one liner -> Only self.replace
@@ -210,10 +215,9 @@ impl GameMoveTrait for Game {
             Flag::EP => {
                 self.replace_piece(mv.to, mv.from);
                 match (mv.active_color, mv.captured) {
-                    (Color::White, Some(piece)) => self.add_piece(mv.to - 8, piece),
-                    (Color::Black, Some(piece)) => self.add_piece(mv.to + 8, piece),
-                    (Color::Black, None) => panic!("Error regarding placing back ep move"),
-                    (Color::White, None) => panic!("Error regarding placing back ep move"),
+                    (WHITE, Some(piece)) => self.add_piece(mv.to - 8, piece),
+                    (BLACK, Some(piece)) => self.add_piece(mv.to + 8, piece),
+                    (_, _) => panic!("Error regarding placing back ep move"),
                 }
             }
             Flag::Promotion => {
@@ -227,21 +231,23 @@ impl GameMoveTrait for Game {
             Flag::KingSideCastle => {
                 self.replace_piece(mv.to, mv.from);
                 match mv.active_color {
-                    Color::White => self.replace_piece(F1 as usize, H1 as usize),
-                    Color::Black => self.replace_piece(F8 as usize, H8 as usize),
+                    WHITE => self.replace_piece(F1 as usize, H1 as usize),
+                    BLACK => self.replace_piece(F8 as usize, H8 as usize),
+                    _ => panic!("Error there should be only two colors"),
                 }
             }
             Flag::QueenSideCastle => {
                 self.replace_piece(mv.to, mv.from);
                 match mv.active_color {
-                    Color::White => self.replace_piece(D1 as usize, A1 as usize),
-                    Color::Black => self.replace_piece(D8 as usize, A8 as usize),
+                    WHITE => self.replace_piece(D1 as usize, A1 as usize),
+                    BLACK => self.replace_piece(D8 as usize, A8 as usize),
+                    _ => panic!("Error there should be only two colors"),
                 }
             }
         }
 
-        self.set_occupancy(Color::White);
-        self.set_occupancy(Color::Black);
+        self.set_occupancy(WHITE);
+        self.set_occupancy(BLACK);
     }
 
     fn add_piece(&mut self, sq: usize, piece: Piece) {
@@ -249,17 +255,15 @@ impl GameMoveTrait for Game {
             Square::Empty => (),
             Square::Occupied(_) => self.clear_piece(sq),
         }
-        self.squares[sq] = Square::Occupied(Piece { pos: 1 << sq, ..piece });
-        self.piece_bitboard[piece.p_color as usize][piece.p_type as usize].set_bit(sq);
+        self.squares[sq] = Square::Occupied(piece);
+        self.bitboard[piece.idx()].set_bit(sq);
     }
 
     fn clear_piece(&mut self, sq: usize) {
         match self.squares[sq] {
-            Square::Empty => {
-                panic!("Clearing a Peace that does not exist")
-            }
+            Square::Empty => panic!("Clearing a Peace that does not exist"),
             Square::Occupied(piece) => {
-                self.piece_bitboard[piece.p_color as usize][piece.p_type as usize].clear_bit(sq);
+                self.bitboard[piece.idx()].clear_bit(sq);
                 self.squares[sq] = Square::Empty;
             }
         }
@@ -286,14 +290,11 @@ impl GameMoveTrait for Game {
 
         for idx in 0..64 {
             if let Square::Occupied(piece) = self.squares[idx] {
-                // if piece.pos == 0 {
-                //     panic!("Something wrong with the position of the peace")
-                // }
-                final_key ^= PieceKeys[idx][piece.p_color as usize][piece.p_type as usize];
+                final_key ^= PieceKeys[idx][piece.idx()];
             }
         }
 
-        if self.active_color == Color::White {
+        if self.active_color == WHITE {
             final_key ^= *SideKey;
         }
 

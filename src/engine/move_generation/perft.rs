@@ -17,6 +17,7 @@ use super::make_move::GameMoveTrait;
 // O O O O O O O O | 8
 
 pub struct Stats {
+    all_nodes: u64,
     nodes: u64,
     captures: u64,
     ep: u64,
@@ -29,6 +30,7 @@ pub struct Stats {
 impl Stats {
     pub fn init() -> Stats {
         return Stats {
+            all_nodes: 0,
             nodes: 0,
             captures: 0,
             ep: 0,
@@ -37,6 +39,10 @@ impl Stats {
             checks: 0,
             checkmates: 0,
         };
+    }
+
+    pub fn add_all_node(&mut self) {
+        self.all_nodes += 1;
     }
 
     pub fn add_node(&mut self) {
@@ -74,6 +80,8 @@ impl Stats {
 
     pub fn print(&self) {
         println!("----------------------------");
+        println!("All Nodes:    {}", self.all_nodes);
+        println!("----------------------------");
         println!("Nodes:        {}", self.nodes);
         println!("----------------------------");
         println!("Captures:     {}", self.captures);
@@ -88,14 +96,15 @@ impl Stats {
 
 pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
     let mut leaf_nodes: u64 = 0;
+    stats.add_all_node();
 
     if depth == 0 {
         return 1;
     }
 
-    let move_list: Vec<InternalMove> = gen_moves(game.active_color, game);
+    let mut move_list: Vec<InternalMove> = gen_moves(game.active_color, game);
     for i in 0..move_list.len() {
-        if !game.make_move(move_list[i]) {
+        if !game.make_move(&mut move_list[i]) {
             continue;
         }
 

@@ -1,4 +1,7 @@
-use crate::engine::shared::{helper_func::bit_pos_utility::*, structures::piece_struct::*};
+use crate::engine::shared::{
+    helper_func::bit_pos_utility::*,
+    structures::color::{Color, BLACK, WHITE},
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PawnAttacks {
@@ -17,13 +20,13 @@ impl PawnAttacks {
 
         for row in 0..8 {
             for col in 0..8 {
-                let f = forward_move(row, col, Color::White);
-                let d = diagonal_move(row, col, Color::White);
+                let f = forward_move(row, col, WHITE);
+                let d = diagonal_move(row, col, WHITE);
                 w_forward.push(f);
                 w_diagonal.push(d);
 
-                let f = forward_move(row, col, Color::Black);
-                let d = diagonal_move(row, col, Color::Black);
+                let f = forward_move(row, col, BLACK);
+                let d = diagonal_move(row, col, BLACK);
                 b_forward.push(f);
                 b_diagonal.push(d);
             }
@@ -44,7 +47,7 @@ fn forward_move(row: i8, col: i8, piece_color: Color) -> u64 {
     }
 
     let mut bitboard = 0;
-    if piece_color == Color::White {
+    if piece_color == WHITE {
         if row < 7 {
             bitboard |= set_bit(bitboard, row + 1, col + 0);
         }
@@ -68,7 +71,7 @@ fn diagonal_move(row: i8, col: i8, piece_color: Color) -> u64 {
     }
 
     let mut bitboard = 0;
-    if piece_color == Color::White {
+    if piece_color == WHITE {
         if row < 7 {
             bitboard |= set_bit(bitboard, row + 1, col + 1);
             bitboard |= set_bit(bitboard, row + 1, col - 1);
@@ -97,7 +100,7 @@ mod tests {
     fn test_second_row_white_pawn() {
         let row = 1;
         for col in 0..8 {
-            let bitboard = forward_move(row, col, Color::White);
+            let bitboard = forward_move(row, col, WHITE);
             let lsb = bit_scan_lsb(bitboard);
             let msb = bit_scan_msb(bitboard);
             assert_eq!(lsb as i8, position_to_idx(row + 1, col, None));
@@ -109,7 +112,7 @@ mod tests {
     fn test_second_row_black_pawn() {
         let row = 1;
         for col in 0..8 {
-            let bitboard = forward_move(row, col, Color::Black);
+            let bitboard = forward_move(row, col, BLACK);
             let lsb = bit_scan_lsb(bitboard);
             assert_eq!(lsb as i8, position_to_idx(row - 1, col, None));
         }
@@ -119,7 +122,7 @@ mod tests {
     fn test_seventh_row_black_pawn() {
         let row = 6;
         for col in 0..8 {
-            let bitboard = forward_move(row, col, Color::Black);
+            let bitboard = forward_move(row, col, BLACK);
             let lsb = bit_scan_lsb(bitboard);
             let msb = bit_scan_msb(bitboard);
             assert_eq!(msb as i8, position_to_idx(row - 1, col, None));
@@ -131,7 +134,7 @@ mod tests {
     fn test_seventh_row_white_pawn() {
         let row = 6;
         for col in 0..8 {
-            let bitboard = forward_move(row, col, Color::White);
+            let bitboard = forward_move(row, col, WHITE);
             let lsb = bit_scan_lsb(bitboard);
             assert_eq!(lsb as i8, position_to_idx(row + 1, col, None));
         }
@@ -141,7 +144,7 @@ mod tests {
     fn test_middle_row_white_pawn() {
         for row in 2..7 {
             for col in 0..8 {
-                let bitboard = forward_move(row, col, Color::White);
+                let bitboard = forward_move(row, col, WHITE);
                 let lsb = bit_scan_lsb(bitboard);
                 assert_eq!(lsb as i8, position_to_idx(row + 1, col, None));
             }
@@ -152,7 +155,7 @@ mod tests {
     fn test_middle_row_black_pawn() {
         for row in 1..6 {
             for col in 0..8 {
-                let bitboard = forward_move(row, col, Color::Black);
+                let bitboard = forward_move(row, col, BLACK);
                 let lsb = bit_scan_lsb(bitboard);
                 assert_eq!(lsb as i8, position_to_idx(row - 1, col, None));
             }
@@ -161,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_forward_edges_pawn_attacks() {
-        for color in [Color::White, Color::Black] {
+        for color in [WHITE, BLACK] {
             for row in [0, 7] {
                 for col in 0..8 {
                     let bitboard = forward_move(row, col, color);
@@ -173,7 +176,7 @@ mod tests {
 
     #[test]
     fn test_diagonal_edges_pawn_attacks() {
-        for color in [Color::White, Color::Black] {
+        for color in [WHITE, BLACK] {
             for row in [0, 7] {
                 for col in 0..8 {
                     let bitboard = diagonal_move(row, col, color);
@@ -187,7 +190,7 @@ mod tests {
     fn test_diagonal_white_pawn() {
         for row in 1..6 {
             for col in 1..6 {
-                let bitboard = diagonal_move(row, col, Color::White);
+                let bitboard = diagonal_move(row, col, WHITE);
                 let lsb = bit_scan_lsb(bitboard);
                 let msb = bit_scan_msb(bitboard);
 
@@ -201,7 +204,7 @@ mod tests {
     fn test_diagonal_white_pawn_col_edge() {
         for row in 1..6 {
             let col = 0;
-            let bitboard = diagonal_move(row, col, Color::White);
+            let bitboard = diagonal_move(row, col, WHITE);
             let lsb = bit_scan_lsb(bitboard);
 
             assert_eq!(lsb as i8, position_to_idx(row + 1, col + 1, None));
@@ -209,7 +212,7 @@ mod tests {
 
         for row in 1..6 {
             let col = 6;
-            let bitboard = diagonal_move(row, col, Color::White);
+            let bitboard = diagonal_move(row, col, WHITE);
             let lsb = bit_scan_lsb(bitboard);
 
             assert_eq!(lsb as i8, position_to_idx(row + 1, col - 1, None));
@@ -220,7 +223,7 @@ mod tests {
     fn test_diagonal_black_pawn() {
         for row in 1..6 {
             for col in 1..6 {
-                let bitboard = diagonal_move(row, col, Color::Black);
+                let bitboard = diagonal_move(row, col, BLACK);
                 let lsb = bit_scan_lsb(bitboard);
                 let msb = bit_scan_msb(bitboard);
 
@@ -234,7 +237,7 @@ mod tests {
     fn test_diagonal_black_pawn_col_edge() {
         for row in 1..6 {
             let col = 0;
-            let bitboard = diagonal_move(row, col, Color::Black);
+            let bitboard = diagonal_move(row, col, BLACK);
             let lsb = bit_scan_lsb(bitboard);
 
             assert_eq!(lsb as i8, position_to_idx(row - 1, col + 1, None));
@@ -242,7 +245,7 @@ mod tests {
 
         for row in 1..6 {
             let col = 6;
-            let bitboard = diagonal_move(row, col, Color::Black);
+            let bitboard = diagonal_move(row, col, BLACK);
             let lsb = bit_scan_lsb(bitboard);
 
             assert_eq!(lsb as i8, position_to_idx(row - 1, col - 1, None));
