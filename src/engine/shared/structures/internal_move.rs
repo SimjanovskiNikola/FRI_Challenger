@@ -1,7 +1,6 @@
-use super::{
-    castling_struct::CastlingRights,
-    piece_struct::{Color, Piece},
-};
+use super::castling_struct::*;
+use super::piece::*;
+use super::color::*;
 
 // Check about BigPawn Flag and what it does
 // DEPRECATE:
@@ -30,6 +29,8 @@ pub struct InternalMove {
     pub half_move: usize,
     //TODO: Add Score
 }
+
+impl InternalMove {}
 
 // NOTE: If Performance is better without enum and struct
 // Change InternalMove from struct to u128 where you will store all relevant information as one integer

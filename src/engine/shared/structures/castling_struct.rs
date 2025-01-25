@@ -1,7 +1,5 @@
 use bitflags::bitflags;
 
-use super::piece_struct::Color;
-
 // TODO: Needs a little reaserch because it does not sum all of this.
 bitflags! {
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]

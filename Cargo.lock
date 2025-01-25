@@ -58,6 +58,7 @@ dependencies = [
  "failure",
  "lazy_static",
  "num_enum",
+ "once_cell",
  "rand",
  "round",
 ]

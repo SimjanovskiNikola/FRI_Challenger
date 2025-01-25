@@ -1,4 +1,6 @@
 pub mod castling_struct;
+pub mod color;
+pub mod directions;
 pub mod internal_move;
-pub mod piece_struct;
-pub mod square_struct;
+pub mod piece;
+pub mod square;
