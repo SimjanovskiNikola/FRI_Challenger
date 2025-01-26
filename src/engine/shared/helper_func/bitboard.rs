@@ -3,14 +3,14 @@ use super::const_utility::{CLEAR_MASK, MOD67TABLE, SET_MASK};
 pub type Bitboard = u64;
 
 pub enum Shift {
-    UP = 8,
-    RIGHT = 1,
-    DOWN = -8,
-    LEFT = -1,
-    UP_RIGHT = 9,
-    UP_LEFT = 7,
-    DOWN_RIGHT = -7,
-    DOWN_LEFT = -9,
+    Up = 8,
+    Right = 1,
+    Down = -8,
+    Left = -1,
+    UpRight = 9,
+    UpLeft = 7,
+    DownRight = -7,
+    DownLeft = -9,
 }
 
 pub trait BitboardTrait {

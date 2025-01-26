@@ -1,7 +1,7 @@
-use engine::{game::Game};
+use engine::game::Game;
 
 pub mod engine;
 
 fn main() {
-    let game = Game::initialize();
+    let _game = Game::initialize();
 }
