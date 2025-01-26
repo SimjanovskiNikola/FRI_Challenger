@@ -141,8 +141,8 @@ impl BitboardTrait for Bitboard {
 
         while bb != 0 {
             let next_bit = bb.get_lsb();
-            result.push(next_bit);
             bb ^= 1 << next_bit;
+            result.push(next_bit);
         }
 
         return result;
@@ -150,7 +150,7 @@ impl BitboardTrait for Bitboard {
 
     fn pop_lsb(&mut self) -> usize {
         let idx = self.get_lsb();
-        *self ^= (1 << self.get_lsb());
+        *self ^= 1 << idx;
         return idx;
     }
 
