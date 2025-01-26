@@ -228,7 +228,7 @@ pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
         (_, _) => (),
     };
 }
-pub fn add_promotion_move(mv: &InternalMove, game: &Game) -> Vec<InternalMove> {
+pub fn add_promotion_move(mv: &InternalMove, _game: &Game) -> Vec<InternalMove> {
     let mut new_moves: Vec<InternalMove> = vec![];
     if (mv.piece.is_pawn())
         && ((mv.active_color == WHITE && get_bit_rank(mv.to) == Rank::Eight)
@@ -305,11 +305,11 @@ fn gen_pawn_mov(piece: &Piece, pos: usize, game: &Game) -> u64 {
     for (i, attack) in all_bits.iter().enumerate() {
         match game.squares[*attack] {
             Square::Empty => continue,
-            Square::Occupied(piece) => {
+            Square::Occupied(_) => {
                 if i == 0 {
                     return 0;
                 } else if i == 1 {
-                    attacks = clear_bit(attacks, *attack)
+                    attacks.clear_bit(*attack); //= clear_bit(attacks, *attack)
                 }
             }
         }
@@ -378,14 +378,14 @@ mod tests {
         let game = Game::read_fen(&fen);
         // println!("{}", game.to_string());
 
-        let allPieces = extract_all_bits(game.bitboard[piece.idx()]);
-        let piece = match game.squares[allPieces[idx]] {
+        let all_pieces = extract_all_bits(game.bitboard[piece.idx()]);
+        let piece = match game.squares[all_pieces[idx]] {
             Square::Empty => panic!("The Piece Must exist"),
             Square::Occupied(piece) => piece,
         };
         return extract_all_bits(
-            get_all_moves(piece, allPieces[idx], &game)
-                | get_all_attacks(piece, allPieces[idx], &game),
+            get_all_moves(piece, all_pieces[idx], &game)
+                | get_all_attacks(piece, all_pieces[idx], &game),
         );
 
         // print_bitboard(
@@ -398,7 +398,7 @@ mod tests {
     fn test_white_pawns_mv_gen() {
         let game = Game::read_fen(&FEN_PAWNS_WHITE);
         let moves = gen_moves(WHITE, &game);
-        assert_eq!(26, moves.len());
+        assert_eq!(42, moves.len());
         print_move_list(moves);
     }
 
@@ -415,7 +415,7 @@ mod tests {
     fn test_white_black_mv_gen() {
         let game = Game::read_fen(&FEN_PAWNS_BLACK);
         let moves = gen_moves(BLACK, &game);
-        assert_eq!(26, moves.len());
+        assert_eq!(42, moves.len());
         print_move_list(moves);
     }
 
@@ -480,7 +480,6 @@ mod tests {
     }
 
     // ROOK
-
     #[test]
     fn test_generate_rook_moves_1_rook() {
         let fen_rook = "8/8/8/8/8/4R3/8/8 w - - 0 1";

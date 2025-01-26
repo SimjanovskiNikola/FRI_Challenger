@@ -1,23 +1,6 @@
 use std::vec;
-use crate::engine::{game::*, shared::helper_func::error_msg::Error};
+use crate::engine::shared::helper_func::error_msg::Error;
 use super::const_utility::*;
-
-//DEPRECATE: UGLY
-// pub fn notation_to_idx(positions: &[&str]) -> Vec<usize> {
-//     let mut pos_idx_arr = vec![];
-//     for pos in positions {
-//         if pos.len() == 2 {
-//             // println!("{:?}", pos.chars().nth(0).unwrap());
-//             let file = pos.chars().nth(0).unwrap();
-//             let rank = pos.chars().nth(1).unwrap().to_digit(10).unwrap() as usize;
-//             let idx = RANK_MAP.get(&file).unwrap() + (rank - 1) * 8;
-//             pos_idx_arr.push(idx);
-//         } else {
-//             panic!("One of the positions is not correct!!!")
-//         }
-//     }
-//     return pos_idx_arr;
-// }
 
 // DEPRECATE:
 /**
@@ -59,43 +42,24 @@ pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
     return result;
 }
 
-// DEPRECATE:
-pub fn pop_lsb(mut bitboard: u64) -> usize {
-    let idx = bit_scan_lsb(bitboard);
-    bitboard ^= (1 << bit_scan_lsb(bitboard));
-    return idx;
-}
-
-// DEPRECATE:
-pub fn set_bit_sq(mut bitboard: u64, square: usize) -> u64 {
-    bitboard |= SET_MASK[square];
-    return bitboard;
-}
-
-// DEPRECATE:
-pub fn clear_bit(mut bitboard: u64, square: usize) -> u64 {
-    bitboard &= CLEAR_MASK[square];
-    return bitboard;
-}
-
 pub fn get_bit_rank(square: usize) -> Rank {
     match Rank::try_from(square / 8) {
         Ok(rank) => return rank,
-        Err(e) => panic!("Invalid Thing"),
+        Err(_) => panic!("Invalid Thing"),
     }
 }
 
 pub fn get_bit_file(square: usize) -> File {
     match File::try_from(square % 8) {
         Ok(file) => return file,
-        Err(e) => panic!("Invalid Thing"),
+        Err(_) => panic!("Invalid Thing"),
     }
 }
 
 pub fn get_rank_bits(square: usize) -> File {
     match File::try_from(square % 8) {
         Ok(file) => return file,
-        Err(e) => panic!("Invalid Thing"),
+        Err(_) => panic!("Invalid Thing"),
     }
 }
 

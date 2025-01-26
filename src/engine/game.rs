@@ -12,7 +12,6 @@ use super::shared::helper_func::const_utility::FEN_START;
 use super::shared::helper_func::print_utility::*;
 use super::shared::structures::color::{Color, BLACK, WHITE};
 use super::shared::structures::internal_move::InternalMove;
-use super::shared::structures::piece;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Game {
     pub squares: [Square; 64],
@@ -214,10 +213,7 @@ impl Game {
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::shared::helper_func::{
-        const_utility::{FEN_MIDDLE_GAME},
-        print_utility::print_bitboard,
-    };
+    use crate::engine::shared::helper_func::const_utility::FEN_MIDDLE_GAME;
 
     use super::*;
 

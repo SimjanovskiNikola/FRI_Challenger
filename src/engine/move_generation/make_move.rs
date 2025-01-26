@@ -1,13 +1,11 @@
-use std::vec;
-
 use crate::engine::{
     game::Game,
     shared::{
         helper_func::{
-            bit_pos_utility::{bit_scan_lsb, is_bit_set},
+            bit_pos_utility::bit_scan_lsb,
             bitboard::{Bitboard, BitboardTrait},
             const_utility::SqPos::*,
-            print_utility::{print_bitboard, print_chess},
+            print_utility::print_chess,
         },
         structures::{
             castling_struct::CastlingRights,
@@ -24,7 +22,7 @@ use crate::engine::{
 use lazy_static::lazy_static;
 use rand::Rng;
 
-use super::{fen::FenTrait, move_generation::gen_attacks};
+use super::move_generation::gen_attacks;
 
 lazy_static! {
     pub static ref PieceKeys: [[u64; 14]; 64] = [[rand::thread_rng().gen(); 14]; 64];

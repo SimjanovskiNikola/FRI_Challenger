@@ -87,13 +87,12 @@ fn diagonal_move(row: i8, col: i8, piece_color: Color) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use std::usize;
 
     use super::*;
 
     #[test]
     fn test_pawn_attacks_init() {
-        let attacks = PawnAttacks::init();
+        let _ = PawnAttacks::init();
     }
 
     #[test]
