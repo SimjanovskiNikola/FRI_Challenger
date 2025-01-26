@@ -48,7 +48,7 @@ pub fn bit_scan_msb(bitboard: u64) -> usize {
  * Ex: extract_bits(bitboard: 0....0111) -> [0, 1, 2]
 */
 pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
-    let mut result = vec![];
+    let mut result = vec![]; //Vec::with_capacity(64);
 
     while bitboard != 0 {
         let next_bit = bit_scan_lsb(bitboard);

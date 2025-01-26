@@ -1,8 +1,8 @@
 use crate::engine::shared::{
-    helper_func::{bit_pos_utility::*, bitboard},
+    helper_func::bit_pos_utility::*,
     structures::directions::{Dir, DIRECTIONS},
 };
-use super::{pawn_attacks::PawnAttacks, ray_attacks::Rays};
+use super::pawn_attacks::PawnAttacks;
 use lazy_static::lazy_static;
 
 #[macro_export]
@@ -130,11 +130,9 @@ pub fn blocked_ray_att(dir: Dir, ray_family: &[u64; 64], ray: u64, own: u64, ene
 
 #[cfg(test)]
 mod tests {
-    use bitboard::BitboardTrait;
 
-    use crate::engine::{
-        attacks,
-        shared::helper_func::{bit_pos_utility::extract_all_bits, print_utility::print_bitboard},
+    use crate::engine::shared::helper_func::{
+        bit_pos_utility::extract_all_bits, bitboard::BitboardTrait, print_utility::print_bitboard,
     };
 
     use super::*;

@@ -97,9 +97,6 @@ impl GameMoveTrait for Game {
             }
         }
 
-        self.set_occupancy(WHITE);
-        self.set_occupancy(BLACK);
-
         self.active_color.change_color();
 
         //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
@@ -156,7 +153,8 @@ impl GameMoveTrait for Game {
             self.fullmove_number += 1;
         }
 
-        mv.position_key = self.generate_pos_key();
+        // FIXME: 1ms for 1000 nodes, generate the key better
+        // mv.position_key = self.generate_pos_key();
         self.moves.push(*mv);
 
         let king_sq = self.bitboard[(KING + mv.active_color) as usize].get_lsb();
@@ -245,9 +243,6 @@ impl GameMoveTrait for Game {
                 }
             }
         }
-
-        self.set_occupancy(WHITE);
-        self.set_occupancy(BLACK);
     }
 
     fn add_piece(&mut self, sq: usize, piece: Piece) {
@@ -257,14 +252,16 @@ impl GameMoveTrait for Game {
         }
         self.squares[sq] = Square::Occupied(piece);
         self.bitboard[piece.idx()].set_bit(sq);
+        self.occupancy[piece.color().idx()].set_bit(sq);
     }
 
     fn clear_piece(&mut self, sq: usize) {
         match self.squares[sq] {
             Square::Empty => panic!("Clearing a Peace that does not exist"),
             Square::Occupied(piece) => {
-                self.bitboard[piece.idx()].clear_bit(sq);
                 self.squares[sq] = Square::Empty;
+                self.bitboard[piece.idx()].clear_bit(sq);
+                self.occupancy[piece.color().idx()].clear_bit(sq);
             }
         }
     }

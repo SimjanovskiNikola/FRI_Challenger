@@ -210,32 +210,6 @@ impl Game {
             Err(_) => panic!("Invalid halfmove: {}", fullmove_number),
         }
     }
-
-    pub fn game_over(&self) {
-        // return this.isCheckmate() || this.isStalemate() || this.isDraw()
-        todo!()
-    }
-    pub fn check() -> bool {
-        todo!()
-    }
-    pub fn check_el_passant() {
-        todo!()
-    }
-    pub fn check_castling_rights() {
-        todo!()
-    }
-    pub fn change_active_color() {
-        todo!()
-    }
-    pub fn reset_half_move_clock() {
-        todo!()
-    }
-    pub fn make_move() {
-        todo!()
-    }
-    pub fn undo_move() {
-        todo!()
-    }
 }
 
 #[cfg(test)]

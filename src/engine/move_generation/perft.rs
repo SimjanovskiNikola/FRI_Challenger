@@ -1,4 +1,4 @@
-use std::{os::linux::raw::stat, vec};
+use std::{fs::File, os::linux::raw::stat, time::Instant, vec};
 
 use crate::engine::{
     game::Game,
@@ -124,14 +124,37 @@ pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
     return leaf_nodes;
 }
 
+pub fn init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
+    let mut game = Game::read_fen(&fen);
+    let mut stats = Stats::init();
+    let now = Instant::now();
+    let nodes = perft(depth, &mut game, &mut stats);
+    if dispaly_stats {
+        println!("----------*Stats*-----------");
+        println!("Time for {} nodes: {} ms", nodes, now.elapsed().as_millis());
+        stats.print();
+    }
+    return stats;
+}
+
+pub fn profiler_init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
+    let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
+
+    let stats = init_test_func(fen, depth, dispaly_stats);
+
+    if let Ok(report) = guard.report().build() {
+        let file = File::create("flamegraph.svg").unwrap();
+        report.flamegraph(file).unwrap();
+    };
+
+    return stats;
+}
+
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
 
-    use crate::engine::{
-        game::Game,
-        shared::helper_func::{const_utility::FEN_START, print_utility::print_move_list},
-    };
+    use crate::engine::{game::Game};
+    use crate::engine::shared::helper_func::const_utility::FEN_START;
 
     use super::*;
 
@@ -148,57 +171,45 @@ mod tests {
 
     // PERF TESTS FROM STARTING POSITION
 
-    fn init_test_func(fen: &str, depth: usize) -> Stats {
-        let mut game = Game::read_fen(&fen);
-        let mut stats = Stats::init();
-        let now = Instant::now();
-        let nodes = perft(depth, &mut game, &mut stats);
-        println!("----------*Stats*-----------");
-        println!("Time for {} nodes: {} ms", nodes, now.elapsed().as_millis());
-        stats.print();
-
-        return stats;
-    }
-
     #[test]
     fn test_fen_bug_2_sq_pawn_dept_1() {
-        let stats = init_test_func(&FEN_BUG_2SQ_PAWN, 1);
+        let stats = init_test_func(&FEN_BUG_2SQ_PAWN, 1, true);
         assert_eq!(stats.nodes, 7);
     }
 
     #[test]
     fn test_fen_bug_2_sq_pawn_dept_2() {
-        let stats = init_test_func(&FEN_BUG_2SQ_PAWN, 2);
+        let stats = init_test_func(&FEN_BUG_2SQ_PAWN, 2, true);
         assert_eq!(stats.nodes, 44);
     }
 
     #[test]
     fn test_perft_init_pos_one() {
-        let stats = init_test_func(&FEN_START, 1);
+        let stats = init_test_func(&FEN_START, 1, true);
         assert_eq!(stats.nodes, 20);
     }
 
     #[test]
     fn test_perft_init_pos_two() {
-        let stats = init_test_func(&FEN_START, 2);
+        let stats = init_test_func(&FEN_START, 2, true);
         assert_eq!(stats.nodes, 400);
     }
 
     #[test]
     fn test_perft_init_pos_three() {
-        let stats = init_test_func(&FEN_START, 3);
+        let stats = init_test_func(&FEN_START, 3, true);
         assert_eq!(stats.nodes, 8902);
     }
 
     #[test]
     fn test_perft_init_pos_four() {
-        let stats = init_test_func(&FEN_START, 4);
+        let stats = profiler_init_test_func(&FEN_START, 4, true);
         assert_eq!(stats.nodes, 197281);
     }
 
     #[test]
     fn test_perft_init_pos_five() {
-        let stats = init_test_func(&FEN_START, 5);
+        let stats = init_test_func(&FEN_START, 5, true);
         assert_eq!(stats.nodes, 4865609);
     }
 
@@ -228,20 +239,20 @@ mod tests {
 
     #[test]
     fn test_perft_pos_two_depth_1() {
-        let stats = init_test_func(&FEN_POS_TWO, 1);
+        let stats = init_test_func(&FEN_POS_TWO, 1, true);
         assert_eq!(stats.nodes, 48);
     }
 
     #[test]
     fn test_perft_pos_two_depth_2() {
-        let stats = init_test_func(&FEN_POS_TWO, 2);
+        let stats = init_test_func(&FEN_POS_TWO, 2, true);
         assert_eq!(stats.nodes, 2039);
     }
 
     //FIXME: More castles than expected
     #[test]
     fn test_perft_pos_two_depth_3() {
-        let stats = init_test_func(&FEN_POS_TWO, 3);
+        let stats = init_test_func(&FEN_POS_TWO, 3, true);
         assert_eq!(stats.nodes, 97862);
     }
 
@@ -291,29 +302,29 @@ mod tests {
     // // POSITION 3
     #[test]
     fn test_perft_pos_three_depth_1() {
-        let stats = init_test_func(&FEN_POS_THREE, 1);
+        let stats = init_test_func(&FEN_POS_THREE, 1, true);
         assert_eq!(stats.nodes, 14);
     }
 
     // FIXME: Same problem with pawn pushed 2 times.
     #[test]
     fn test_perft_pos_three_depth_2() {
-        let stats = init_test_func(&FEN_POS_THREE, 2);
+        let stats = init_test_func(&FEN_POS_THREE, 2, true);
         assert_eq!(stats.nodes, 191);
     }
     #[test]
     fn test_perft_pos_three_depth_3() {
-        let stats = init_test_func(&FEN_POS_THREE, 3);
+        let stats = init_test_func(&FEN_POS_THREE, 3, true);
         assert_eq!(stats.nodes, 2812);
     }
     #[test]
     fn test_perft_pos_three_depth_4() {
-        let stats = init_test_func(&FEN_POS_THREE, 4);
+        let stats = init_test_func(&FEN_POS_THREE, 4, true);
         assert_eq!(stats.nodes, 43238);
     }
     #[test]
     fn test_perft_pos_three_depth_5() {
-        let stats = init_test_func(&FEN_POS_THREE, 5);
+        let stats = init_test_func(&FEN_POS_THREE, 5, true);
         assert_eq!(stats.nodes, 674624);
     }
 
@@ -363,30 +374,30 @@ mod tests {
     // // POSITION 4
     #[test]
     fn test_perft_pos_four_depth_1() {
-        let stats = init_test_func(&FEN_POS_FOUR, 1);
+        let stats = init_test_func(&FEN_POS_FOUR, 1, true);
         assert_eq!(stats.nodes, 6);
     }
 
     #[test]
     fn test_perft_pos_four_depth_2() {
-        let stats = init_test_func(&FEN_POS_FOUR, 2);
+        let stats = init_test_func(&FEN_POS_FOUR, 2, true);
         assert_eq!(stats.nodes, 264);
     }
 
     #[test]
     fn test_perft_pos_four_depth_3() {
-        let stats = init_test_func(&FEN_POS_FOUR, 3);
+        let stats = init_test_func(&FEN_POS_FOUR, 3, true);
         assert_eq!(stats.nodes, 9467);
     }
     #[test]
     fn test_perft_pos_four_depth_4() {
-        let stats = init_test_func(&FEN_POS_FOUR, 4);
+        let stats = init_test_func(&FEN_POS_FOUR, 4, true);
         assert_eq!(stats.nodes, 422333);
     }
 
     #[test]
     fn test_perft_pos_four_depth_5() {
-        let stats = init_test_func(&FEN_POS_FOUR, 5);
+        let stats = init_test_func(&FEN_POS_FOUR, 5, true);
         assert_eq!(stats.nodes, 15833292);
     }
     // #[test]
@@ -446,47 +457,32 @@ mod tests {
 
     #[test]
     fn test_perft_pos_six_depth_0() {
-        let mut game = Game::read_fen(&FEN_POS_SIX);
-        let mut stats = Stats::init();
-        let nodes = perft(0, &mut game, &mut stats);
-        stats.print();
-        assert_eq!(nodes, 1);
+        let stats = init_test_func(&FEN_POS_SIX, 0, true);
+        assert_eq!(stats.nodes, 1);
     }
 
     #[test]
     fn test_perft_pos_six_depth_1() {
-        let mut game = Game::read_fen(&FEN_POS_SIX);
-        let mut stats = Stats::init();
-        let nodes = perft(1, &mut game, &mut stats);
-        stats.print();
-        assert_eq!(nodes, 46);
+        let stats = init_test_func(&FEN_POS_SIX, 1, true);
+        assert_eq!(stats.nodes, 46);
     }
 
     #[test]
     fn test_perft_pos_six_depth_2() {
-        let mut game = Game::read_fen(&FEN_POS_SIX);
-        let mut stats = Stats::init();
-        let nodes = perft(2, &mut game, &mut stats);
-        stats.print();
-        assert_eq!(nodes, 2079);
+        let stats = init_test_func(&FEN_POS_SIX, 2, true);
+        assert_eq!(stats.nodes, 2079);
     }
 
     #[test]
     fn test_perft_pos_six_depth_3() {
-        let mut game = Game::read_fen(&FEN_POS_SIX);
-        let mut stats = Stats::init();
-        let nodes = perft(3, &mut game, &mut stats);
-        stats.print();
-        assert_eq!(nodes, 89890);
+        let stats = init_test_func(&FEN_POS_SIX, 3, true);
+        assert_eq!(stats.nodes, 89890);
     }
 
     #[test]
     fn test_perft_pos_six_depth_4() {
-        let mut game = Game::read_fen(&FEN_POS_SIX);
-        let mut stats = Stats::init();
-        let nodes = perft(4, &mut game, &mut stats);
-        stats.print();
-        assert_eq!(nodes, 3894594);
+        let stats = init_test_func(&FEN_POS_SIX, 4, true);
+        assert_eq!(stats.nodes, 3894594);
     }
 
     // FIXME: Needed more than 4 minutes: Maybe I need to optimize the code if i want to run the following test.
@@ -523,3 +519,13 @@ mod tests {
     //     assert_eq!(perft(9).nodes, 490154852788714)
     // }
 }
+
+// Before Function Add:
+//  let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
+//
+// After Function Add:
+//         if let Ok(report) = guard.report().build() {
+//             let file = File::create("flamegraph.svg").unwrap();
+//             report.flamegraph(file).unwrap();
+//         };
+//
