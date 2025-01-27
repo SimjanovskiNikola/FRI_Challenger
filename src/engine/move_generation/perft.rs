@@ -1,12 +1,9 @@
 use std::{fs::File, time::Instant};
-
-use crate::engine::{
-    game::Game,
-    move_generation::move_generation::gen_moves,
-    shared::structures::internal_move::{Flag, InternalMove},
-};
-
+use super::fen::FenTrait;
 use super::make_move::GameMoveTrait;
+use crate::engine::game::Game;
+use crate::engine::move_generation::move_generation::gen_moves;
+use crate::engine::shared::structures::internal_move::*;
 
 pub struct Stats {
     all_nodes: u64,
@@ -94,7 +91,7 @@ pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
         return 1;
     }
 
-    let mut move_list: Vec<InternalMove> = gen_moves(game.active_color, game);
+    let mut move_list: Vec<InternalMove> = gen_moves(game.color, game);
     for i in 0..move_list.len() {
         if !game.make_move(&mut move_list[i]) {
             continue;

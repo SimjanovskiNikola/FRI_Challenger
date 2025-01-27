@@ -186,17 +186,8 @@ pub fn position_to_bit(position: &str) -> Result<u64, String> {
 //**** START: TESTS ****
 #[cfg(test)]
 mod tests {
-    use crate::engine::shared::helper_func::print_utility::split_on;
 
     use super::*;
-
-    #[test]
-    fn split_on_space_works() {
-        let test_string = "A B C D";
-        let (item, rest) = split_on(test_string, ' ');
-        assert_eq!(item, "A");
-        assert_eq!(rest, "B C D");
-    }
 
     // #[test]
     // fn index_to_position_works() {

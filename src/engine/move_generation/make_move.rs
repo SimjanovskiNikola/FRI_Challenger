@@ -95,7 +95,7 @@ impl GameMoveTrait for Game {
             }
         }
 
-        self.active_color.change_color();
+        self.color.change_color();
 
         //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
         let castle_tuple: [(usize, usize, CastlingRights, Color); 4] = [
@@ -127,28 +127,28 @@ impl GameMoveTrait for Game {
             };
 
             if clear_castle {
-                self.castling_rights.clear(c.2);
+                self.castling.clear(c.2);
             }
         }
 
         if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {
-            self.en_passant = match mv.active_color {
+            self.ep = match mv.active_color {
                 WHITE => Some(Bitboard::init(mv.to - 8)),
                 BLACK => Some(Bitboard::init(mv.to + 8)),
                 _ => panic!("Invalid Color"),
             }
         } else {
-            self.en_passant = None
+            self.ep = None
         }
 
         if mv.piece.is_pawn() || mv.captured != None {
-            self.halfmove_clock = 0
+            self.half_move = 0
         } else {
-            self.halfmove_clock = mv.half_move + 1;
+            self.half_move = mv.half_move + 1;
         }
 
         if self.moves.len() % 2 == 0 {
-            self.fullmove_number += 1;
+            self.full_move += 1;
         }
 
         // FIXME: 1ms for 1000 nodes, generate the key better
@@ -166,7 +166,7 @@ impl GameMoveTrait for Game {
         //     );
         // }
 
-        if gen_attacks(self, self.active_color).is_set(king_sq) {
+        if gen_attacks(self, self.color).is_set(king_sq) {
             self.undo_move();
             return false;
         }
@@ -186,11 +186,11 @@ impl GameMoveTrait for Game {
         // println!("After Taking move: {:#?}", self.moves);
         // print_chess(self);
 
-        self.fullmove_number -= if self.moves.len() % 2 == 0 { 1 } else { 0 };
-        self.halfmove_clock = mv.half_move;
-        self.en_passant = mv.ep;
-        self.castling_rights = mv.castle;
-        self.active_color.change_color();
+        self.full_move -= if self.moves.len() % 2 == 0 { 1 } else { 0 };
+        self.half_move = mv.half_move;
+        self.ep = mv.ep;
+        self.castling = mv.castle;
+        self.color.change_color();
 
         match mv.flag {
             // DEPRECATE: Here should be one liner -> Only self.replace
@@ -289,17 +289,17 @@ impl GameMoveTrait for Game {
             }
         }
 
-        if self.active_color == WHITE {
+        if self.color == WHITE {
             final_key ^= *SideKey;
         }
 
-        match self.en_passant {
+        match self.ep {
             Some(idx) => final_key ^= EpKeys[bit_scan_lsb(idx)],
             None => (),
         }
 
-        if self.castling_rights.as_usize() < 16 {
-            final_key ^= CastleKeys[self.castling_rights.as_usize()];
+        if self.castling.as_usize() < 16 {
+            final_key ^= CastleKeys[self.castling.as_usize()];
         }
         return final_key;
     }
