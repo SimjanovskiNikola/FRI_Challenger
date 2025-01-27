@@ -109,8 +109,7 @@ impl PieceTrait for Piece {
             BLACK_ROOK => 'r',
             BLACK_QUEEN => 'q',
             BLACK_KING => 'k',
-            EMPTY => ' ',
-            _ => '?',
+            c => panic!("Invalid Character: {c}"),
         }
     }
 

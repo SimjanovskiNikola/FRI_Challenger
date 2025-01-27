@@ -93,15 +93,6 @@ pub fn print_move_list(moves: Vec<InternalMove>) {
     }
 }
 
-pub fn split_on(s: &str, sep: char) -> (&str, &str) {
-    for (i, item) in s.chars().enumerate() {
-        if item == sep {
-            return (&s[0..i], &s[i + 1..]);
-        }
-    }
-    return (&s[..], "");
-}
-
 // NOTE: IMPROVEMENTS
 // Make the board look better like this:
 

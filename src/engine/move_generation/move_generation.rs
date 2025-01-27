@@ -97,7 +97,7 @@ fn get_internal_moves(attacks: u64, piece: &Piece, pos: usize, game: &Game) -> V
     for p_move in potential_moves {
         let mut new_move = InternalMove {
             position_key: 0,
-            active_color: game.active_color,
+            active_color: game.color,
             from: pos,
             to: p_move,
             piece: *piece,
@@ -106,9 +106,9 @@ fn get_internal_moves(attacks: u64, piece: &Piece, pos: usize, game: &Game) -> V
                 Square::Occupied(piece) => Some(piece),
             },
             promotion: None,
-            ep: game.en_passant,
-            castle: game.castling_rights,
-            half_move: game.halfmove_clock,
+            ep: game.ep,
+            castle: game.castling,
+            half_move: game.half_move,
             flag: match game.squares[p_move] {
                 Square::Empty => Flag::Normal,
                 Square::Occupied(_) => Flag::Capture,
@@ -132,22 +132,22 @@ pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game) -> Vec<Interna
     let mut new_positions = vec![];
     let mut mv = InternalMove {
             position_key: 0, 
-            active_color: game.active_color,
+            active_color: game.color,
             from: pos,
             to: 0,
             piece: *piece,
             captured: None,
             promotion: None,
-            ep: game.en_passant,
-            castle: game.castling_rights,
-            half_move: game.halfmove_clock,
+            ep: game.ep,
+            castle: game.castling,
+            half_move: game.half_move,
             flag: Flag::Normal,
         };
 
     match mv.active_color {
         WHITE => {
             let attacked_sq = gen_attacks(game, BLACK);
-            if (game.castling_rights.bits() & CastlingRights::WKINGSIDE.bits() != 0) && 
+            if (game.castling.bits() & CastlingRights::WKINGSIDE.bits() != 0) && 
                (game.squares[SqPos::F1 as usize] == Square::Empty && game.squares[SqPos::G1 as usize] == Square::Empty) && 
                (!is_bit_set(attacked_sq, SqPos::E1 as usize) && !is_bit_set(attacked_sq, SqPos::F1 as usize) && !is_bit_set(attacked_sq, SqPos::G1 as usize)){
                new_positions.push(InternalMove {
@@ -156,7 +156,7 @@ pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game) -> Vec<Interna
                     ..mv
                 });
             }
-            if (game.castling_rights.bits() & CastlingRights::WQUEENSIDE.bits() != 0) && 
+            if (game.castling.bits() & CastlingRights::WQUEENSIDE.bits() != 0) && 
                (game.squares[SqPos::D1 as usize] == Square::Empty && game.squares[SqPos::C1 as usize] == Square::Empty && game.squares[SqPos::B1 as usize] == Square::Empty) && 
                (!is_bit_set(attacked_sq, SqPos::E1 as usize) && !is_bit_set(attacked_sq, SqPos::D1 as usize) && !is_bit_set(attacked_sq, SqPos::C1 as usize)){
                 new_positions.push(InternalMove {
@@ -168,7 +168,7 @@ pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game) -> Vec<Interna
         }
          BLACK => {
             let attacked_sq = gen_attacks(game, WHITE);
-            if (game.castling_rights.bits() & CastlingRights::BKINGSIDE.bits() != 0) && 
+            if (game.castling.bits() & CastlingRights::BKINGSIDE.bits() != 0) && 
                (game.squares[SqPos::F8 as usize] == Square::Empty && game.squares[SqPos::G8 as usize] == Square::Empty) && 
                (!is_bit_set(attacked_sq, SqPos::E8 as usize) && !is_bit_set(attacked_sq, SqPos::F8 as usize) && !is_bit_set(attacked_sq, SqPos::G8 as usize)){
                new_positions.push(InternalMove {
@@ -177,7 +177,7 @@ pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game) -> Vec<Interna
                     ..mv
                 });
             }
-            if (game.castling_rights.bits() & CastlingRights::BQUEENSIDE.bits() != 0) && 
+            if (game.castling.bits() & CastlingRights::BQUEENSIDE.bits() != 0) && 
                (game.squares[SqPos::D8 as usize] == Square::Empty && game.squares[SqPos::C8 as usize] == Square::Empty && game.squares[SqPos::B8 as usize] == Square::Empty) && 
                (!is_bit_set(attacked_sq, SqPos::E8 as usize) && !is_bit_set(attacked_sq, SqPos::D8 as usize) && !is_bit_set(attacked_sq, SqPos::C8 as usize)){
                new_positions.push(InternalMove {
@@ -198,7 +198,7 @@ pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
     // if game.en_passant == Some(33554432) {
     //     println!("{:?}", game.en_passant);
     // }
-    match (mv.piece.kind(), game.en_passant) {
+    match (mv.piece.kind(), game.ep) {
         (PAWN, Some(bb)) => {
             if mv.to == bb.get_lsb() {
                 mv.flag = Flag::EP;
@@ -272,7 +272,7 @@ fn gen_pawn_att(piece: &Piece, pos: usize, game: &Game) -> u64 {
     let (own_occupancy, enemy_occupancy) = get_occupancy(piece, game);
 
     attacks &= !own_occupancy;
-    attacks &= match game.en_passant {
+    attacks &= match game.ep {
         Some(bitboard) => {
             let rez;
             let rank = get_bit_rank(bit_scan_lsb(bitboard));
@@ -362,14 +362,17 @@ fn gen_king_mov_att(piece: &Piece, pos: usize, game: &Game) -> u64 {
 #[cfg(test)]
 mod tests {
 
-    use crate::engine::shared::{
-        helper_func::{
-            bit_pos_utility::*,
-            const_utility::{SqPos::*, FEN_CASTLE_TWO, FEN_PAWNS_BLACK, FEN_PAWNS_WHITE},
-            print_utility::{print_bitboard, print_chess, print_move_list},
-        },
-        structures::piece::{
-            BLACK_QUEEN, WHITE_BISHOP, WHITE_KING, WHITE_KNIGHT, WHITE_QUEEN, WHITE_ROOK,
+    use crate::engine::{
+        move_generation::fen::FenTrait,
+        shared::{
+            helper_func::{
+                bit_pos_utility::*,
+                const_utility::{SqPos::*, FEN_CASTLE_TWO, FEN_PAWNS_BLACK, FEN_PAWNS_WHITE},
+                print_utility::{print_bitboard, print_chess, print_move_list},
+            },
+            structures::piece::{
+                BLACK_QUEEN, WHITE_BISHOP, WHITE_KING, WHITE_KNIGHT, WHITE_QUEEN, WHITE_ROOK,
+            },
         },
     };
     use super::*;
