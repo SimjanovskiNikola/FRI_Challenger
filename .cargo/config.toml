@@ -1,0 +1,2 @@
+[build]
+rustflags = ["-C", "link-args=-Wl,-zstack_size,0x800000"]

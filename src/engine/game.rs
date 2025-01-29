@@ -17,6 +17,7 @@ pub struct Game {
     pub ep: Option<Bitboard>,
     pub half_move: usize,
     pub full_move: usize,
+    pub pos_key: u64,
 
     pub moves: Vec<InternalMove>,
 }
@@ -36,6 +37,8 @@ impl Game {
             ep: None,
             half_move: 0,
             full_move: 1,
+            pos_key: 0,
+
             moves: vec![],
         };
     }

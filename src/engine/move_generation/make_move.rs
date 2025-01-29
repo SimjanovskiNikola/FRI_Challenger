@@ -251,6 +251,7 @@ impl GameMoveTrait for Game {
         self.squares[sq] = Square::Occupied(piece);
         self.bitboard[piece.idx()].set_bit(sq);
         self.occupancy[piece.color().idx()].set_bit(sq);
+        self.pos_key ^= PieceKeys[sq][piece.idx()];
     }
 
     fn clear_piece(&mut self, sq: usize) {
@@ -260,6 +261,7 @@ impl GameMoveTrait for Game {
                 self.squares[sq] = Square::Empty;
                 self.bitboard[piece.idx()].clear_bit(sq);
                 self.occupancy[piece.color().idx()].clear_bit(sq);
+                self.pos_key ^= PieceKeys[sq][piece.idx()];
             }
         }
     }
@@ -282,12 +284,6 @@ impl GameMoveTrait for Game {
 
     fn generate_pos_key(&self) -> u64 {
         let mut final_key: u64 = 0;
-
-        for idx in 0..64 {
-            if let Square::Occupied(piece) = self.squares[idx] {
-                final_key ^= PieceKeys[idx][piece.idx()];
-            }
-        }
 
         if self.color == WHITE {
             final_key ^= *SideKey;
