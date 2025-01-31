@@ -1,7 +1,4 @@
-use crate::engine::shared::{
-    helper_func::bit_pos_utility::*,
-    structures::directions::{Dir, DIRECTIONS},
-};
+use crate::engine::shared::{helper_func::bit_pos_utility::*, structures::directions::*};
 use super::pawn_attacks::PawnAttacks;
 use lazy_static::lazy_static;
 
@@ -19,23 +16,6 @@ macro_rules! make_rays {
         rays
     }};
 }
-
-// DEPRECATE:
-// #[macro_export]
-// macro_rules! define_ray {
-//     ($name:ident, $offset_fn:expr) => {
-//         pub fn $name(row: i8, col: i8) -> u64 {
-//             let mut bitboard = 0;
-
-//             for offset in 1..8 {
-//                 let (row_offset, col_offset) = $offset_fn(row, col, offset);
-//                 bitboard = set_bit(bitboard, row_offset, col_offset);
-//             }
-
-//             return bitboard;
-//         }
-//     };
-// }
 
 const KING_OFFSET_POS: [(i8, i8); 8] =
     [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
@@ -131,8 +111,12 @@ pub fn blocked_ray_att(dir: Dir, ray_family: &[u64; 64], ray: u64, own: u64, ene
 #[cfg(test)]
 mod tests {
 
-    use crate::engine::shared::helper_func::{
-        bit_pos_utility::extract_all_bits, bitboard::BitboardTrait, print_utility::print_bitboard,
+    use crate::engine::shared::{
+        helper_func::{
+            bit_pos_utility::extract_all_bits, bitboard::BitboardTrait,
+            print_utility::print_bitboard,
+        },
+        structures::directions::Dir,
     };
 
     use super::*;
