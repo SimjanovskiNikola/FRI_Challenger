@@ -1,5 +1,6 @@
 use std::{
     arch::x86_64::{_pdep_u64, _pext_u64},
+    array,
     collections::HashMap,
 };
 use crate::engine::shared::structures::{directions::*, piece::*};
@@ -7,20 +8,45 @@ use super::all_attacks::{blocked_ray_att, ATTACKS};
 use lazy_static::lazy_static;
 
 lazy_static! {
+    pub static ref ROOK_MASKS: [u64; 64] =
+        array::from_fn(|sq| gen_rook_mov(sq) & !edges_of_board());
+    pub static ref BISHOP_MASKS: [u64; 64] =
+        array::from_fn(|sq| gen_bishop_mov(sq) & !edges_of_board());
     pub static ref ROOK_PEXT_TABLES: [[u64; 1024]; 64] = gen_pext_table_rook();
     pub static ref BISHOP_PEXT_TABLES: [[u64; 512]; 64] = gen_pext_table_bishop();
 }
 
 fn gen_pext_table_bishop() -> [[u64; 512]; 64] {
     let mut lookup_table = [[0u64; 512]; 64];
+    for sq in 0..64 {
+        println!("{:?}. {:?}", sq, ((2 as u64).pow(BISHOP_MASKS[sq].count_ones())));
+        for occ in 0..((2 as u64).pow(BISHOP_MASKS[sq].count_ones())) {
+            let extracted = insert_bits(BISHOP_MASKS[sq], occ as u64);
+            let mut moves = 0u64;
+
+            for dir in DIRECTIONS {
+                if dir.is_diagonal() {
+                    let ray = ATTACKS.rays[dir.idx()][sq];
+                    moves |= blocked_ray_att(
+                        DIRECTIONS[dir.idx()],
+                        &ATTACKS.rays[dir.idx()],
+                        ray,
+                        0,
+                        extracted,
+                    );
+                }
+            }
+            lookup_table[sq][occ as usize] = moves;
+        }
+    }
     return lookup_table;
 }
 
 pub fn gen_pext_table_rook() -> [[u64; 1024]; 64] {
     let mut lookup_table = [[0u64; 1024]; 64];
-    for occ in 0..1024 {
-        for sq in 0..64 {
-            let extracted = pdep(gen_rook_mov(sq) & !edges_of_board(), occ as u64);
+    for sq in 0..64 {
+        for occ in 0..((2 as u64).pow(ROOK_MASKS[sq].count_ones())) {
+            let extracted = insert_bits(ROOK_MASKS[sq], occ as u64);
             let mut moves = 0u64;
 
             for dir in DIRECTIONS {
@@ -35,14 +61,14 @@ pub fn gen_pext_table_rook() -> [[u64; 1024]; 64] {
                     );
                 }
             }
-            lookup_table[occ][sq] = moves;
+            lookup_table[sq][occ as usize] = moves;
         }
     }
 
     return lookup_table;
 }
 
-fn gen_rook_mov(pos: usize) -> u64 {
+pub fn gen_rook_mov(pos: usize) -> u64 {
     let mut attacks: u64 = 0;
     attacks |= ATTACKS.rays[Dir::NORTH.idx()][pos];
     attacks |= ATTACKS.rays[Dir::SOUTH.idx()][pos];
@@ -52,7 +78,7 @@ fn gen_rook_mov(pos: usize) -> u64 {
     return attacks;
 }
 
-fn gen_bishop_mov(pos: usize) -> u64 {
+pub fn gen_bishop_mov(pos: usize) -> u64 {
     let mut attacks: u64 = 0;
     attacks |= ATTACKS.rays[Dir::NORTHEAST.idx()][pos];
     attacks |= ATTACKS.rays[Dir::NORTHWEST.idx()][pos];
@@ -63,14 +89,14 @@ fn gen_bishop_mov(pos: usize) -> u64 {
 }
 
 pub fn gen_moves(sq: usize, own: u64, enemy: u64, is_bishop: bool) -> u64 {
-    let mask = gen_rook_mov(sq) & !edges_of_board();
+    let mask = if is_bishop { BISHOP_MASKS[sq] } else { ROOK_MASKS[sq] };
     let occupancy = own | enemy;
     let key = pext(occupancy, mask);
 
     if is_bishop {
-        BISHOP_PEXT_TABLES[sq][key as usize]
+        BISHOP_PEXT_TABLES[sq][key as usize] & !own
     } else {
-        ROOK_PEXT_TABLES[sq][key as usize]
+        ROOK_PEXT_TABLES[sq][key as usize] & !own
     }
 }
 
@@ -115,23 +141,23 @@ pub fn gen_moves(sq: usize, own: u64, enemy: u64, is_bishop: bool) -> u64 {
 // TODO: This can be optimized with one u64 which can be constant
 fn edges_of_board() -> u64 {
     let mut edges = 0xff818181818181ffu64; // All board edges
-    edges ^= (1u64 << 0) | (1u64 << 7) | (1u64 << 56) | (1u64 << 63); // Remove corners
+                                           // edges ^= (1u64 << 0) | (1u64 << 7) | (1u64 << 56) | (1u64 << 63); // Remove corners
     edges
 }
 
-// fn insert_bits(mask: u64, occupancy: u64) -> u64 {
-//     let mut result = 0;
-//     let mut bit = 0;
-//     for i in 0..64 {
-//         if (mask >> i) & 1 == 1 {
-//             if (occupancy >> bit) & 1 == 1 {
-//                 result |= 1 << i;
-//             }
-//             bit += 1;
-//         }
-//     }
-//     result
-// }
+fn insert_bits(mask: u64, occupancy: u64) -> u64 {
+    let mut result = 0;
+    let mut bit = 0;
+    for i in 0..64 {
+        if (mask >> i) & 1 == 1 {
+            if (occupancy >> bit) & 1 == 1 {
+                result |= 1 << i;
+            }
+            bit += 1;
+        }
+    }
+    result
+}
 
 // pub fn generate_moves(square: usize, own: u64, enemy: u64, is_bishop: bool) -> u64 {
 //     let mask = sliding_piece_mask(square, is_bishop);
@@ -241,5 +267,15 @@ mod tests {
             false,
         );
         print_bitboard(rook_mv, Some(SqPos::D2 as i8));
+
+        print_bitboard(BISHOP_MASKS[27], None);
+
+        let bishop_mv = gen_moves(
+            SqPos::D2 as usize,
+            (1u64 << (SqPos::E3 as usize)) | (1u64 << (SqPos::F2 as usize)),
+            (1u64 << (SqPos::D6 as usize)) | (1u64 << (SqPos::B4 as usize)),
+            true,
+        );
+        print_bitboard(bishop_mv, Some(SqPos::D2 as i8));
     }
 }
