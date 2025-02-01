@@ -5,7 +5,7 @@ use crate::engine::{
             bit_pos_utility::bit_scan_lsb,
             bitboard::{Bitboard, BitboardTrait},
             const_utility::SqPos::*,
-            print_utility::print_chess,
+            print_utility::{print_bitboard, print_chess},
         },
         structures::{
             castling_struct::CastlingRights,
@@ -22,13 +22,14 @@ use crate::engine::{
 use lazy_static::lazy_static;
 use rand::Rng;
 
+use super::move_generation::sq_attack;
 use super::move_generation::gen_attacks;
 
 lazy_static! {
-    pub static ref PieceKeys: [[u64; 14]; 64] = [[rand::thread_rng().gen(); 14]; 64];
-    pub static ref EpKeys: [u64; 64] = [rand::thread_rng().gen(); 64];
-    pub static ref CastleKeys: [u64; 16] = [rand::thread_rng().gen(); 16];
-    pub static ref SideKey: u64 = rand::thread_rng().gen();
+    pub static ref PieceKeys: [[u64; 14]; 64] = [[rand::rng().random(); 14]; 64];
+    pub static ref EpKeys: [u64; 64] = [rand::rng().random(); 64];
+    pub static ref CastleKeys: [u64; 16] = [rand::rng().random(); 16];
+    pub static ref SideKey: u64 = rand::rng().random();
 }
 
 pub trait GameMoveTrait {
@@ -166,6 +167,15 @@ impl GameMoveTrait for Game {
         //     );
         // }
 
+        if ((sq_attack(&self, king_sq, mv.active_color) != 0)
+            != gen_attacks(self, self.color).is_set(king_sq))
+        {
+            print_bitboard(gen_attacks(self, self.color), None);
+            print_bitboard(sq_attack(&self, king_sq, mv.active_color), None);
+            print_chess(self);
+        }
+
+        // if sq_attack(&self, king_sq, mv.active_color) != 0 {
         if gen_attacks(self, self.color).is_set(king_sq) {
             self.undo_move();
             return false;

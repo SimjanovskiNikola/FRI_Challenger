@@ -1,5 +1,5 @@
 use crate::engine::{
-    attacks::all_attacks::{blocked_ray_att, ATTACKS},
+    attacks::{all_attacks::ATTACKS, pext::*},
     game::Game,
     shared::{
         helper_func::{
@@ -11,26 +11,17 @@ use crate::engine::{
         structures::{
             castling_struct::CastlingRights,
             color::{Color, ColorTrait, BLACK, WHITE},
-            directions::Dir,
             internal_move::{Flag, InternalMove},
-            piece::{Piece, PieceTrait, BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK},
+            piece::*,
             square::Square,
         },
     },
 };
 
-pub fn get_attacks(rays: Dir, piece: &Piece, pos: usize, game: &Game) -> u64 {
-    let attacks = &ATTACKS.rays[rays.idx()];
-
-    let (own_occ, enemy_occ) = get_occupancy(&piece, game);
-
-    return blocked_ray_att(rays, attacks, attacks[pos], own_occ, enemy_occ);
-}
-
 pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     let mut positions: Vec<InternalMove> = vec![];
 
-    // for bitboard in game.piece_bitboard[color as usize] {
+    let (own_occ, enemy_occ) = get_occupancy(&color, game); // TODO: Change the type
     for idx in ((color.idx())..game.bitboard.len()).step_by(2) {
         for pos in extract_all_bits(game.bitboard[idx]) {
             let piece = match game.squares[pos] {
@@ -38,7 +29,7 @@ pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
                 Square::Empty => panic!("Shouldn't be empty"),
             };
 
-            let all_mov_att = get_all_moves(piece, pos, game) | get_all_attacks(piece, pos, game);
+            let all_mov_att = get_all_moves(piece, pos, game, own_occ, enemy_occ);
             positions.extend(get_internal_moves(all_mov_att, &piece, pos, game));
         }
     }
@@ -46,38 +37,64 @@ pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     return positions;
 }
 
+// TODO: Update gen_pawn_att
+pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
+    let (own_occ, enemy_occ) = get_occupancy(&color, game);
+
+    let op_pawns = game.bitboard[(BLACK_PAWN - color) as usize];
+    let op_knights = game.bitboard[(BLACK_KNIGHT - color) as usize];
+    let op_rq = game.bitboard[(BLACK_QUEEN - color) as usize]
+        | game.bitboard[(BLACK_ROOK - color) as usize];
+    let op_bq = game.bitboard[(BLACK_QUEEN - color) as usize]
+        | game.bitboard[(BLACK_BISHOP - color) as usize];
+    let op_king = game.bitboard[(BLACK_KING - color) as usize];
+
+    return (gen_pawn_att(&color, sq, game, own_occ, enemy_occ) & op_pawns)
+        | (gen_knight_mov(sq, own_occ, enemy_occ) & op_knights)
+        | (gen_bishop_mov(sq, own_occ, enemy_occ) & op_bq)
+        | (gen_rook_mov(sq, own_occ, enemy_occ) & op_rq)
+        | (gen_king_mov(sq, own_occ, enemy_occ) & op_king);
+}
+
+// DEPRECATE:
 pub fn gen_attacks(game: &Game, color: Color) -> Bitboard {
     let mut attacked_sq: Bitboard = 0;
+    let (own_occ, enemy_occ) = get_occupancy(&color, game);
     for idx in ((color.idx())..game.bitboard.len()).step_by(2) {
         for sq in extract_all_bits(game.bitboard[idx]) {
             if let Square::Occupied(piece) = game.squares[sq] {
-                attacked_sq.union(get_all_attacks(piece, sq, game));
+                attacked_sq.union(get_all_attacks(piece, sq, game, own_occ, enemy_occ));
             }
         }
     }
     return attacked_sq;
 }
 
-fn get_all_moves(piece: Piece, pos: usize, game: &Game) -> u64 {
+// DEPRECATE:
+fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
     match piece.kind() {
-        PAWN => return gen_pawn_mov(&piece, pos, &game),
-        KNIGHT => return gen_knight_mov_att(&piece, pos, &game),
-        BISHOP => return gen_bishop_mov_att(&piece, pos, &game),
-        ROOK => return gen_rook_mov_att(&piece, pos, &game),
-        QUEEN => return gen_queen_mov_att(&piece, pos, &game),
-        KING => return gen_king_mov_att(&piece, pos, &game),
+        PAWN => {
+            return gen_pawn_mov(&piece, pos, &game, own_occ, enemy_occ)
+                | gen_pawn_att(&piece, pos, game, own_occ, enemy_occ)
+        }
+        KNIGHT => return gen_knight_mov(pos, own_occ, enemy_occ),
+        BISHOP => return gen_bishop_mov(pos, own_occ, enemy_occ),
+        ROOK => return gen_rook_mov(pos, own_occ, enemy_occ),
+        QUEEN => return gen_queen_mov(pos, own_occ, enemy_occ),
+        KING => return gen_king_mov(pos, own_occ, enemy_occ),
         _ => panic!("Invalid Peace Type"),
     }
 }
 
-fn get_all_attacks(piece: Piece, pos: usize, game: &Game) -> u64 {
+// DEPRECATE:
+fn get_all_attacks(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
     match piece.kind() {
-        PAWN => return gen_pawn_att(&piece, pos, game),
-        KNIGHT => return gen_knight_mov_att(&piece, pos, &game),
-        BISHOP => return gen_bishop_mov_att(&piece, pos, &game),
-        ROOK => return gen_rook_mov_att(&piece, pos, &game),
-        QUEEN => return gen_queen_mov_att(&piece, pos, &game),
-        KING => return gen_king_mov_att(&piece, pos, &game),
+        PAWN => return gen_pawn_att(&piece, pos, game, own_occ, enemy_occ),
+        KNIGHT => return gen_knight_mov(pos, own_occ, enemy_occ),
+        BISHOP => return gen_bishop_mov(pos, own_occ, enemy_occ),
+        ROOK => return gen_rook_mov(pos, own_occ, enemy_occ),
+        QUEEN => return gen_queen_mov(pos, own_occ, enemy_occ),
+        KING => return gen_king_mov(pos, own_occ, enemy_occ),
         _ => panic!("Invalid Peace Type"),
     };
 }
@@ -91,6 +108,7 @@ fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
     };
 }
 
+//FIXME: TODO: REFACTOR
 fn get_internal_moves(attacks: u64, piece: &Piece, pos: usize, game: &Game) -> Vec<InternalMove> {
     let potential_moves = extract_all_bits(attacks);
     let mut new_positions = vec![];
@@ -127,6 +145,7 @@ fn get_internal_moves(attacks: u64, piece: &Piece, pos: usize, game: &Game) -> V
     return new_positions;
 }
 
+// FIXME: TODO: REFACTOR
 #[rustfmt::skip]
 pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game) -> Vec<InternalMove> {
     let mut new_positions = vec![];
@@ -261,36 +280,38 @@ pub fn add_promotion_move(mv: &InternalMove, _game: &Game) -> Vec<InternalMove> 
     return new_moves;
 }
 
-// TODO: IMPLEMNET
-fn gen_pawn_att(piece: &Piece, pos: usize, game: &Game) -> u64 {
+// **** START: ****
+// MOVEMENT
+
+// TODO: IMPLEMNET BETTER
+fn gen_pawn_att(piece: &Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
     let mut attacks = match piece.color() {
         BLACK => ATTACKS.pawn.black_diagonal_moves[pos],
         WHITE => ATTACKS.pawn.white_diagonal_moves[pos],
         _ => panic!("Invalid Color"),
     };
 
-    let (own_occupancy, enemy_occupancy) = get_occupancy(piece, game);
-
-    attacks &= !own_occupancy;
+    // TODO: ADD It to another function
+    attacks &= !own_occ;
     attacks &= match game.ep {
         Some(bitboard) => {
             let rez;
             let rank = get_bit_rank(bit_scan_lsb(bitboard));
             if (rank == Rank::Six && piece.is_white()) || (rank == Rank::Three && piece.is_black())
             {
-                rez = enemy_occupancy | bitboard;
+                rez = enemy_occ | bitboard;
             } else {
-                rez = enemy_occupancy;
+                rez = enemy_occ;
             }
             rez
         }
-        None => enemy_occupancy,
+        None => enemy_occ,
     };
 
     return attacks;
 }
 
-fn gen_pawn_mov(piece: &Piece, pos: usize, game: &Game) -> u64 {
+fn gen_pawn_mov(piece: &Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
     let mut attacks = match piece.color() {
         BLACK => ATTACKS.pawn.black_forward_moves[pos],
         WHITE => ATTACKS.pawn.white_forward_moves[pos],
@@ -309,7 +330,7 @@ fn gen_pawn_mov(piece: &Piece, pos: usize, game: &Game) -> u64 {
                 if i == 0 {
                     return 0;
                 } else if i == 1 {
-                    attacks.clear_bit(*attack); //= clear_bit(attacks, *attack)
+                    attacks.clear_bit(*attack);
                 }
             }
         }
@@ -319,44 +340,24 @@ fn gen_pawn_mov(piece: &Piece, pos: usize, game: &Game) -> u64 {
     return attacks;
 }
 
-fn gen_knight_mov_att(piece: &Piece, pos: usize, game: &Game) -> u64 {
-    let (own_occupancy, _) = get_occupancy(piece, game);
-    let attacks = ATTACKS.knight[pos];
-
-    return attacks & !own_occupancy;
+fn gen_knight_mov(pos: usize, own_occ: u64, enemy_occ: u64) -> u64 {
+    return ATTACKS.knight[pos] & !own_occ;
 }
 
-fn gen_bishop_mov_att(piece: &Piece, pos: usize, game: &Game) -> u64 {
-    let mut attacks: u64 = 0;
-    attacks |= get_attacks(Dir::NORTHWEST, piece, pos, game);
-    attacks |= get_attacks(Dir::SOUTHWEST, piece, pos, game);
-    attacks |= get_attacks(Dir::NORTHEAST, piece, pos, game);
-    attacks |= get_attacks(Dir::SOUTHEAST, piece, pos, game);
-
-    return attacks;
+fn gen_bishop_mov(sq: usize, own_occ: u64, enemy_occ: u64) -> u64 {
+    return gen_slide_mv(sq, own_occ, enemy_occ, true);
 }
 
-fn gen_rook_mov_att(piece: &Piece, pos: usize, game: &Game) -> u64 {
-    let mut attacks: u64 = 0;
-    attacks |= get_attacks(Dir::NORTH, piece, pos, game);
-    attacks |= get_attacks(Dir::SOUTH, piece, pos, game);
-    attacks |= get_attacks(Dir::EAST, piece, pos, game);
-    attacks |= get_attacks(Dir::WEST, piece, pos, game);
-
-    return attacks;
+fn gen_rook_mov(sq: usize, own_occ: u64, enemy_occ: u64) -> u64 {
+    return gen_slide_mv(sq, own_occ, enemy_occ, false);
 }
 
-fn gen_queen_mov_att(piece: &Piece, pos: usize, game: &Game) -> u64 {
-    let mut attacks: u64 = 0;
-    attacks |= gen_bishop_mov_att(piece, pos, game);
-    attacks |= gen_rook_mov_att(piece, pos, game);
-    return attacks;
+fn gen_queen_mov(sq: usize, own_occ: u64, enemy_occ: u64) -> u64 {
+    return gen_rook_mov(sq, own_occ, enemy_occ) | gen_bishop_mov(sq, own_occ, enemy_occ);
 }
 
-fn gen_king_mov_att(piece: &Piece, pos: usize, game: &Game) -> u64 {
-    let attacks = ATTACKS.king[pos];
-    let (own_occupancy, _) = get_occupancy(piece, game);
-    return attacks & !own_occupancy;
+fn gen_king_mov(pos: usize, own_occ: u64, enemy_occ: u64) -> u64 {
+    return ATTACKS.king[pos] & !own_occ;
 }
 
 #[cfg(test)]
@@ -380,16 +381,13 @@ mod tests {
     fn test_mov_att(fen: &str, piece: Piece, idx: usize) -> Vec<usize> {
         let game = Game::read_fen(&fen);
         // println!("{}", game.to_string());
-
+        let (own_occ, enemy_occ) = get_occupancy(&piece, &game);
         let all_pieces = extract_all_bits(game.bitboard[piece.idx()]);
         let piece = match game.squares[all_pieces[idx]] {
             Square::Empty => panic!("The Piece Must exist"),
             Square::Occupied(piece) => piece,
         };
-        return extract_all_bits(
-            get_all_moves(piece, all_pieces[idx], &game)
-                | get_all_attacks(piece, all_pieces[idx], &game),
-        );
+        return extract_all_bits(get_all_moves(piece, all_pieces[idx], &game, own_occ, enemy_occ));
 
         // print_bitboard(
         //     generate_knight_moves(&piece, &game),
@@ -402,16 +400,16 @@ mod tests {
         let game = Game::read_fen(&FEN_PAWNS_WHITE);
         let moves = gen_moves(WHITE, &game);
         assert_eq!(42, moves.len());
-        print_move_list(moves);
+        print_move_list(&moves);
     }
 
     #[test]
     fn test_mv_gen() {
         let game = Game::read_fen(&FEN_CASTLE_TWO);
         let moves = gen_moves(WHITE, &game);
-        assert_eq!(48, moves.len());
         print_chess(&game);
-        print_move_list(moves);
+        print_move_list(&moves);
+        assert_eq!(48, moves.len());
     }
 
     #[test]
@@ -419,7 +417,7 @@ mod tests {
         let game = Game::read_fen(&FEN_PAWNS_BLACK);
         let moves = gen_moves(BLACK, &game);
         assert_eq!(42, moves.len());
-        print_move_list(moves);
+        print_move_list(&moves);
     }
 
     #[test]
@@ -431,8 +429,16 @@ mod tests {
             Some(bit_scan_lsb(game.bitboard[BLACK_QUEEN.idx()]) as i8),
         );
         print_bitboard(
+            sq_attack(&game, bit_scan_lsb(game.bitboard[BLACK_QUEEN.idx()]), BLACK),
+            Some(bit_scan_lsb(game.bitboard[BLACK_QUEEN.idx()]) as i8),
+        );
+        print_bitboard(
             gen_attacks(&game, WHITE),
             Some(bit_scan_lsb(game.bitboard[WHITE_QUEEN.idx()]) as i8),
+        );
+        print_bitboard(
+            sq_attack(&game, bit_scan_lsb(game.bitboard[WHITE_QUEEN.idx()]), WHITE),
+            None,
         );
     }
 

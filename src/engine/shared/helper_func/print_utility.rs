@@ -87,7 +87,7 @@ pub fn move_notation(sq_from: usize, sq_to: usize, promotion: Option<Piece>) -> 
     }
 }
 
-pub fn print_move_list(moves: Vec<InternalMove>) {
+pub fn print_move_list(moves: &Vec<InternalMove>) {
     for (idx, mv) in moves.iter().enumerate() {
         println!("{}. Move: {}, (Score: {})", idx, move_notation(mv.from, mv.to, mv.promotion), 0);
     }
