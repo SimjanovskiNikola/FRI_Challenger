@@ -102,6 +102,7 @@ impl FenTrait for Game {
 mod tests {
     use crate::engine::shared::helper_func::bitboard::BitboardTrait;
     use crate::engine::shared::helper_func::const_utility::*;
+    use crate::engine::shared::structures::square::SqPos;
 
     use super::*;
 
