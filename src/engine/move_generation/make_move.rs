@@ -4,7 +4,6 @@ use crate::engine::{
         helper_func::{
             bit_pos_utility::bit_scan_lsb,
             bitboard::{Bitboard, BitboardTrait},
-            const_utility::SqPos::*,
             print_utility::{print_bitboard, print_chess},
         },
         structures::{
@@ -13,6 +12,7 @@ use crate::engine::{
             internal_move::{Flag, InternalMove},
             piece::{Piece, PieceTrait, KING},
             square::Square,
+            square::SqPos::*,
         },
     },
 };
@@ -295,8 +295,8 @@ impl GameMoveTrait for Game {
             None => (),
         }
 
-        if self.castling.as_usize() < 16 {
-            final_key ^= CastleKeys[self.castling.as_usize()];
+        if self.castling.idx() < 16 {
+            final_key ^= CastleKeys[self.castling.idx()];
         }
         return final_key;
     }
