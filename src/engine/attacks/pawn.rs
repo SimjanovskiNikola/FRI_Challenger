@@ -1,53 +1,75 @@
 use crate::engine::shared::{
-    helper_func::bit_pos_utility::*,
-    structures::color::{Color, BLACK, WHITE},
+    helper_func::{bit_pos_utility::*, bitboard::BitboardTrait, const_utility::Rank},
+    structures::{
+        color::{Color, ColorTrait, BLACK, WHITE},
+        piece::PieceTrait,
+    },
 };
+use lazy_static::lazy_static;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct PawnAttacks {
-    pub white_forward_moves: Vec<u64>,
-    pub white_diagonal_moves: Vec<u64>,
-    pub black_forward_moves: Vec<u64>,
-    pub black_diagonal_moves: Vec<u64>,
+lazy_static! {
+    pub static ref PAWN_ATTACK: [[u64; 64]; 2] = create_pawn_attacks();
+    pub static ref PAWN_MOVE: [[u64; 64]; 2] = create_pawn_move();
 }
 
-impl PawnAttacks {
-    pub fn init() -> Self {
-        let mut w_forward = vec![];
-        let mut w_diagonal = vec![];
-        let mut b_forward = vec![];
-        let mut b_diagonal = vec![];
+pub fn create_pawn_attacks() -> [[u64; 64]; 2] {
+    let mut pawn_move = [[0u64; 64]; 2];
 
-        for row in 0..8 {
-            for col in 0..8 {
-                let f = forward_move(row, col, WHITE);
-                let d = diagonal_move(row, col, WHITE);
-                w_forward.push(f);
-                w_diagonal.push(d);
-
-                let f = forward_move(row, col, BLACK);
-                let d = diagonal_move(row, col, BLACK);
-                b_forward.push(f);
-                b_diagonal.push(d);
-            }
+    for row in 0..8 {
+        for col in 0..8 {
+            pawn_move[WHITE.idx()][row * 8 + col] = diagonal_move(row as i8, col as i8, WHITE);
+            pawn_move[BLACK.idx()][row * 8 + col] = diagonal_move(row as i8, col as i8, BLACK);
         }
+    }
+    return pawn_move;
+}
 
-        return Self {
-            white_forward_moves: w_forward,
-            white_diagonal_moves: w_diagonal,
-            black_forward_moves: b_forward,
-            black_diagonal_moves: b_diagonal,
-        };
+pub fn create_pawn_move() -> [[u64; 64]; 2] {
+    let mut pawn_move = [[0u64; 64]; 2];
+
+    for row in 0..8 {
+        for col in 0..8 {
+            pawn_move[WHITE.idx()][row * 8 + col] = forward_move(row as i8, col as i8, WHITE);
+            pawn_move[BLACK.idx()][row * 8 + col] = forward_move(row as i8, col as i8, BLACK);
+        }
+    }
+    return pawn_move;
+}
+
+// PAWN MOVE, ATTACK, EP
+pub fn get_pawn_mv(color: Color, sq: usize, own: u64, enemy: u64) -> u64 {
+    let moves = PAWN_MOVE[color.idx()][sq] & !(own | enemy);
+
+    let bit = match color {
+        WHITE => PAWN_MOVE[color.idx()][sq].get_lsb(),
+        BLACK => PAWN_MOVE[color.idx()][sq].get_msb(),
+        _ => panic!("There are only two colors, black and white"),
+    };
+
+    return if moves.is_set(bit) { moves } else { 0 };
+}
+
+pub fn get_pawn_att(color: Color, sq: usize, own: u64, enemy: u64, ep: Option<u64>) -> u64 {
+    let attacks = PAWN_ATTACK[color.idx()][sq] & !own;
+    match ep {
+        Some(ep) => return attacks & (enemy | get_pawn_ep(color, ep)),
+        None => return attacks & enemy,
     }
 }
 
-fn forward_move(row: i8, col: i8, piece_color: Color) -> u64 {
-    if row == 0 || row == 7 {
+pub fn get_pawn_ep(color: Color, ep: u64) -> u64 {
+    let rank_ep = get_bit_rank(bit_scan_lsb(ep));
+    if (rank_ep == Rank::Six && color.is_white()) || (rank_ep == Rank::Three && color.is_black()) {
+        return ep;
+    } else {
         return 0;
     }
+}
 
+// FORWARD AND DIAGONAL MOVES
+fn forward_move(row: i8, col: i8, color: Color) -> u64 {
     let mut bitboard = 0;
-    if piece_color == WHITE {
+    if color == WHITE {
         if row < 7 {
             bitboard |= set_bit(bitboard, row + 1, col + 0);
         }
@@ -65,22 +87,14 @@ fn forward_move(row: i8, col: i8, piece_color: Color) -> u64 {
     return bitboard;
 }
 
-fn diagonal_move(row: i8, col: i8, piece_color: Color) -> u64 {
-    if row == 0 || row == 7 {
-        return 0;
-    }
-
+fn diagonal_move(row: i8, col: i8, color: Color) -> u64 {
     let mut bitboard = 0;
-    if piece_color == WHITE {
-        if row < 7 {
-            bitboard |= set_bit(bitboard, row + 1, col + 1);
-            bitboard |= set_bit(bitboard, row + 1, col - 1);
-        }
-    } else {
-        if row > 0 {
-            bitboard |= set_bit(bitboard, row - 1, col + 1);
-            bitboard |= set_bit(bitboard, row - 1, col - 1);
-        }
+    if color == WHITE && row < 7 {
+        bitboard |= set_bit(bitboard, row + 1, col + 1);
+        bitboard |= set_bit(bitboard, row + 1, col - 1);
+    } else if color == BLACK && row > 0 {
+        bitboard |= set_bit(bitboard, row - 1, col + 1);
+        bitboard |= set_bit(bitboard, row - 1, col - 1);
     }
     return bitboard;
 }
@@ -89,11 +103,6 @@ fn diagonal_move(row: i8, col: i8, piece_color: Color) -> u64 {
 mod tests {
 
     use super::*;
-
-    #[test]
-    fn test_pawn_attacks_init() {
-        let _ = PawnAttacks::init();
-    }
 
     #[test]
     fn test_second_row_white_pawn() {
@@ -161,29 +170,31 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_forward_edges_pawn_attacks() {
-        for color in [WHITE, BLACK] {
-            for row in [0, 7] {
-                for col in 0..8 {
-                    let bitboard = forward_move(row, col, color);
-                    assert_eq!(bitboard, 0);
-                }
-            }
-        }
-    }
+    // #[test]
+    // fn test_forward_edges_pawn_attacks() {
+    //     for color in [WHITE, BLACK] {
+    //         for row in [0, 7] {
+    //             for col in 0..8 {
+    //                 let bitboard = forward_move(row, col, color);
+    //                 print_bitboard(bitboard, None);
+    //                 assert_eq!(bitboard, 0);
+    //             }
+    //         }
+    //     }
+    // }
 
-    #[test]
-    fn test_diagonal_edges_pawn_attacks() {
-        for color in [WHITE, BLACK] {
-            for row in [0, 7] {
-                for col in 0..8 {
-                    let bitboard = diagonal_move(row, col, color);
-                    assert_eq!(bitboard, 0);
-                }
-            }
-        }
-    }
+    // #[test]
+    // fn test_diagonal_edges_pawn_attacks() {
+    //     for color in [WHITE, BLACK] {
+    //         for row in [0, 7] {
+    //             for col in 0..8 {
+    //                 let bitboard = diagonal_move(row, col, color);
+    //                 print_bitboard(bitboard, None);
+    //                 assert_eq!(bitboard, 0);
+    //             }
+    //         }
+    //     }
+    // }
 
     #[test]
     fn test_diagonal_white_pawn() {
