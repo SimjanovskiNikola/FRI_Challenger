@@ -338,12 +338,12 @@ mod tests {
         assert_eq!(stats.nodes, 422333);
     }
 
-    // FIXME: Time Needed: 35346 ms; Correct: Yes;
-    // #[test]
-    // fn test_perft_pos_four_depth_5() {
-    //     let stats = init_test_func(&FEN_POS_FOUR, 5, true);
-    //     assert_eq!(stats.nodes, 15833292);
-    // }
+    // FIXME: Time Needed: 35346 ms; Improved To: 10439ms Correct: Yes;
+    #[test]
+    fn test_perft_pos_four_depth_5() {
+        let stats = init_test_func(&FEN_POS_FOUR, 5, true);
+        assert_eq!(stats.nodes, 15833292);
+    }
 
     // FIXME:
     // #[test]

@@ -23,7 +23,6 @@ use lazy_static::lazy_static;
 use rand::Rng;
 
 use super::move_generation::sq_attack;
-use super::move_generation::gen_attacks;
 
 lazy_static! {
     pub static ref PieceKeys: [[u64; 14]; 64] = [[rand::rng().random(); 14]; 64];
@@ -167,16 +166,8 @@ impl GameMoveTrait for Game {
         //     );
         // }
 
-        if ((sq_attack(&self, king_sq, mv.active_color) != 0)
-            != gen_attacks(self, self.color).is_set(king_sq))
-        {
-            print_bitboard(gen_attacks(self, self.color), None);
-            print_bitboard(sq_attack(&self, king_sq, mv.active_color), None);
-            print_chess(self);
-        }
-
-        // if sq_attack(&self, king_sq, mv.active_color) != 0 {
-        if gen_attacks(self, self.color).is_set(king_sq) {
+        if sq_attack(&self, king_sq, mv.active_color) != 0 {
+            // if gen_attacks(self, self.color).is_set(king_sq) {
             self.undo_move();
             return false;
         }

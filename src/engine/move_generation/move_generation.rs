@@ -1,5 +1,12 @@
 use crate::engine::{
-    attacks::{all_attacks::ATTACKS, pext::*},
+    attacks::{
+        bishop::get_bishop_mv,
+        king::get_king_mv,
+        knight::get_knight_mv,
+        pawn::{get_pawn_att, get_pawn_mv},
+        queen::get_queen_mv,
+        rook::get_rook_mv,
+    },
     game::Game,
     shared::{
         helper_func::{
@@ -10,7 +17,7 @@ use crate::engine::{
         },
         structures::{
             castling_struct::CastlingRights,
-            color::{Color, ColorTrait, BLACK, WHITE},
+            color::{Color, BLACK, WHITE},
             internal_move::{Flag, InternalMove},
             piece::*,
             square::Square,
@@ -49,11 +56,11 @@ pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
         | game.bitboard[(BLACK_BISHOP - color) as usize];
     let op_king = game.bitboard[(BLACK_KING - color) as usize];
 
-    return (gen_pawn_att(&color, sq, game, own_occ, enemy_occ) & op_pawns)
-        | (gen_knight_mov(sq, own_occ, enemy_occ) & op_knights)
-        | (gen_bishop_mov(sq, own_occ, enemy_occ) & op_bq)
-        | (gen_rook_mov(sq, own_occ, enemy_occ) & op_rq)
-        | (gen_king_mov(sq, own_occ, enemy_occ) & op_king);
+    return (get_pawn_att(color, sq, own_occ, enemy_occ, None) & op_pawns)
+        | (get_knight_mv(sq, own_occ, enemy_occ) & op_knights)
+        | (get_bishop_mv(sq, own_occ, enemy_occ) & op_bq)
+        | (get_rook_mv(sq, own_occ, enemy_occ) & op_rq)
+        | (get_king_mv(sq, own_occ, enemy_occ) & op_king);
 }
 
 // DEPRECATE:
@@ -74,14 +81,15 @@ pub fn gen_attacks(game: &Game, color: Color) -> Bitboard {
 fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
     match piece.kind() {
         PAWN => {
-            return gen_pawn_mov(&piece, pos, &game, own_occ, enemy_occ)
-                | gen_pawn_att(&piece, pos, game, own_occ, enemy_occ)
+            return get_pawn_mv(piece.color(), pos, own_occ, enemy_occ)
+            // return gen_pawn_mov(&piece, pos, &game, own_occ, enemy_occ)
+                | get_pawn_att(piece.color(), pos, own_occ, enemy_occ, game.ep);
         }
-        KNIGHT => return gen_knight_mov(pos, own_occ, enemy_occ),
-        BISHOP => return gen_bishop_mov(pos, own_occ, enemy_occ),
-        ROOK => return gen_rook_mov(pos, own_occ, enemy_occ),
-        QUEEN => return gen_queen_mov(pos, own_occ, enemy_occ),
-        KING => return gen_king_mov(pos, own_occ, enemy_occ),
+        KNIGHT => return get_knight_mv(pos, own_occ, enemy_occ),
+        BISHOP => return get_bishop_mv(pos, own_occ, enemy_occ),
+        ROOK => return get_rook_mv(pos, own_occ, enemy_occ),
+        QUEEN => return get_queen_mv(pos, own_occ, enemy_occ),
+        KING => return get_king_mv(pos, own_occ, enemy_occ),
         _ => panic!("Invalid Peace Type"),
     }
 }
@@ -89,12 +97,12 @@ fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ:
 // DEPRECATE:
 fn get_all_attacks(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
     match piece.kind() {
-        PAWN => return gen_pawn_att(&piece, pos, game, own_occ, enemy_occ),
-        KNIGHT => return gen_knight_mov(pos, own_occ, enemy_occ),
-        BISHOP => return gen_bishop_mov(pos, own_occ, enemy_occ),
-        ROOK => return gen_rook_mov(pos, own_occ, enemy_occ),
-        QUEEN => return gen_queen_mov(pos, own_occ, enemy_occ),
-        KING => return gen_king_mov(pos, own_occ, enemy_occ),
+        PAWN => return get_pawn_att(piece.color(), pos, own_occ, enemy_occ, game.ep),
+        KNIGHT => return get_knight_mv(pos, own_occ, enemy_occ),
+        BISHOP => return get_bishop_mv(pos, own_occ, enemy_occ),
+        ROOK => return get_rook_mv(pos, own_occ, enemy_occ),
+        QUEEN => return get_queen_mv(pos, own_occ, enemy_occ),
+        KING => return get_king_mv(pos, own_occ, enemy_occ),
         _ => panic!("Invalid Peace Type"),
     };
 }
@@ -278,86 +286,6 @@ pub fn add_promotion_move(mv: &InternalMove, _game: &Game) -> Vec<InternalMove> 
     }
 
     return new_moves;
-}
-
-// **** START: ****
-// MOVEMENT
-
-// TODO: IMPLEMNET BETTER
-fn gen_pawn_att(piece: &Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
-    let mut attacks = match piece.color() {
-        BLACK => ATTACKS.pawn.black_diagonal_moves[pos],
-        WHITE => ATTACKS.pawn.white_diagonal_moves[pos],
-        _ => panic!("Invalid Color"),
-    };
-
-    // TODO: ADD It to another function
-    attacks &= !own_occ;
-    attacks &= match game.ep {
-        Some(bitboard) => {
-            let rez;
-            let rank = get_bit_rank(bit_scan_lsb(bitboard));
-            if (rank == Rank::Six && piece.is_white()) || (rank == Rank::Three && piece.is_black())
-            {
-                rez = enemy_occ | bitboard;
-            } else {
-                rez = enemy_occ;
-            }
-            rez
-        }
-        None => enemy_occ,
-    };
-
-    return attacks;
-}
-
-fn gen_pawn_mov(piece: &Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
-    let mut attacks = match piece.color() {
-        BLACK => ATTACKS.pawn.black_forward_moves[pos],
-        WHITE => ATTACKS.pawn.white_forward_moves[pos],
-        _ => panic!("Invalid Color"),
-    };
-
-    let mut all_bits = extract_all_bits(attacks);
-    if piece.is_black() {
-        all_bits.reverse();
-    }
-
-    for (i, attack) in all_bits.iter().enumerate() {
-        match game.squares[*attack] {
-            Square::Empty => continue,
-            Square::Occupied(_) => {
-                if i == 0 {
-                    return 0;
-                } else if i == 1 {
-                    attacks.clear_bit(*attack);
-                }
-            }
-        }
-    }
-
-    // TODO: Somewhere I need the promotions
-    return attacks;
-}
-
-fn gen_knight_mov(pos: usize, own_occ: u64, enemy_occ: u64) -> u64 {
-    return ATTACKS.knight[pos] & !own_occ;
-}
-
-fn gen_bishop_mov(sq: usize, own_occ: u64, enemy_occ: u64) -> u64 {
-    return gen_slide_mv(sq, own_occ, enemy_occ, true);
-}
-
-fn gen_rook_mov(sq: usize, own_occ: u64, enemy_occ: u64) -> u64 {
-    return gen_slide_mv(sq, own_occ, enemy_occ, false);
-}
-
-fn gen_queen_mov(sq: usize, own_occ: u64, enemy_occ: u64) -> u64 {
-    return gen_rook_mov(sq, own_occ, enemy_occ) | gen_bishop_mov(sq, own_occ, enemy_occ);
-}
-
-fn gen_king_mov(pos: usize, own_occ: u64, enemy_occ: u64) -> u64 {
-    return ATTACKS.king[pos] & !own_occ;
 }
 
 #[cfg(test)]
