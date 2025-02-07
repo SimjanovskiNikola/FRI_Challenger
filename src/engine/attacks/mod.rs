@@ -1,4 +1,5 @@
 pub mod bishop;
+pub mod generated;
 pub mod king;
 pub mod knight;
 pub mod pawn;

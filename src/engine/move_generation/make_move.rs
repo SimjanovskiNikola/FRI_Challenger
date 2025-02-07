@@ -4,15 +4,14 @@ use crate::engine::{
         helper_func::{
             bit_pos_utility::bit_scan_lsb,
             bitboard::{Bitboard, BitboardTrait},
-            print_utility::{print_bitboard, print_chess},
+            print_utility::print_chess,
         },
         structures::{
             castling_struct::CastlingRights,
             color::{Color, BLACK, WHITE},
             internal_move::{Flag, InternalMove},
-            piece::{Piece, PieceTrait, KING},
-            square::Square,
-            square::SqPos::*,
+            piece::{Piece, PieceTrait, KING, ROOK},
+            square::{SqPos::*, Square},
         },
     },
 };
@@ -105,28 +104,10 @@ impl GameMoveTrait for Game {
             (A8 as usize, E8 as usize, CastlingRights::BQUEENSIDE, BLACK),
         ];
         for c in castle_tuple {
-            let mut clear_castle = false;
-            if mv.castle.bits() & c.2.bits() == 0 {
-                clear_castle = true;
-            }
-            match self.squares[c.1] {
-                Square::Empty => clear_castle = true,
-                Square::Occupied(piece) => {
-                    if !piece.is_king() {
-                        clear_castle = true
-                    }
-                }
-            };
-            match self.squares[c.0] {
-                Square::Empty => clear_castle = true,
-                Square::Occupied(piece) => {
-                    if !piece.is_rook() {
-                        clear_castle = true
-                    }
-                }
-            };
-
-            if clear_castle {
+            if !mv.castle.is_set(c.2)
+                || !self.bitboard[(ROOK + c.3) as usize].is_set(c.0)
+                || !self.bitboard[(KING + c.3) as usize].is_set(c.1)
+            {
                 self.castling.clear(c.2);
             }
         }

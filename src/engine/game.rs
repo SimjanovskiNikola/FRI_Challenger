@@ -39,7 +39,7 @@ impl Game {
             full_move: 1,
             pos_key: 0,
 
-            moves: vec![],
+            moves: Vec::with_capacity(64),
         };
     }
 
@@ -52,7 +52,7 @@ impl Game {
         self.ep = None;
         self.half_move = 0;
         self.full_move = 1;
-        self.moves = vec![];
+        self.moves = Vec::with_capacity(64);
     }
 }
 

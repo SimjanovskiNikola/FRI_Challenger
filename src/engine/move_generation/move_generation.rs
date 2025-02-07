@@ -15,18 +15,15 @@ use crate::engine::shared::structures::piece::*;
 use crate::engine::shared::structures::square::*;
 
 pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
-    let mut positions: Vec<InternalMove> = vec![];
+    let mut positions: Vec<InternalMove> = Vec::with_capacity(100);
+    let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
-    let (own_occ, enemy_occ) = get_occupancy(&color, game); // TODO: Change the type
-    for idx in ((color.idx())..game.bitboard.len()).step_by(2) {
-        for pos in extract_all_bits(game.bitboard[idx]) {
-            let piece = match game.squares[pos] {
-                Square::Occupied(piece) => piece,
-                Square::Empty => panic!("Shouldn't be empty"),
-            };
-
-            let all_mov_att = get_all_moves(piece, pos, game, own_occ, enemy_occ);
-            positions.extend(get_internal_moves(all_mov_att, &piece, pos, game));
+    for piece in PIECES {
+        let mut bb = game.bitboard[(piece + color) as usize];
+        while bb != 0 {
+            let pos = bb.pop_lsb();
+            let moves = get_all_moves(piece + color, pos, game, own_occ, enemy_occ);
+            get_internal_moves(moves, &(piece + color), pos, game, &mut positions);
         }
     }
 
@@ -76,10 +73,15 @@ pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
 }
 
 //FIXME: TODO: REFACTOR
-fn get_internal_moves(attacks: u64, piece: &Piece, pos: usize, game: &Game) -> Vec<InternalMove> {
-    let potential_moves = extract_all_bits(attacks);
-    let mut new_positions = vec![];
-    for p_move in potential_moves {
+fn get_internal_moves(
+    mut attacks: u64,
+    piece: &Piece,
+    pos: usize,
+    game: &Game,
+    new_positions: &mut Vec<InternalMove>,
+) {
+    while attacks != 0 {
+        let p_move = attacks.pop_lsb();
         let mut new_move = InternalMove {
             position_key: 0,
             active_color: game.color,
@@ -106,10 +108,10 @@ fn get_internal_moves(attacks: u64, piece: &Piece, pos: usize, game: &Game) -> V
             new_positions.push(new_move)
         }
     }
+
     if piece.is_king() {
         new_positions.extend(add_castling_moves(piece, pos, game));
     }
-    return new_positions;
 }
 
 // FIXME: TODO: REFACTOR
@@ -178,8 +180,8 @@ pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
 pub fn add_promotion_move(mv: &InternalMove, _game: &Game) -> Vec<InternalMove> {
     let mut new_moves: Vec<InternalMove> = vec![];
     if (mv.piece.is_pawn())
-        && ((mv.active_color == WHITE && get_bit_rank(mv.to) == Rank::Eight)
-            || (mv.active_color == BLACK && get_bit_rank(mv.to) == Rank::One))
+        && ((mv.active_color.is_white() && get_bit_rank(mv.to) == Rank::Eight)
+            || (mv.active_color.is_black() && get_bit_rank(mv.to) == Rank::One))
     {
         let flag = Flag::Promotion;
         let color = mv.piece.color();

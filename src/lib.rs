@@ -1,7 +1,9 @@
 pub mod engine {
     pub mod game;
+
     pub mod attacks {
         pub mod bishop;
+        pub mod generated;
         pub mod king;
         pub mod knight;
         pub mod pawn;

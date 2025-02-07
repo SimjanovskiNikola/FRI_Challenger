@@ -7,7 +7,7 @@ use crate::engine::shared::structures::internal_move::*;
 
 pub struct Stats {
     all_nodes: u64,
-    nodes: u64,
+    pub nodes: u64,
     captures: u64,
     ep: u64,
     castles: u64,
@@ -142,7 +142,7 @@ pub fn profiler_init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> 
 #[cfg(test)]
 mod tests {
 
-    use crate::engine::shared::helper_func::const_utility::FEN_START;
+    use crate::engine::shared::helper_func::const_utility::{FEN_START, STACK_SIZE};
 
     use super::*;
 
@@ -185,13 +185,15 @@ mod tests {
 
     #[test]
     fn test_perft_init_pos_three() {
-        let stats = init_test_func(&FEN_START, 3, true);
-        assert_eq!(stats.nodes, 8902);
+        stacker::grow(STACK_SIZE, || {
+            let stats = init_test_func(&FEN_START, 3, true);
+            assert_eq!(stats.nodes, 8902);
+        })
     }
 
     #[test]
     fn test_perft_init_pos_four() {
-        let stats = profiler_init_test_func(&FEN_START, 4, true);
+        let stats = init_test_func(&FEN_START, 4, true);
         assert_eq!(stats.nodes, 197281);
     }
 
@@ -201,11 +203,11 @@ mod tests {
         assert_eq!(stats.nodes, 4865609);
     }
 
-    // #[test]
-    // fn test_perft_init_pos_six() {
-    //     let game = Game::read_fen(&FEN_START);
-    //     assert_eq!(perft(6).nodes, 119060324)
-    // }
+    #[test]
+    fn test_perft_init_pos_six() {
+        let stats = init_test_func(&FEN_START, 6, true);
+        assert_eq!(stats.nodes, 119060324);
+    }
 
     // #[test]
     // fn test_perft_init_pos_seven() {
@@ -294,18 +296,17 @@ mod tests {
         assert_eq!(stats.nodes, 674624);
     }
 
-    // FIXME: Time Needed: 15194 ms; Correct: Yes;
-    // #[test]
-    // fn test_perft_pos_three_depth_6() {
-    //     let stats = init_test_func(&FEN_POS_THREE, 6, true);
-    //     assert_eq!(stats.nodes, 11030083);
-    // }
+    #[test]
+    fn test_perft_pos_three_depth_6() {
+        let stats = init_test_func(&FEN_POS_THREE, 6, true);
+        assert_eq!(stats.nodes, 11030083);
+    }
 
-    // #[test]
-    // fn test_perft_pos_three_depth_7() {
-    //     let stats = init_test_func(&FEN_POS_THREE, 7, true);
-    //     assert_eq!(stats.nodes, 178633661);
-    // }
+    #[test]
+    fn test_perft_pos_three_depth_7() {
+        let stats = init_test_func(&FEN_POS_THREE, 7, true);
+        assert_eq!(stats.nodes, 178633661);
+    }
 
     // #[test]
     // fn test_perft_pos_three_depth_8() {
@@ -378,12 +379,11 @@ mod tests {
         assert_eq!(stats.nodes, 2103487);
     }
 
-    // FIXME: Time Needed: 185666 ms; Correct: Yes;
-    // #[test]
-    // fn test_perft_pos_five_depth_5() {
-    //     let stats = init_test_func(&FEN_POS_FIVE, 5, true);
-    //     assert_eq!(stats.nodes, 89941194);
-    // }
+    #[test]
+    fn test_perft_pos_five_depth_5() {
+        let stats = init_test_func(&FEN_POS_FIVE, 5, true);
+        assert_eq!(stats.nodes, 89941194);
+    }
 
     // **** START: POSITION 6 ****
 

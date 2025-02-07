@@ -1,26 +1,5 @@
-use crate::engine::shared::helper_func::bit_pos_utility::*;
-use crate::make_rays;
-use lazy_static::lazy_static;
+use super::generated::knight::KNIGHT_LOOKUP;
 
-// NOTE: CONSTANTS
-lazy_static! {
-    pub static ref KNIGHT_LOOKUP: [u64; 64] = make_rays!(knight_att_bitboard);
-}
-
-const KNIGHT_OFFSET_POS: [(i8, i8); 8] =
-    [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (2, -1), (2, 1), (1, -2), (1, 2)];
-
-// NOTE: MASK CREATION
-pub fn knight_att_bitboard(row: i8, col: i8) -> u64 {
-    let mut bitboard = 0;
-    for idx in 0..8 {
-        let (row_offset, col_offset) = KNIGHT_OFFSET_POS[idx];
-        bitboard = set_bit(bitboard, row + row_offset, col + col_offset);
-    }
-    return bitboard;
-}
-
-// NOTE: GET KING MOVES
 pub fn get_knight_mv(sq: usize, own: u64, _: u64) -> u64 {
     return KNIGHT_LOOKUP[sq] & !own;
 }
