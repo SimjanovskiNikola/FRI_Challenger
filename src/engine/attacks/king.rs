@@ -2,23 +2,7 @@ use crate::engine::shared::helper_func::bit_pos_utility::*;
 use crate::make_rays;
 use lazy_static::lazy_static;
 
-// NOTE: CONSTANTS
-lazy_static! {
-    pub static ref KING_LOOKUP: [u64; 64] = make_rays!(king_att_bitboard);
-}
-
-const KING_OFFSET_POS: [(i8, i8); 8] =
-    [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
-
-// NOTE: MASK CREATION
-pub fn king_att_bitboard(row: i8, col: i8) -> u64 {
-    let mut bitboard = 0;
-    for idx in 0..8 {
-        let (row_offset, col_offset) = KING_OFFSET_POS[idx];
-        bitboard = set_bit(bitboard, row + row_offset, col + col_offset);
-    }
-    return bitboard;
-}
+use super::generated::king::KING_LOOKUP;
 
 // NOTE: GET KING MOVES
 pub fn get_king_mv(sq: usize, own: u64, _: u64) -> u64 {

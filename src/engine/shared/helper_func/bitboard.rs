@@ -20,7 +20,7 @@ pub trait BitboardTrait {
 
     //NOTE: Bitboard Shifting, Rotating and other operations with Bitboard
     /** Checks if Bitboard is Empty.*/
-    fn is_empty(self) -> bool;
+    fn is_empty(&self) -> bool;
     /** Checks if Bitboard is Empty.*/
     fn intersection(&mut self, bb: Bitboard) -> Bitboard;
     /** Checks if Bitboard is Empty.*/
@@ -65,7 +65,7 @@ pub trait BitboardTrait {
     fn count(self) -> usize;
 
     /** Checks if Bitboard is Empty.*/
-    fn is_set(self, sq: usize) -> bool;
+    fn is_set(&self, sq: usize) -> bool;
 
     /** Checks if Bitboard is Empty.*/
     fn print(self, mark: Option<usize>);
@@ -76,8 +76,8 @@ impl BitboardTrait for Bitboard {
         return 1 << sq;
     }
 
-    fn is_empty(self) -> bool {
-        return self != 0;
+    fn is_empty(&self) -> bool {
+        return *self != 0;
     }
 
     fn intersection(&mut self, bb: Bitboard) -> Bitboard {
@@ -166,8 +166,8 @@ impl BitboardTrait for Bitboard {
         return self.get_bits().len();
     }
 
-    fn is_set(self, sq: usize) -> bool {
-        return Bitboard::is_empty(self & Bitboard::init(sq));
+    fn is_set(&self, sq: usize) -> bool {
+        return Bitboard::is_empty(&(*self & Bitboard::init(sq)));
     }
 
     fn print(self, mark: Option<usize>) {

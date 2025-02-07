@@ -1,15 +1,17 @@
 use std::arch::x86_64::{_pdep_u64, _pext_u64};
 
-pub fn insert_bits(mask: u64, occupancy: u64) -> u64 {
+pub const fn insert_bits(mask: u64, occupancy: u64) -> u64 {
     let mut result = 0;
     let mut bit = 0;
-    for i in 0..64 {
+    let mut i = 0;
+    while i < 64 {
         if (mask >> i) & 1 == 1 {
             if (occupancy >> bit) & 1 == 1 {
                 result |= 1 << i;
             }
             bit += 1;
         }
+        i = i + 1;
     }
     return result;
 }
