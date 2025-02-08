@@ -134,7 +134,10 @@ impl GameMoveTrait for Game {
 
         // FIXME: 1ms for 1000 nodes, generate the key better
         // mv.position_key = self.generate_pos_key();
-        self.moves.push(*mv);
+        // self.moves.push(*mv);
+
+        self.mv_idx += 1;
+        self.moves[self.mv_idx] = Some(*mv);
 
         let king_sq = self.bitboard[(KING + mv.active_color) as usize].get_lsb();
 
@@ -160,10 +163,11 @@ impl GameMoveTrait for Game {
         // println!("Before Taking move: {:#?}", self.moves);
         // print_chess(self);
 
-        let mv = match self.moves.pop() {
+        let mv = match self.moves[self.mv_idx] {
             Some(mv) => mv,
             None => return,
         };
+        self.mv_idx -= 1;
 
         // println!("After Taking move: {:#?}", self.moves);
         // print_chess(self);

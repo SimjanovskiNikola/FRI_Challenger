@@ -15,7 +15,7 @@ use crate::engine::shared::structures::piece::*;
 use crate::engine::shared::structures::square::*;
 
 pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
-    let mut positions: Vec<InternalMove> = Vec::with_capacity(100);
+    let mut positions: Vec<InternalMove> = Vec::with_capacity(128);
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
     for piece in PIECES {
@@ -103,21 +103,21 @@ fn get_internal_moves(
         };
         if new_move.piece.is_pawn() {
             add_ep_move(&mut new_move, game);
-            new_positions.extend(add_promotion_move(&mut new_move, game));
+            add_promotion_move(&mut new_move, game, new_positions);
         } else {
             new_positions.push(new_move)
         }
     }
 
     if piece.is_king() {
-        new_positions.extend(add_castling_moves(piece, pos, game));
+        add_castling_moves(piece, pos, game, new_positions);
     }
 }
 
 // FIXME: TODO: REFACTOR
 #[rustfmt::skip]
-pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game) -> Vec<InternalMove> {
-    let mut new_positions = vec![];
+pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game, positions: &mut Vec<InternalMove>) {
+    
     let mut mv = InternalMove {
             position_key: 0, 
             active_color: game.color,
@@ -136,24 +136,23 @@ pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game) -> Vec<Interna
     match mv.active_color {
         WHITE => {
             if game.castling.valid(CastlingRights::WKINGSIDE, game, own, enemy) {
-               new_positions.push(InternalMove { to: SqPos::G1.idx(), flag: Flag::KingSideCastle, ..mv });
+               positions.push(InternalMove { to: SqPos::G1.idx(), flag: Flag::KingSideCastle, ..mv });
             }
             if game.castling.valid(CastlingRights::WQUEENSIDE, game, own, enemy) {
-               new_positions.push(InternalMove { to: SqPos::C1.idx(), flag: Flag::QueenSideCastle, ..mv });
+               positions.push(InternalMove { to: SqPos::C1.idx(), flag: Flag::QueenSideCastle, ..mv });
             }
         }
          BLACK => {
             if game.castling.valid(CastlingRights::BKINGSIDE, game, own, enemy) {
-               new_positions.push(InternalMove { to: SqPos::G8.idx(), flag: Flag::KingSideCastle, ..mv });
+               positions.push(InternalMove { to: SqPos::G8.idx(), flag: Flag::KingSideCastle, ..mv });
             }
             if game.castling.valid(CastlingRights::BQUEENSIDE, game, own, enemy) {
-               new_positions.push(InternalMove { to: SqPos::C8.idx(), flag: Flag::QueenSideCastle, ..mv });
+               positions.push(InternalMove { to: SqPos::C8.idx(), flag: Flag::QueenSideCastle, ..mv });
             }
         }
         _ => panic!("Invalid Castling")
     }
 
-    return new_positions;
 }
 
 pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
@@ -177,23 +176,20 @@ pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
         (_, _) => (),
     };
 }
-pub fn add_promotion_move(mv: &InternalMove, _game: &Game) -> Vec<InternalMove> {
-    let mut new_moves: Vec<InternalMove> = vec![];
+pub fn add_promotion_move(mv: &InternalMove, _game: &Game, positions: &mut Vec<InternalMove>) {
     if (mv.piece.is_pawn())
         && ((mv.active_color.is_white() && get_bit_rank(mv.to) == Rank::Eight)
             || (mv.active_color.is_black() && get_bit_rank(mv.to) == Rank::One))
     {
         let flag = Flag::Promotion;
         let color = mv.piece.color();
-        new_moves.push(InternalMove { promotion: Some(QUEEN + color), flag, ..*mv });
-        new_moves.push(InternalMove { promotion: Some(ROOK + color), flag, ..*mv });
-        new_moves.push(InternalMove { promotion: Some(BISHOP + color), flag, ..*mv });
-        new_moves.push(InternalMove { promotion: Some(KNIGHT + color), flag, ..*mv });
+        positions.push(InternalMove { promotion: Some(QUEEN + color), flag, ..*mv });
+        positions.push(InternalMove { promotion: Some(ROOK + color), flag, ..*mv });
+        positions.push(InternalMove { promotion: Some(BISHOP + color), flag, ..*mv });
+        positions.push(InternalMove { promotion: Some(KNIGHT + color), flag, ..*mv });
     } else {
-        new_moves.push(*mv);
+        positions.push(*mv);
     }
-
-    return new_moves;
 }
 
 #[cfg(test)]
