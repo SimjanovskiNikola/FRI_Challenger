@@ -89,7 +89,12 @@ pub fn move_notation(sq_from: usize, sq_to: usize, promotion: Option<Piece>) -> 
 
 pub fn print_move_list(moves: &Vec<InternalMove>) {
     for (idx, mv) in moves.iter().enumerate() {
-        println!("{}. Move: {}, (Score: {})", idx, move_notation(mv.from, mv.to, mv.promotion), 0);
+        let promotion = match mv.flag {
+            Flag::Promotion(_, cap_piece) => cap_piece,
+            _ => None,
+        };
+
+        println!("{}. Move: {}, (Score: {})", idx, move_notation(mv.from, mv.to, promotion), 0);
     }
 }
 

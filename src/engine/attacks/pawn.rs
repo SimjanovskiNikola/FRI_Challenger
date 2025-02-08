@@ -49,7 +49,7 @@ pub fn get_pawn_mv(color: Color, sq: usize, own: u64, enemy: u64) -> u64 {
     return if moves.is_set(bit) { moves } else { 0 };
 }
 
-pub fn get_pawn_att(color: Color, sq: usize, own: u64, enemy: u64, ep: Option<u64>) -> u64 {
+pub fn get_pawn_att(color: Color, sq: usize, own: u64, enemy: u64, ep: Option<usize>) -> u64 {
     let attacks = PAWN_ATTACK[color.idx()][sq] & !own;
     match ep {
         Some(ep) => return attacks & (enemy | get_pawn_ep(color, ep)),
@@ -57,10 +57,10 @@ pub fn get_pawn_att(color: Color, sq: usize, own: u64, enemy: u64, ep: Option<u6
     }
 }
 
-pub fn get_pawn_ep(color: Color, ep: u64) -> u64 {
-    let rank_ep = get_bit_rank(ep.get_lsb());
+pub fn get_pawn_ep(color: Color, ep: usize) -> u64 {
+    let rank_ep = get_bit_rank(ep);
     if (rank_ep == Rank::Six && color.is_white()) || (rank_ep == Rank::Three && color.is_black()) {
-        return ep;
+        return 1 << ep;
     } else {
         return 0;
     }

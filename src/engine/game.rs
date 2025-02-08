@@ -14,7 +14,7 @@ pub struct Game {
     pub bitboard: [Bitboard; 14],
     pub color: Color,
     pub castling: CastlingRights,
-    pub ep: Option<Bitboard>,
+    pub ep: Option<usize>,
     pub half_move: usize,
     pub full_move: usize,
     pub pos_key: u64,
