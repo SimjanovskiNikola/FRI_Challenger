@@ -99,11 +99,11 @@ pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
 
         if depth == 1 {
             match move_list[i].flag {
-                Flag::Normal => stats.add_node(),
-                Flag::Capture => stats.add_capture(),
-                Flag::EP => stats.add_ep(),
-                Flag::Promotion => stats.add_promotion(),
-                Flag::KingSideCastle | Flag::QueenSideCastle => stats.add_castle(),
+                Flag::Quiet => stats.add_node(),
+                Flag::Capture(_) => stats.add_capture(),
+                Flag::EP(_, _) => stats.add_ep(),
+                Flag::Promotion(_, _) => stats.add_promotion(),
+                Flag::KingSideCastle(_, _) | Flag::QueenSideCastle(_, _) => stats.add_castle(),
             }
         }
 
@@ -127,7 +127,7 @@ pub fn init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
 }
 
 pub fn profiler_init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
-    let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
+    let guard = pprof::ProfilerGuardBuilder::default().frequency(10000).build().unwrap();
 
     let stats = init_test_func(fen, depth, dispaly_stats);
 

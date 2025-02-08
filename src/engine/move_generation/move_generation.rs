@@ -13,9 +13,10 @@ use crate::engine::shared::structures::color::*;
 use crate::engine::shared::structures::internal_move::*;
 use crate::engine::shared::structures::piece::*;
 use crate::engine::shared::structures::square::*;
+use crate::engine::shared::structures::square::SqPos::*;
 
 pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
-    let mut positions: Vec<InternalMove> = Vec::with_capacity(128);
+    let mut positions: Vec<InternalMove> = Vec::with_capacity(256);
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
     for piece in PIECES {
@@ -36,22 +37,20 @@ fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ:
             return get_pawn_mv(piece.color(), pos, own_occ, enemy_occ)
                 | get_pawn_att(piece.color(), pos, own_occ, enemy_occ, game.ep);
         }
-        KNIGHT => return get_knight_mv(pos, own_occ, enemy_occ),
-        BISHOP => return get_bishop_mv(pos, own_occ, enemy_occ),
-        ROOK => return get_rook_mv(pos, own_occ, enemy_occ),
-        QUEEN => return get_queen_mv(pos, own_occ, enemy_occ),
-        KING => return get_king_mv(pos, own_occ, enemy_occ),
+        KNIGHT => get_knight_mv(pos, own_occ, enemy_occ),
+        BISHOP => get_bishop_mv(pos, own_occ, enemy_occ),
+        ROOK => get_rook_mv(pos, own_occ, enemy_occ),
+        QUEEN => get_queen_mv(pos, own_occ, enemy_occ),
+        KING => get_king_mv(pos, own_occ, enemy_occ),
         _ => panic!("Invalid Peace Type"),
     }
 }
 
 fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
-    let (white_idx, black_idx) = (WHITE.idx(), BLACK.idx());
-    match piece.color() {
-        WHITE => return (game.occupancy[white_idx], game.occupancy[black_idx]),
-        BLACK => return (game.occupancy[black_idx], game.occupancy[white_idx]),
-        _ => panic!("Invalid Color"),
-    };
+    return (
+        game.occupancy[(WHITE + piece.color()).idx()],
+        game.occupancy[(BLACK - piece.color()).idx()],
+    );
 }
 
 pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
@@ -88,17 +87,12 @@ fn get_internal_moves(
             from: pos,
             to: p_move,
             piece: *piece,
-            captured: match game.squares[p_move] {
-                Square::Empty => None,
-                Square::Occupied(piece) => Some(piece),
-            },
-            promotion: None,
             ep: game.ep,
             castle: game.castling,
             half_move: game.half_move,
             flag: match game.squares[p_move] {
-                Square::Empty => Flag::Normal,
-                Square::Occupied(_) => Flag::Capture,
+                Square::Empty => Flag::Quiet,
+                Square::Occupied(piece) => Flag::Capture(piece),
             },
         };
         if new_move.piece.is_pawn() {
@@ -114,7 +108,6 @@ fn get_internal_moves(
     }
 }
 
-// FIXME: TODO: REFACTOR
 #[rustfmt::skip]
 pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game, positions: &mut Vec<InternalMove>) {
     
@@ -124,30 +117,28 @@ pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game, positions: &mu
             from: pos,
             to: 0,
             piece: *piece,
-            captured: None,
-            promotion: None,
             ep: game.ep,
             castle: game.castling,
             half_move: game.half_move,
-            flag: Flag::Normal,
+            flag: Flag::Quiet,
         };
 
     let (own, enemy) = get_occupancy(piece, game);
     match mv.active_color {
         WHITE => {
             if game.castling.valid(CastlingRights::WKINGSIDE, game, own, enemy) {
-               positions.push(InternalMove { to: SqPos::G1.idx(), flag: Flag::KingSideCastle, ..mv });
+               positions.push(InternalMove { to: SqPos::G1.idx(), flag: Flag::KingSideCastle(H1 as usize, F1 as usize), ..mv });
             }
             if game.castling.valid(CastlingRights::WQUEENSIDE, game, own, enemy) {
-               positions.push(InternalMove { to: SqPos::C1.idx(), flag: Flag::QueenSideCastle, ..mv });
+               positions.push(InternalMove { to: SqPos::C1.idx(), flag: Flag::QueenSideCastle(A1 as usize, D1 as usize), ..mv });
             }
         }
          BLACK => {
             if game.castling.valid(CastlingRights::BKINGSIDE, game, own, enemy) {
-               positions.push(InternalMove { to: SqPos::G8.idx(), flag: Flag::KingSideCastle, ..mv });
+               positions.push(InternalMove { to: SqPos::G8.idx(), flag: Flag::KingSideCastle(H8 as usize, F8 as usize), ..mv });
             }
             if game.castling.valid(CastlingRights::BQUEENSIDE, game, own, enemy) {
-               positions.push(InternalMove { to: SqPos::C8.idx(), flag: Flag::QueenSideCastle, ..mv });
+               positions.push(InternalMove { to: SqPos::C8.idx(), flag: Flag::QueenSideCastle(A8 as usize, D8 as usize), ..mv });
             }
         }
         _ => panic!("Invalid Castling")
@@ -156,37 +147,26 @@ pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game, positions: &mu
 }
 
 pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
-    match (mv.piece.kind(), game.ep) {
-        (PAWN, Some(bb)) => {
-            if mv.to == bb.get_lsb() {
-                mv.flag = Flag::EP;
-                match mv.active_color {
-                    WHITE => match game.squares[bb.get_lsb() - 8] {
-                        Square::Empty => panic!("No Pawn on a specified place"),
-                        Square::Occupied(piece) => mv.captured = Some(piece),
-                    },
-                    BLACK => match game.squares[bb.get_lsb() + 8] {
-                        Square::Empty => panic!("No Pawn on a specified place"),
-                        Square::Occupied(piece) => mv.captured = Some(piece),
-                    },
-                    _ => panic!("Invalid El Passant"),
-                }
-            }
-        }
-        (_, _) => (),
-    };
+    if Some(mv.to) == game.ep {
+        let sq = mv.to + 16 * mv.active_color.idx() - 8;
+        mv.flag = Flag::EP(sq, PAWN + BLACK - mv.active_color);
+    }
 }
+
 pub fn add_promotion_move(mv: &InternalMove, _game: &Game, positions: &mut Vec<InternalMove>) {
-    if (mv.piece.is_pawn())
-        && ((mv.active_color.is_white() && get_bit_rank(mv.to) == Rank::Eight)
-            || (mv.active_color.is_black() && get_bit_rank(mv.to) == Rank::One))
+    if (mv.active_color.is_white() && get_bit_rank(mv.to) == Rank::Eight)
+        || (mv.active_color.is_black() && get_bit_rank(mv.to) == Rank::One)
     {
-        let flag = Flag::Promotion;
         let color = mv.piece.color();
-        positions.push(InternalMove { promotion: Some(QUEEN + color), flag, ..*mv });
-        positions.push(InternalMove { promotion: Some(ROOK + color), flag, ..*mv });
-        positions.push(InternalMove { promotion: Some(BISHOP + color), flag, ..*mv });
-        positions.push(InternalMove { promotion: Some(KNIGHT + color), flag, ..*mv });
+        let cap_piece: Option<Piece> = match mv.flag {
+            Flag::Capture(piece) => Some(piece),
+            _ => None,
+        };
+
+        positions.push(InternalMove { flag: Flag::Promotion(QUEEN + color, cap_piece), ..*mv });
+        positions.push(InternalMove { flag: Flag::Promotion(ROOK + color, cap_piece), ..*mv });
+        positions.push(InternalMove { flag: Flag::Promotion(BISHOP + color, cap_piece), ..*mv });
+        positions.push(InternalMove { flag: Flag::Promotion(KNIGHT + color, cap_piece), ..*mv });
     } else {
         positions.push(*mv);
     }
@@ -203,7 +183,6 @@ mod tests {
                 const_utility::{FEN_CASTLE_TWO, FEN_PAWNS_BLACK, FEN_PAWNS_WHITE},
                 print_utility::{print_bitboard, print_chess, print_move_list},
             },
-            structures::square::SqPos::*,
             structures::piece::{
                 BLACK_QUEEN, WHITE_BISHOP, WHITE_KING, WHITE_KNIGHT, WHITE_QUEEN, WHITE_ROOK,
             },

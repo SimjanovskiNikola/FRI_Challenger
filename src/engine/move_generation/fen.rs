@@ -1,5 +1,6 @@
 use crate::engine::game::Game;
 use crate::engine::shared::helper_func::bit_pos_utility::*;
+use crate::engine::shared::helper_func::bitboard::BitboardTrait;
 use crate::engine::shared::structures::castling_struct::*;
 use crate::engine::shared::structures::color::*;
 use crate::engine::shared::structures::piece::*;
@@ -64,7 +65,7 @@ impl FenTrait for Game {
         self.ep = match square {
             "-" => None,
             s => match position_to_bit(s) {
-                Ok(bit) => Some(bit),
+                Ok(bit) => Some(bit.get_lsb()),
                 Err(e) => panic!("Unknown En Passant Position: {}", e),
             },
         }
@@ -135,7 +136,7 @@ mod tests {
         let game = Game::read_fen(FEN_PAWNS_BLACK);
         assert_eq!(game.color, BLACK);
         assert_eq!(game.castling, CastlingRights::ALL);
-        assert_eq!(game.ep, Some(1 << SqPos::E3 as usize));
+        assert_eq!(game.ep, Some(SqPos::E3 as usize));
         assert_eq!(game.half_move, 0);
         assert_eq!(game.full_move, 1);
 

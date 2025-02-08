@@ -5,7 +5,13 @@ use crate::engine::move_generation::move_generation::*;
 use crate::engine::shared::structures::square::SqPos::*;
 use super::color::*;
 
-// TODO: Needs a little reaserch because it does not sum all of this.
+pub const CASTLE_DATA: [(usize, usize, CastlingRights, Color); 4] = [
+    (H1 as usize, E1 as usize, CastlingRights::WKINGSIDE, WHITE),
+    (A1 as usize, E1 as usize, CastlingRights::WQUEENSIDE, WHITE),
+    (H8 as usize, E8 as usize, CastlingRights::BKINGSIDE, BLACK),
+    (A8 as usize, E8 as usize, CastlingRights::BQUEENSIDE, BLACK),
+];
+
 bitflags! {
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
     pub struct CastlingRights: u8 {

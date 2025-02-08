@@ -1,21 +1,17 @@
+use core::panic;
 use crate::engine::{
     game::Game,
     shared::{
-        helper_func::{
-            bitboard::{Bitboard, BitboardTrait},
-            print_utility::print_chess,
-        },
+        helper_func::{bitboard::BitboardTrait, print_utility::print_chess},
         structures::{
-            castling_struct::CastlingRights,
-            color::{Color, BLACK, WHITE},
+            castling_struct::CASTLE_DATA,
+            color::WHITE,
             internal_move::{Flag, InternalMove},
             piece::{Piece, PieceTrait, KING, ROOK},
-            square::{SqPos::*, Square},
+            square::Square,
         },
     },
 };
-
-// const TERMINATION_MARKERS = ['1-0', '0-1', '1/2-1/2', '*'] NOTE: Maybe i will need this
 
 use lazy_static::lazy_static;
 use rand::Rng;
@@ -36,73 +32,38 @@ pub trait GameMoveTrait {
     fn add_piece(&mut self, sq: usize, piece: Piece);
     fn clear_piece(&mut self, sq: usize);
     fn replace_piece(&mut self, from_sq: usize, to_sq: usize);
+
+    fn quiet_mv(&mut self, from_sq: usize, to_sq: usize, piece: Piece);
 }
 
 impl GameMoveTrait for Game {
     fn make_move(&mut self, mv: &mut InternalMove) -> bool {
-        // if mv.from == 51 && mv.to == 35 && mv.piece.p_type == PieceType::Pawn {
-        //     println!("{:?}", "MAKE MOVE START");
-        //     print_chess(self);
-        // }
-
         match mv.flag {
-            Flag::Normal => match self.squares[mv.from] {
-                Square::Empty => {
-                    print_chess(self);
-                    panic!("Panic at Normal Flag {:#?}", mv);
-                }
-                Square::Occupied(_) => self.replace_piece(mv.from, mv.to),
-            },
-            Flag::Capture => self.replace_piece(mv.from, mv.to),
-            Flag::EP => {
+            Flag::Quiet => self.quiet_mv(mv.from, mv.to, mv.piece),
+            Flag::Capture(_) => self.replace_piece(mv.from, mv.to),
+            Flag::EP(sq, _) => {
                 self.replace_piece(mv.from, mv.to);
-                match mv.active_color {
-                    WHITE => self.clear_piece(mv.to - 8),
-                    BLACK => self.clear_piece(mv.to + 8),
-                    _ => panic!("Invalid Color"),
-                }
+                self.clear_piece(sq);
             }
-            Flag::Promotion => {
-                if let Some(piece) = mv.promotion {
-                    self.clear_piece(mv.from);
-                    self.add_piece(mv.to, piece);
-                } else {
-                    panic!("Something is invalid with promotion peace")
-                }
+            Flag::Promotion(piece, _) => {
+                self.clear_piece(mv.from);
+                self.add_piece(mv.to, piece);
             }
-            Flag::KingSideCastle => {
-                self.replace_piece(mv.from, mv.to);
-                match mv.active_color {
-                    WHITE => self.replace_piece(H1 as usize, F1 as usize),
-                    BLACK => self.replace_piece(H8 as usize, F8 as usize),
-                    _ => panic!("Invalid Color"),
-                }
+            Flag::KingSideCastle(rook_from, rook_to) => {
+                self.quiet_mv(mv.from, mv.to, mv.piece);
+                self.quiet_mv(rook_from, rook_to, ROOK + mv.piece.color());
             }
-            Flag::QueenSideCastle => {
-                // println!("{:?}", mv.active_color);
-                // print_chess(self);
-
-                self.replace_piece(mv.from, mv.to);
-                match mv.active_color {
-                    WHITE => self.replace_piece(A1 as usize, D1 as usize),
-                    BLACK => self.replace_piece(A8 as usize, D8 as usize),
-                    _ => panic!("Invalid Color"),
-                }
-
-                // print_chess(self);
+            Flag::QueenSideCastle(rook_from, rook_to) => {
+                self.quiet_mv(mv.from, mv.to, mv.piece);
+                self.quiet_mv(rook_from, rook_to, ROOK + mv.piece.color());
             }
         }
 
         self.color.change_color();
 
         //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
-        let castle_tuple: [(usize, usize, CastlingRights, Color); 4] = [
-            (H1 as usize, E1 as usize, CastlingRights::WKINGSIDE, WHITE),
-            (A1 as usize, E1 as usize, CastlingRights::WQUEENSIDE, WHITE),
-            (H8 as usize, E8 as usize, CastlingRights::BKINGSIDE, BLACK),
-            (A8 as usize, E8 as usize, CastlingRights::BQUEENSIDE, BLACK),
-        ];
-        for c in castle_tuple {
+
+        for c in &CASTLE_DATA {
             if !mv.castle.is_set(c.2)
                 || !self.bitboard[(ROOK + c.3) as usize].is_set(c.0)
                 || !self.bitboard[(KING + c.3) as usize].is_set(c.1)
@@ -112,16 +73,12 @@ impl GameMoveTrait for Game {
         }
 
         if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {
-            self.ep = match mv.active_color {
-                WHITE => Some(Bitboard::init(mv.to - 8)),
-                BLACK => Some(Bitboard::init(mv.to + 8)),
-                _ => panic!("Invalid Color"),
-            }
+            self.ep = Some(mv.to + 16 * mv.active_color.idx() - 8);
         } else {
             self.ep = None
         }
 
-        if mv.piece.is_pawn() || mv.captured != None {
+        if mv.piece.is_pawn() || matches!(mv.flag, Flag::Capture(_)) {
             self.half_move = 0
         } else {
             self.half_move = mv.half_move + 1;
@@ -131,26 +88,12 @@ impl GameMoveTrait for Game {
             self.full_move += 1;
         }
 
-        // FIXME: 1ms for 1000 nodes, generate the key better
-        // mv.position_key = self.generate_pos_key();
-        // self.moves.push(*mv);
-
         self.mv_idx += 1;
         self.moves[self.mv_idx] = Some(*mv);
 
         let king_sq = self.bitboard[(KING + mv.active_color) as usize].get_lsb();
 
-        // if mv.from == 51 && mv.to == 35 && mv.piece.p_type == PieceType::Pawn {
-        //     print_chess(self);
-        //     println!("{:?}", "MAKE MOVE END");
-        //     println!(
-        //         "King is attacked: {:?}",
-        //         gen_attacks(self, self.active_color).is_set(king_sq)
-        //     );
-        // }
-
         if sq_attack(&self, king_sq, mv.active_color) != 0 {
-            // if gen_attacks(self, self.color).is_set(king_sq) {
             self.undo_move();
             return false;
         }
@@ -178,54 +121,41 @@ impl GameMoveTrait for Game {
         self.color.change_color();
 
         match mv.flag {
-            // DEPRECATE: Here should be one liner -> Only self.replace
-            Flag::Normal => match self.squares[mv.to] {
-                Square::Empty => {
-                    print_chess(self);
-                    panic!("Panic at Normal Flag {:#?}", mv);
-                }
-                Square::Occupied(_) => self.replace_piece(mv.to, mv.from),
-            },
-            Flag::Capture => {
+            Flag::Quiet => self.quiet_mv(mv.to, mv.from, mv.piece),
+            Flag::Capture(piece) => {
                 self.replace_piece(mv.to, mv.from);
-                match mv.captured {
-                    Some(piece) => self.add_piece(mv.to, piece),
-                    None => panic!("Error regarding placing back capture piece"),
-                }
+                self.add_piece(mv.to, piece);
             }
-            Flag::EP => {
+            Flag::EP(pos, piece) => {
                 self.replace_piece(mv.to, mv.from);
-                match (mv.active_color, mv.captured) {
-                    (WHITE, Some(piece)) => self.add_piece(mv.to - 8, piece),
-                    (BLACK, Some(piece)) => self.add_piece(mv.to + 8, piece),
-                    (_, _) => panic!("Error regarding placing back ep move"),
-                }
+                self.add_piece(pos, piece);
             }
-            Flag::Promotion => {
+            Flag::Promotion(_, cap_piece) => {
                 self.clear_piece(mv.to);
-                match mv.captured {
+                match cap_piece {
                     Some(piece) => self.add_piece(mv.to, piece),
                     None => (),
                 }
                 self.add_piece(mv.from, mv.piece);
             }
-            Flag::KingSideCastle => {
-                self.replace_piece(mv.to, mv.from);
-                match mv.active_color {
-                    WHITE => self.replace_piece(F1 as usize, H1 as usize),
-                    BLACK => self.replace_piece(F8 as usize, H8 as usize),
-                    _ => panic!("Error there should be only two colors"),
-                }
+            Flag::KingSideCastle(rook_from, rook_to) => {
+                self.quiet_mv(mv.to, mv.from, mv.piece);
+                self.quiet_mv(rook_to, rook_from, ROOK + mv.piece.color());
             }
-            Flag::QueenSideCastle => {
-                self.replace_piece(mv.to, mv.from);
-                match mv.active_color {
-                    WHITE => self.replace_piece(D1 as usize, A1 as usize),
-                    BLACK => self.replace_piece(D8 as usize, A8 as usize),
-                    _ => panic!("Error there should be only two colors"),
-                }
+            Flag::QueenSideCastle(rook_from, rook_to) => {
+                self.quiet_mv(mv.to, mv.from, mv.piece);
+                self.quiet_mv(rook_to, rook_from, ROOK + mv.piece.color());
             }
         }
+    }
+
+    fn quiet_mv(&mut self, from_sq: usize, to_sq: usize, piece: Piece) {
+        self.squares[from_sq] = Square::Empty;
+        self.squares[to_sq] = Square::Occupied(piece);
+
+        self.bitboard[piece.idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
+        self.occupancy[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
+        self.pos_key ^= PieceKeys[to_sq][piece.idx()] | PieceKeys[from_sq][piece.idx()];
     }
 
     fn add_piece(&mut self, sq: usize, piece: Piece) {
@@ -275,7 +205,7 @@ impl GameMoveTrait for Game {
         }
 
         match self.ep {
-            Some(idx) => final_key ^= EpKeys[idx.get_lsb()],
+            Some(idx) => final_key ^= EpKeys[idx],
             None => (),
         }
 
