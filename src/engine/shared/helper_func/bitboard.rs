@@ -37,7 +37,7 @@ pub trait BitboardTrait {
     fn shift(&mut self, shift: Shift) -> Bitboard;
     /** Checks if Bitboard is Empty.*/
     fn swap_n_bits(&mut self, i: usize, j: usize, n: usize);
-    /** Checks if Bitboard is Empty.*/
+
     // TODO: fn rotate(self, rotate: Rotate);
 
     //NOTE: Operations with bits
@@ -71,21 +71,21 @@ pub trait BitboardTrait {
 
 impl BitboardTrait for Bitboard {
     fn init(sq: usize) -> Bitboard {
-        return 1 << sq;
+        1 << sq
     }
 
     fn is_empty(&self) -> bool {
-        return *self != 0;
+        *self != 0
     }
 
     fn intersection(&mut self, bb: Bitboard) -> Bitboard {
         *self &= bb;
-        return *self;
+        *self
     }
 
     fn union(&mut self, bb: Bitboard) -> Bitboard {
         *self |= bb;
-        return *self;
+        *self
     }
 
     fn complement(&mut self) {
@@ -110,12 +110,13 @@ impl BitboardTrait for Bitboard {
 
     fn shift(&mut self, shift: Shift) -> Bitboard {
         let shift = shift as isize;
-        if (shift as isize) > 0 {
-            *self = *self << shift as usize
+        if shift > 0 {
+            *self <<= shift as usize
         } else {
-            *self = *self >> (-shift as usize);
+            *self >>= -shift as usize;
         };
-        return *self;
+
+        *self
     }
 
     fn swap_n_bits(&mut self, i: usize, j: usize, n: usize) {
@@ -125,11 +126,11 @@ impl BitboardTrait for Bitboard {
     }
 
     fn get_lsb(self) -> usize {
-        return self.trailing_zeros() as usize;
+        self.trailing_zeros() as usize
     }
 
     fn get_msb(self) -> usize {
-        return 63 - self.leading_zeros() as usize;
+        63 - self.leading_zeros() as usize
     }
 
     fn get_bits(self) -> Vec<usize> {
@@ -142,13 +143,14 @@ impl BitboardTrait for Bitboard {
             result.push(next_bit);
         }
 
-        return result;
+        result
     }
 
     fn pop_lsb(&mut self) -> usize {
         let idx = self.get_lsb();
         *self &= *self - 1;
-        return idx;
+
+        idx
     }
 
     fn set_bit(&mut self, sq: usize) {
@@ -160,11 +162,11 @@ impl BitboardTrait for Bitboard {
     }
 
     fn count(self) -> usize {
-        return self.get_bits().len();
+        self.get_bits().len()
     }
 
     fn is_set(&self, sq: usize) -> bool {
-        return Bitboard::is_empty(&(*self & Bitboard::init(sq)));
+        Bitboard::is_empty(&(*self & Bitboard::init(sq)))
     }
 
     fn print(self, mark: Option<usize>) {
@@ -173,11 +175,11 @@ impl BitboardTrait for Bitboard {
 
         for i in 0..64 {
             let value = (self >> i) & 1;
-            let s = if value == 0 { ". ".to_owned() } else { format!("{} ", value.to_string()) };
+            let s = if value == 0 { ". ".to_owned() } else { format!("{} ", value) };
             match mark {
                 Some(idx) => {
                     if i == idx {
-                        row.push_str("X");
+                        row.push('X');
                     } else {
                         row.push_str(&s);
                     }
@@ -186,7 +188,7 @@ impl BitboardTrait for Bitboard {
             }
 
             if (i + 1) % 8 == 0 {
-                row.push_str("\n");
+                row.push('\n');
                 board.insert_str(0, &row);
                 row.clear();
             }

@@ -11,7 +11,8 @@ pub fn insert_bits(mask: u64, occupancy: u64) -> u64 {
             bit += 1;
         }
     }
-    return result;
+
+    result
 }
 
 pub fn pext(bitboard: u64, mask: u64) -> u64 {

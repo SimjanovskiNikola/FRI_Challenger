@@ -1,5 +1,4 @@
 use num_enum::TryFromPrimitive;
-use const_for::const_for;
 
 // **** START: FEN STRINGS ****
 pub const FEN_START: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

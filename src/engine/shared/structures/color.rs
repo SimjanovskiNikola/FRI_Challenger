@@ -10,11 +10,11 @@ pub trait ColorTrait {
 
 impl ColorTrait for Color {
     fn is_black(&self) -> bool {
-        return *self & BLACK != 0;
+        *self & BLACK != 0
     }
 
     fn is_white(&self) -> bool {
-        return *self & BLACK == 0;
+        *self & BLACK == 0
     }
 }
 

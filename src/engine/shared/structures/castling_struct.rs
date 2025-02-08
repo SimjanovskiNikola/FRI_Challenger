@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 
 use crate::engine::game::Game;
-use crate::engine::move_generation::move_generation::*;
+use crate::engine::move_generation::mv_gen::*;
 use crate::engine::shared::structures::square::SqPos::*;
 use super::color::*;
 
@@ -26,11 +26,11 @@ bitflags! {
 
 impl CastlingRights {
     pub fn val(&self) -> u8 {
-        return self.bits() as u8;
+        self.bits()
     }
 
     pub fn idx(&self) -> usize {
-        return self.bits() as usize;
+        self.bits() as usize
     }
 
     pub fn add(&mut self, castle: CastlingRights) {
@@ -42,11 +42,11 @@ impl CastlingRights {
     }
 
     pub fn all_set(&self) -> bool {
-        return self.idx() == 15;
+        self.idx() == 15
     }
 
     pub fn is_set(&self, castle: CastlingRights) -> bool {
-        return self.val() & castle.val() != 0;
+        self.val() & castle.val() != 0
     }
 
     pub fn sq_empty(&self, castling: CastlingRights, own: u64, enemy: u64) -> bool {
@@ -62,10 +62,11 @@ impl CastlingRights {
             }
             _ => panic!("Invalid Castling Rights"),
         };
-        return resp == 0;
+
+        resp == 0
     }
 
-    pub fn sq_att(&self, castle: CastlingRights, game: &Game, own: u64, enemy: u64) -> bool {
+    pub fn sq_att(&self, castle: CastlingRights, game: &Game, _own: u64, _enemy: u64) -> bool {
         let resp = match castle {
             CastlingRights::WKINGSIDE => {
                 sq_attack(game, E1.idx(), WHITE)
@@ -89,12 +90,13 @@ impl CastlingRights {
             }
             _ => panic!("Invalid Castling Rights"),
         };
-        return resp != 0;
+
+        resp != 0
     }
 
     pub fn valid(&self, castle: CastlingRights, game: &Game, own: u64, enemy: u64) -> bool {
-        return self.is_set(castle)
+        self.is_set(castle)
             && self.sq_empty(castle, own, enemy)
-            && !self.sq_att(castle, game, own, enemy);
+            && !self.sq_att(castle, game, own, enemy)
     }
 }

@@ -26,7 +26,7 @@ pub fn bitboard_to_string(bitboard: u64, mark: Option<i8>) -> String {
         match mark {
             Some(idx) => {
                 if i == idx {
-                    row.push_str("X");
+                    row.push('X');
                 } else {
                     row.push_str(&s);
                 }
@@ -35,12 +35,13 @@ pub fn bitboard_to_string(bitboard: u64, mark: Option<i8>) -> String {
         }
 
         if (i + 1) % 8 == 0 {
-            row.push_str("\n");
+            row.push('\n');
             board.insert_str(0, &row);
             row.clear();
         }
     }
-    return board;
+
+    board
 }
 
 pub fn print_chess(game: &Game) {
@@ -68,26 +69,26 @@ pub fn print_chess(game: &Game) {
                 print!("{} ", chess_board[(i - 1) * 8 + (j - 1)]);
             }
         }
-        println!("");
+        println!();
     }
 }
 
 pub fn sq_notation(square: usize) -> String {
     let (rank, file) = idx_to_position(square, None);
-    return format!("{}{}", FILE_LETTERS[file], rank + 1);
+    format!("{}{}", FILE_LETTERS[file], rank + 1)
 }
 
 pub fn move_notation(sq_from: usize, sq_to: usize, promotion: Option<Piece>) -> String {
     match promotion {
         Some(piece) => {
             let p_notation = piece.to_string();
-            return format!("{}{}{}", sq_notation(sq_from), sq_notation(sq_to), p_notation.trim());
+            format!("{}{}{}", sq_notation(sq_from), sq_notation(sq_to), p_notation.trim())
         }
-        None => return format!("{}{}", sq_notation(sq_from), sq_notation(sq_to)),
+        None => format!("{}{}", sq_notation(sq_from), sq_notation(sq_to)),
     }
 }
 
-pub fn print_move_list(moves: &Vec<InternalMove>) {
+pub fn print_move_list(moves: &[InternalMove]) {
     for (idx, mv) in moves.iter().enumerate() {
         let promotion = match mv.flag {
             Flag::Promotion(_, cap_piece) => cap_piece,

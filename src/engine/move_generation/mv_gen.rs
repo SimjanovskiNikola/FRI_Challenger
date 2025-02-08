@@ -28,14 +28,14 @@ pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
         }
     }
 
-    return positions;
+     positions
 }
 
 fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
     match piece.kind() {
         PAWN => {
-            return get_pawn_mv(piece.color(), pos, own_occ, enemy_occ)
-                | get_pawn_att(piece.color(), pos, own_occ, enemy_occ, game.ep);
+             get_pawn_mv(piece.color(), pos, own_occ, enemy_occ)
+                | get_pawn_att(piece.color(), pos, own_occ, enemy_occ, game.ep)
         }
         KNIGHT => get_knight_mv(pos, own_occ, enemy_occ),
         BISHOP => get_bishop_mv(pos, own_occ, enemy_occ),
@@ -47,10 +47,10 @@ fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ:
 }
 
 fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
-    return (
+    (
         game.occupancy[(WHITE + piece.color()).idx()],
         game.occupancy[(BLACK - piece.color()).idx()],
-    );
+    )
 }
 
 pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
@@ -64,11 +64,11 @@ pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
         | game.bitboard[(BLACK_BISHOP - color) as usize];
     let op_king = game.bitboard[(BLACK_KING - color) as usize];
 
-    return (get_pawn_att(color, sq, own_occ, enemy_occ, None) & op_pawns)
+    (get_pawn_att(color, sq, own_occ, enemy_occ, None) & op_pawns)
         | (get_knight_mv(sq, own_occ, enemy_occ) & op_knights)
         | (get_bishop_mv(sq, own_occ, enemy_occ) & op_bq)
         | (get_rook_mv(sq, own_occ, enemy_occ) & op_rq)
-        | (get_king_mv(sq, own_occ, enemy_occ) & op_king);
+        | (get_king_mv(sq, own_occ, enemy_occ) & op_king)
 }
 
 //FIXME: TODO: REFACTOR
@@ -97,7 +97,7 @@ fn get_internal_moves(
         };
         if new_move.piece.is_pawn() {
             add_ep_move(&mut new_move, game);
-            add_promotion_move(&mut new_move, game, new_positions);
+            add_promotion_move(&new_move, game, new_positions);
         } else {
             new_positions.push(new_move)
         }
@@ -111,7 +111,7 @@ fn get_internal_moves(
 #[rustfmt::skip]
 pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game, positions: &mut Vec<InternalMove>) {
     
-    let mut mv = InternalMove {
+    let mv = InternalMove {
             position_key: 0, 
             active_color: game.color,
             from: pos,
