@@ -15,7 +15,7 @@ pub mod engine {
     pub mod move_generation {
         pub mod fen;
         pub mod make_move;
-        pub mod move_generation;
+        pub mod mv_gen;
         pub mod perft;
     }
     pub mod shared {
@@ -23,7 +23,6 @@ pub mod engine {
             pub mod bit_pos_utility;
             pub mod bitboard;
             pub mod const_utility;
-            pub mod error_msg;
             pub mod generate_key_utility;
             pub mod print_utility;
         }

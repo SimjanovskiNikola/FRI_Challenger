@@ -1,8 +1,8 @@
-#[rustfmt::skip]
+#[allow(dead_code)]
 const KING_OFFSET_POS: [(i8, i8); 8] =
     [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
 
-#[rustfmt::skip]
+#[warn(dead_code)]
 pub static KING_LOOKUP: [u64; 64] = [
     770,
     1797,

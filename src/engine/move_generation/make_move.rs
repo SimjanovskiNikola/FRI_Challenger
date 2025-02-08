@@ -16,7 +16,7 @@ use crate::engine::{
 use lazy_static::lazy_static;
 use rand::Rng;
 
-use super::move_generation::sq_attack;
+use super::mv_gen::sq_attack;
 
 lazy_static! {
     pub static ref PieceKeys: [[u64; 14]; 64] = [[rand::rng().random(); 14]; 64];
@@ -93,12 +93,12 @@ impl GameMoveTrait for Game {
 
         let king_sq = self.bitboard[(KING + mv.active_color) as usize].get_lsb();
 
-        if sq_attack(&self, king_sq, mv.active_color) != 0 {
+        if sq_attack(self, king_sq, mv.active_color) != 0 {
             self.undo_move();
             return false;
         }
 
-        return true;
+        true
     }
 
     fn undo_move(&mut self) {
@@ -132,9 +132,8 @@ impl GameMoveTrait for Game {
             }
             Flag::Promotion(_, cap_piece) => {
                 self.clear_piece(mv.to);
-                match cap_piece {
-                    Some(piece) => self.add_piece(mv.to, piece),
-                    None => (),
+                if let Some(piece) = cap_piece {
+                    self.add_piece(mv.to, piece)
                 }
                 self.add_piece(mv.from, mv.piece);
             }
@@ -184,7 +183,7 @@ impl GameMoveTrait for Game {
     fn replace_piece(&mut self, from_sq: usize, to_sq: usize) {
         let piece = match self.squares[from_sq] {
             Square::Empty => {
-                print_chess(&self);
+                print_chess(self);
                 panic!(
                     "There is no piece on square: {:#?}, \n other data: {:#?}",
                     from_sq, self.squares[from_sq]
@@ -204,14 +203,14 @@ impl GameMoveTrait for Game {
             final_key ^= *SideKey;
         }
 
-        match self.ep {
-            Some(idx) => final_key ^= EpKeys[idx],
-            None => (),
+        if let Some(idx) = self.ep {
+            final_key ^= EpKeys[idx]
         }
 
         if self.castling.idx() < 16 {
             final_key ^= CastleKeys[self.castling.idx()];
         }
-        return final_key;
+
+        final_key
     }
 }

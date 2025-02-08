@@ -21,7 +21,8 @@ pub fn create_pawn_attacks() -> [[u64; 64]; 2] {
             pawn_move[BLACK.idx()][row * 8 + col] = diagonal_move(row as i8, col as i8, BLACK);
         }
     }
-    return pawn_move;
+
+    pawn_move
 }
 
 pub fn create_pawn_move() -> [[u64; 64]; 2] {
@@ -33,7 +34,8 @@ pub fn create_pawn_move() -> [[u64; 64]; 2] {
             pawn_move[BLACK.idx()][row * 8 + col] = forward_move(row as i8, col as i8, BLACK);
         }
     }
-    return pawn_move;
+
+    pawn_move
 }
 
 // PAWN MOVE, ATTACK, EP
@@ -46,23 +48,27 @@ pub fn get_pawn_mv(color: Color, sq: usize, own: u64, enemy: u64) -> u64 {
         _ => panic!("There are only two colors, black and white"),
     };
 
-    return if moves.is_set(bit) { moves } else { 0 };
+    if moves.is_set(bit) {
+        moves
+    } else {
+        0
+    }
 }
 
 pub fn get_pawn_att(color: Color, sq: usize, own: u64, enemy: u64, ep: Option<usize>) -> u64 {
     let attacks = PAWN_ATTACK[color.idx()][sq] & !own;
     match ep {
-        Some(ep) => return attacks & (enemy | get_pawn_ep(color, ep)),
-        None => return attacks & enemy,
+        Some(ep) => attacks & (enemy | get_pawn_ep(color, ep)),
+        None => attacks & enemy,
     }
 }
 
 pub fn get_pawn_ep(color: Color, ep: usize) -> u64 {
     let rank_ep = get_bit_rank(ep);
     if (rank_ep == Rank::Six && color.is_white()) || (rank_ep == Rank::Three && color.is_black()) {
-        return 1 << ep;
+        1 << ep
     } else {
-        return 0;
+        0
     }
 }
 
@@ -71,20 +77,21 @@ fn forward_move(row: i8, col: i8, color: Color) -> u64 {
     let mut bitboard = 0;
     if color == WHITE {
         if row < 7 {
-            bitboard |= set_bit(bitboard, row + 1, col + 0);
+            bitboard |= set_bit(bitboard, row + 1, col);
         }
         if row == 1 {
-            bitboard |= set_bit(bitboard, row + 2, col + 0);
+            bitboard |= set_bit(bitboard, row + 2, col);
         }
     } else {
         if row > 0 {
-            bitboard |= set_bit(bitboard, row - 1, col + 0);
+            bitboard |= set_bit(bitboard, row - 1, col);
         }
         if row == 6 {
-            bitboard |= set_bit(bitboard, row - 2, col + 0);
+            bitboard |= set_bit(bitboard, row - 2, col);
         }
     }
-    return bitboard;
+
+    bitboard
 }
 
 fn diagonal_move(row: i8, col: i8, color: Color) -> u64 {
@@ -96,7 +103,8 @@ fn diagonal_move(row: i8, col: i8, color: Color) -> u64 {
         bitboard |= set_bit(bitboard, row - 1, col + 1);
         bitboard |= set_bit(bitboard, row - 1, col - 1);
     }
-    return bitboard;
+
+    bitboard
 }
 
 #[cfg(test)]

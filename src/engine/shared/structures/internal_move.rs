@@ -1,11 +1,8 @@
-use std::ops::Add;
-
 use super::castling_struct::*;
 use super::piece::*;
 use super::color::*;
 
 // Check about BigPawn Flag and what it does
-// DEPRECATE:
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Flag {
     Quiet,
@@ -32,7 +29,7 @@ pub struct InternalMove {
 
 impl InternalMove {
     pub fn init() -> Self {
-        return Self {
+        Self {
             position_key: 0u64,
             active_color: WHITE,
             from: 0,
@@ -42,6 +39,6 @@ impl InternalMove {
             castle: CastlingRights::NONE,
             flag: Flag::Quiet,
             half_move: 0,
-        };
+        }
     }
 }

@@ -34,7 +34,8 @@ pub fn ray_init() -> [[u64; 64]; 8] {
             }
         }
     }
-    return rays;
+
+    rays
 }
 
 pub fn rays_att_bitboard(dir: Dir, row: i8, col: i8) -> u64 {
@@ -43,16 +44,17 @@ pub fn rays_att_bitboard(dir: Dir, row: i8, col: i8) -> u64 {
         let (row_offset, col_offset) = dir.dir_offset();
         bitboard = set_bit(bitboard, row + row_offset * i, col + col_offset * i);
     }
-    return bitboard;
+
+    bitboard
 }
 
 pub fn first_hit(dir: Dir, bitboard: u64) -> Option<usize> {
     if bitboard == 0 {
-        return None;
+        None
     } else if dir.is_forward() {
-        return Some(bitboard.get_lsb());
+        Some(bitboard.get_msb())
     } else {
-        return Some(bitboard.get_lsb());
+        Some(bitboard.get_lsb())
     }
 }
 
@@ -61,11 +63,11 @@ pub fn blocked_ray_att(dir: Dir, ray_family: &[u64; 64], ray: u64, own: u64, ene
     let first_enemy_hit = first_hit(dir, ray & enemy);
 
     match (first_own_hit, first_enemy_hit) {
-        (None, None) => return ray,
-        (None, Some(enemy_idx)) => return ray ^ ray_family[enemy_idx],
-        (Some(own_idx), None) => return ray ^ (ray_family[own_idx] | (1 << own_idx)),
+        (None, None) => ray,
+        (None, Some(enemy_idx)) => ray ^ ray_family[enemy_idx],
+        (Some(own_idx), None) => ray ^ (ray_family[own_idx] | (1 << own_idx)),
         (Some(own_idx), Some(enemy_idx)) => {
-            return ray ^ (ray_family[own_idx] | (1 << own_idx) | ray_family[enemy_idx])
+            ray ^ (ray_family[own_idx] | (1 << own_idx) | ray_family[enemy_idx])
         }
     }
 }

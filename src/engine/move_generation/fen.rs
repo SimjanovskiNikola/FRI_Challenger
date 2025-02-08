@@ -34,7 +34,7 @@ impl FenTrait for Game {
         Game::set_half_move_clock(&mut game, data[4]);
         Game::set_full_move_number(&mut game, data[5]);
 
-        return game;
+        game
     }
 
     fn set_position(&mut self, position: &str) {

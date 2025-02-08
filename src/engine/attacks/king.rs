@@ -1,12 +1,8 @@
-use crate::engine::shared::helper_func::bit_pos_utility::*;
-use crate::make_rays;
-use lazy_static::lazy_static;
-
 use super::generated::king::KING_LOOKUP;
 
 // NOTE: GET KING MOVES
 pub fn get_king_mv(sq: usize, own: u64, _: u64) -> u64 {
-    return KING_LOOKUP[sq] & !own;
+    KING_LOOKUP[sq] & !own
 }
 
 #[cfg(test)]

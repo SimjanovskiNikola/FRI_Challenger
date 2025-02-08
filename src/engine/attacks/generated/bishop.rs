@@ -10,7 +10,6 @@ pub static BISHOP_BASE: [usize; 64] = [
     154, 156, 157, 158, 159, 160, 161, 162,
 ];
 
-#[rustfmt::skip]
 pub static BISHOP_MASKS: [u64; 64] = [
     18049651735527936,
     70506452091904,

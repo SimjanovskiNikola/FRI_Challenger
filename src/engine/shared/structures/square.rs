@@ -14,7 +14,7 @@ pub enum SqPos {
 
 impl SqPos {
     pub fn idx(self) -> usize {
-        return self as usize;
+        self as usize
     }
 }
 

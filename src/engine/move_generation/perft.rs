@@ -2,23 +2,23 @@ use std::{fs::File, time::Instant};
 use super::fen::FenTrait;
 use super::make_move::GameMoveTrait;
 use crate::engine::game::Game;
-use crate::engine::move_generation::move_generation::gen_moves;
+use crate::engine::move_generation::mv_gen::gen_moves;
 use crate::engine::shared::structures::internal_move::*;
 
 pub struct Stats {
-    all_nodes: u64,
+    pub all_nodes: u64,
     pub nodes: u64,
-    captures: u64,
-    ep: u64,
-    castles: u64,
-    promotions: u64,
-    checks: u64,
-    checkmates: u64,
+    pub captures: u64,
+    pub ep: u64,
+    pub castles: u64,
+    pub promotions: u64,
+    pub checks: u64,
+    pub checkmates: u64,
 }
 
 impl Stats {
     pub fn init() -> Stats {
-        return Stats {
+        Stats {
             all_nodes: 0,
             nodes: 0,
             captures: 0,
@@ -27,7 +27,7 @@ impl Stats {
             promotions: 0,
             checks: 0,
             checkmates: 0,
-        };
+        }
     }
 
     pub fn add_all_node(&mut self) {
@@ -92,13 +92,13 @@ pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
     }
 
     let mut move_list: Vec<InternalMove> = gen_moves(game.color, game);
-    for i in 0..move_list.len() {
-        if !game.make_move(&mut move_list[i]) {
+    for mv in &mut move_list {
+        if !game.make_move(mv) {
             continue;
         }
 
         if depth == 1 {
-            match move_list[i].flag {
+            match mv.flag {
                 Flag::Quiet => stats.add_node(),
                 Flag::Capture(_) => stats.add_capture(),
                 Flag::EP(_, _) => stats.add_ep(),
@@ -110,11 +110,12 @@ pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
         leaf_nodes += perft(depth - 1, game, stats);
         game.undo_move();
     }
-    return leaf_nodes;
+
+    leaf_nodes
 }
 
 pub fn init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
-    let mut game = Game::read_fen(&fen);
+    let mut game = Game::read_fen(fen);
     let mut stats = Stats::init();
     let now = Instant::now();
     let nodes = perft(depth, &mut game, &mut stats);
@@ -123,7 +124,8 @@ pub fn init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
         println!("Time for {} nodes: {} ms", nodes, now.elapsed().as_millis());
         stats.print();
     }
-    return stats;
+
+    stats
 }
 
 pub fn profiler_init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
@@ -136,7 +138,7 @@ pub fn profiler_init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> 
         report.flamegraph(file).unwrap();
     };
 
-    return stats;
+    stats
 }
 
 #[cfg(test)]

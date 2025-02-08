@@ -1,4 +1,3 @@
-use std::usize;
 use crate::engine::shared::structures::castling_struct::CastlingRights;
 use crate::engine::shared::structures::square::*;
 use super::move_generation::fen::FenTrait;
@@ -26,11 +25,11 @@ pub struct Game {
 
 impl Game {
     pub fn initialize() -> Game {
-        return Game::read_fen(FEN_START);
+        Game::read_fen(FEN_START)
     }
 
     pub fn create_board() -> Self {
-        return Self {
+        Self {
             squares: [Square::Empty; 64],
             occupancy: [0 as Bitboard; 2],
             bitboard: [0 as Bitboard; 14],
@@ -43,7 +42,7 @@ impl Game {
 
             moves: [None; 2048],
             mv_idx: 0,
-        };
+        }
     }
 
     pub fn reset_board(&mut self) {

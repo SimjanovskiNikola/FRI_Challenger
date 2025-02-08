@@ -10,7 +10,6 @@ pub static ROOK_BASE: [usize; 64] = [
     80, 84, 86, 88, 90, 92, 94, 96,
 ];
 
-#[rustfmt::skip]
 pub static ROOK_MASKS: [u64; 64] = [
     282578800148862,
     565157600297596,

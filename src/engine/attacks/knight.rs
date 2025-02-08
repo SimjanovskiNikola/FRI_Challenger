@@ -1,7 +1,7 @@
 use super::generated::knight::KNIGHT_LOOKUP;
 
 pub fn get_knight_mv(sq: usize, own: u64, _: u64) -> u64 {
-    return KNIGHT_LOOKUP[sq] & !own;
+    KNIGHT_LOOKUP[sq] & !own
 }
 
 #[cfg(test)]
