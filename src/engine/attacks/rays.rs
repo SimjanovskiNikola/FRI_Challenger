@@ -1,4 +1,7 @@
-use crate::engine::shared::{helper_func::bit_pos_utility::*, structures::directions::*};
+use crate::engine::shared::{
+    helper_func::{bit_pos_utility::*, bitboard::BitboardTrait},
+    structures::directions::*,
+};
 use lazy_static::lazy_static;
 
 // NOTE: CONSTANTS
@@ -47,9 +50,9 @@ pub fn first_hit(dir: Dir, bitboard: u64) -> Option<usize> {
     if bitboard == 0 {
         return None;
     } else if dir.is_forward() {
-        return Some(bit_scan_lsb(bitboard));
+        return Some(bitboard.get_lsb());
     } else {
-        return Some(bit_scan_msb(bitboard));
+        return Some(bitboard.get_lsb());
     }
 }
 

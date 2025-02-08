@@ -1,30 +1,7 @@
 use std::vec;
 use crate::engine::shared::helper_func::error_msg::Error;
-use super::const_utility::*;
+use super::{bitboard::BitboardTrait, const_utility::*};
 
-// DEPRECATE:
-/**
- TEST: Not sure if the resonse is like that, and not sure if this is for the msb or lsb
- Get least segnificant bit from a bitboard(u64);
- * Ex: get_lsb(bitboard: 0....0111) -> 0
-*/
-pub fn bit_scan_lsb(bitboard: u64) -> usize {
-    // Gets the least significant bit
-    let bit: u64 = bitboard ^ (bitboard - 1) ^ (!bitboard & (bitboard - 1));
-    return MOD67TABLE[(bit % 67) as usize];
-}
-
-// DEPRECATE:
-/**
- TEST: Not sure if the resonse is like that, and not sure if this is for the msb or lsb
- Get most segnificant bit from a bitboard(u64);
- * Ex: get_msb(bitboard: 0....0111) -> 2
-*/
-pub fn bit_scan_msb(bitboard: u64) -> usize {
-    return (bitboard as f64).log2().floor() as usize;
-}
-
-// DEPRECATE:
 /**
  TEST: Not sure if the resonse is like that
  Extracts all of the bits from a bitboard(u64);
@@ -34,7 +11,7 @@ pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
     let mut result = vec![]; //Vec::with_capacity(64);
 
     while bitboard != 0 {
-        let next_bit = bit_scan_lsb(bitboard);
+        let next_bit = bitboard.get_lsb();
         result.push(next_bit);
         bitboard ^= 1 << next_bit;
     }
@@ -196,30 +173,6 @@ mod tests {
     //     assert_eq!(index_to_position(test_arr[1]), "c2");
     //     assert_eq!(index_to_position(test_arr[2]), "g8");
     // }
-
-    #[test]
-    fn bit_scan_works() {
-        for i in 0..64 {
-            let bit = (1 as u64) << i;
-            let index = bit_scan_lsb(bit);
-            assert_eq!(i, index);
-        }
-    }
-
-    #[test]
-    fn bit_scan_with_multiple_bits() {
-        for lowest_bit in 0..64 {
-            let mut bit = 1 << lowest_bit;
-
-            for other_bit in lowest_bit + 1..64 {
-                if (other_bit + 37) % 3 != 0 {
-                    bit |= 1 << other_bit;
-                }
-            }
-            let bit_scan_result = bit_scan_lsb(bit);
-            assert_eq!(lowest_bit, bit_scan_result);
-        }
-    }
 
     #[test]
     fn test_get_bits() {

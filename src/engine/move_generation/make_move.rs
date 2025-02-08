@@ -2,7 +2,6 @@ use crate::engine::{
     game::Game,
     shared::{
         helper_func::{
-            bit_pos_utility::bit_scan_lsb,
             bitboard::{Bitboard, BitboardTrait},
             print_utility::print_chess,
         },
@@ -276,7 +275,7 @@ impl GameMoveTrait for Game {
         }
 
         match self.ep {
-            Some(idx) => final_key ^= EpKeys[bit_scan_lsb(idx)],
+            Some(idx) => final_key ^= EpKeys[idx.get_lsb()],
             None => (),
         }
 

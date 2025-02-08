@@ -138,7 +138,7 @@ impl BitboardTrait for Bitboard {
 
         while bb != 0 {
             let next_bit = bb.get_lsb();
-            bb ^= 1 << next_bit;
+            bb &= bb - 1;
             result.push(next_bit);
         }
 
