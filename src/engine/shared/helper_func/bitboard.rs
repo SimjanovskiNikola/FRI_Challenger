@@ -1,5 +1,3 @@
-use super::const_utility::{CLEAR_MASK, MOD67TABLE, SET_MASK};
-
 pub type Bitboard = u64;
 
 pub enum Shift {
@@ -127,12 +125,11 @@ impl BitboardTrait for Bitboard {
     }
 
     fn get_lsb(self) -> usize {
-        let bit: u64 = self ^ (self - 1) ^ (!self & (self - 1));
-        return MOD67TABLE[(bit % 67) as usize];
+        return self.trailing_zeros() as usize;
     }
 
     fn get_msb(self) -> usize {
-        return (self as f64).log2().floor() as usize;
+        return 63 - self.leading_zeros() as usize;
     }
 
     fn get_bits(self) -> Vec<usize> {
@@ -150,16 +147,16 @@ impl BitboardTrait for Bitboard {
 
     fn pop_lsb(&mut self) -> usize {
         let idx = self.get_lsb();
-        *self ^= 1 << idx;
+        *self &= *self - 1;
         return idx;
     }
 
     fn set_bit(&mut self, sq: usize) {
-        *self |= SET_MASK[sq];
+        *self |= 1 << sq;
     }
 
     fn clear_bit(&mut self, sq: usize) {
-        *self &= CLEAR_MASK[sq];
+        *self &= !(1 << sq);
     }
 
     fn count(self) -> usize {

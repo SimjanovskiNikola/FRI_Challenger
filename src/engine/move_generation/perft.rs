@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_perft_init_pos_six() {
-        let stats = init_test_func(&FEN_START, 6, true);
+        let stats = profiler_init_test_func(&FEN_START, 6, true);
         assert_eq!(stats.nodes, 119060324);
     }
 

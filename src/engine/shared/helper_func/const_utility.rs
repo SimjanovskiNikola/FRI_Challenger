@@ -1,6 +1,5 @@
-use std::{array, collections::HashMap};
 use num_enum::TryFromPrimitive;
-use lazy_static::lazy_static;
+use const_for::const_for;
 
 // **** START: FEN STRINGS ****
 pub const FEN_START: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -25,24 +24,6 @@ pub const FEN_2KING_2WKNIGHT: &str = "5k2/8/8/4N3/2N5/8/8/5K2 w - - 0 1";
 /* Files (Columns) - vertical from 1 to 8*/
 
 pub static FILE_LETTERS: [&str; 8] = ["a", "b", "c", "d", "e", "f", "g", "h"];
-
-lazy_static! {
-// DEPRECATE: UGLY
-    pub static ref RANK_MAP: HashMap<char, usize> = {
-        let mut map = HashMap::new();
-        map.insert('a', 0);
-        map.insert('b', 1);
-        map.insert('c', 2);
-        map.insert('d', 3);
-        map.insert('e', 4);
-        map.insert('f', 5);
-        map.insert('g', 6);
-        map.insert('h', 7);
-        return map;
-    };
-    pub static ref SET_MASK: [u64; 64] = array::from_fn(|idx| 1 << idx);
-    pub static ref CLEAR_MASK: [u64; 64] = array::from_fn(|idx| !(1 << idx));
-}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, TryFromPrimitive)]
 #[repr(usize)]

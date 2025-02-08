@@ -19,7 +19,9 @@ pub struct Game {
     pub full_move: usize,
     pub pos_key: u64,
 
-    pub moves: Vec<InternalMove>,
+    // pub moves: Vec<InternalMove>,
+    pub moves: [Option<InternalMove>; 2048],
+    pub mv_idx: usize,
 }
 
 impl Game {
@@ -39,7 +41,8 @@ impl Game {
             full_move: 1,
             pos_key: 0,
 
-            moves: Vec::with_capacity(64),
+            moves: [None; 2048],
+            mv_idx: 0,
         };
     }
 
@@ -52,7 +55,8 @@ impl Game {
         self.ep = None;
         self.half_move = 0;
         self.full_move = 1;
-        self.moves = Vec::with_capacity(64);
+        self.moves = [None; 2048];
+        self.mv_idx = 0;
     }
 }
 
@@ -73,6 +77,6 @@ mod tests {
         assert_eq!(game.ep, None);
         assert_eq!(game.half_move, 0);
         assert_eq!(game.full_move, 1);
-        assert_eq!(game.moves.len(), 0);
+        assert_eq!(game.mv_idx, 0);
     }
 }
