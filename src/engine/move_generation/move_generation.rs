@@ -258,13 +258,10 @@ mod tests {
         let fen = "8/8/2q5/3Q4/8/8/8/8 w - - 0 1";
         let game = Game::read_fen(&fen);
         print_bitboard(
-            sq_attack(&game, bit_scan_lsb(game.bitboard[BLACK_QUEEN.idx()]), BLACK),
-            Some(bit_scan_lsb(game.bitboard[BLACK_QUEEN.idx()]) as i8),
+            sq_attack(&game, game.bitboard[BLACK_QUEEN.idx()].get_lsb(), BLACK),
+            Some(game.bitboard[BLACK_QUEEN.idx()].get_msb() as i8),
         );
-        print_bitboard(
-            sq_attack(&game, bit_scan_lsb(game.bitboard[WHITE_QUEEN.idx()]), WHITE),
-            None,
-        );
+        print_bitboard(sq_attack(&game, game.bitboard[WHITE_QUEEN.idx()].get_msb(), WHITE), None);
     }
 
     // KNIGHT

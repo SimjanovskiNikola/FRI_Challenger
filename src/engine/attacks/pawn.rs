@@ -58,7 +58,7 @@ pub fn get_pawn_att(color: Color, sq: usize, own: u64, enemy: u64, ep: Option<u6
 }
 
 pub fn get_pawn_ep(color: Color, ep: u64) -> u64 {
-    let rank_ep = get_bit_rank(bit_scan_lsb(ep));
+    let rank_ep = get_bit_rank(ep.get_lsb());
     if (rank_ep == Rank::Six && color.is_white()) || (rank_ep == Rank::Three && color.is_black()) {
         return ep;
     } else {
@@ -109,8 +109,8 @@ mod tests {
         let row = 1;
         for col in 0..8 {
             let bitboard = forward_move(row, col, WHITE);
-            let lsb = bit_scan_lsb(bitboard);
-            let msb = bit_scan_msb(bitboard);
+            let lsb = bitboard.get_lsb();
+            let msb = bitboard.get_msb();
             assert_eq!(lsb as i8, position_to_idx(row + 1, col, None));
             assert_eq!(msb as i8, position_to_idx(row + 2, col, None));
         }
@@ -121,7 +121,7 @@ mod tests {
         let row = 1;
         for col in 0..8 {
             let bitboard = forward_move(row, col, BLACK);
-            let lsb = bit_scan_lsb(bitboard);
+            let lsb = bitboard.get_lsb();
             assert_eq!(lsb as i8, position_to_idx(row - 1, col, None));
         }
     }
@@ -131,8 +131,8 @@ mod tests {
         let row = 6;
         for col in 0..8 {
             let bitboard = forward_move(row, col, BLACK);
-            let lsb = bit_scan_lsb(bitboard);
-            let msb = bit_scan_msb(bitboard);
+            let lsb = bitboard.get_lsb();
+            let msb = bitboard.get_msb();
             assert_eq!(msb as i8, position_to_idx(row - 1, col, None));
             assert_eq!(lsb as i8, position_to_idx(row - 2, col, None));
         }
@@ -143,7 +143,7 @@ mod tests {
         let row = 6;
         for col in 0..8 {
             let bitboard = forward_move(row, col, WHITE);
-            let lsb = bit_scan_lsb(bitboard);
+            let lsb = bitboard.get_lsb();
             assert_eq!(lsb as i8, position_to_idx(row + 1, col, None));
         }
     }
@@ -153,7 +153,7 @@ mod tests {
         for row in 2..7 {
             for col in 0..8 {
                 let bitboard = forward_move(row, col, WHITE);
-                let lsb = bit_scan_lsb(bitboard);
+                let lsb = bitboard.get_lsb();
                 assert_eq!(lsb as i8, position_to_idx(row + 1, col, None));
             }
         }
@@ -164,7 +164,7 @@ mod tests {
         for row in 1..6 {
             for col in 0..8 {
                 let bitboard = forward_move(row, col, BLACK);
-                let lsb = bit_scan_lsb(bitboard);
+                let lsb = bitboard.get_lsb();
                 assert_eq!(lsb as i8, position_to_idx(row - 1, col, None));
             }
         }
@@ -201,8 +201,8 @@ mod tests {
         for row in 1..6 {
             for col in 1..6 {
                 let bitboard = diagonal_move(row, col, WHITE);
-                let lsb = bit_scan_lsb(bitboard);
-                let msb = bit_scan_msb(bitboard);
+                let lsb = bitboard.get_lsb();
+                let msb = bitboard.get_msb();
 
                 assert_eq!(lsb as i8, position_to_idx(row + 1, col - 1, None));
                 assert_eq!(msb as i8, position_to_idx(row + 1, col + 1, None));
@@ -215,7 +215,7 @@ mod tests {
         for row in 1..6 {
             let col = 0;
             let bitboard = diagonal_move(row, col, WHITE);
-            let lsb = bit_scan_lsb(bitboard);
+            let lsb = bitboard.get_lsb();
 
             assert_eq!(lsb as i8, position_to_idx(row + 1, col + 1, None));
         }
@@ -223,7 +223,7 @@ mod tests {
         for row in 1..6 {
             let col = 6;
             let bitboard = diagonal_move(row, col, WHITE);
-            let lsb = bit_scan_lsb(bitboard);
+            let lsb = bitboard.get_lsb();
 
             assert_eq!(lsb as i8, position_to_idx(row + 1, col - 1, None));
         }
@@ -234,8 +234,8 @@ mod tests {
         for row in 1..6 {
             for col in 1..6 {
                 let bitboard = diagonal_move(row, col, BLACK);
-                let lsb = bit_scan_lsb(bitboard);
-                let msb = bit_scan_msb(bitboard);
+                let lsb = bitboard.get_lsb();
+                let msb = bitboard.get_msb();
 
                 assert_eq!(lsb as i8, position_to_idx(row - 1, col - 1, None));
                 assert_eq!(msb as i8, position_to_idx(row - 1, col + 1, None));
@@ -248,7 +248,7 @@ mod tests {
         for row in 1..6 {
             let col = 0;
             let bitboard = diagonal_move(row, col, BLACK);
-            let lsb = bit_scan_lsb(bitboard);
+            let lsb = bitboard.get_lsb();
 
             assert_eq!(lsb as i8, position_to_idx(row - 1, col + 1, None));
         }
@@ -256,7 +256,7 @@ mod tests {
         for row in 1..6 {
             let col = 6;
             let bitboard = diagonal_move(row, col, BLACK);
-            let lsb = bit_scan_lsb(bitboard);
+            let lsb = bitboard.get_lsb();
 
             assert_eq!(lsb as i8, position_to_idx(row - 1, col - 1, None));
         }
