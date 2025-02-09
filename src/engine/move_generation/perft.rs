@@ -191,13 +191,13 @@ mod tests {
 
     #[test]
     fn test_perft_init_pos_five() {
-        let stats = profiler_init_test_func(&FEN_START, 5, true);
+        let stats = init_test_func(&FEN_START, 5, true);
         assert_eq!(stats.nodes, 4865609);
     }
 
     #[test]
     fn test_perft_init_pos_six() {
-        let stats = profiler_init_test_func(&FEN_START, 6, true);
+        let stats = init_test_func(&FEN_START, 6, true);
         assert_eq!(stats.nodes, 119060324);
     }
 
