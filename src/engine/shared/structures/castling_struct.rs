@@ -25,30 +25,37 @@ bitflags! {
 }
 
 impl CastlingRights {
+    #[inline(always)]
     pub fn val(&self) -> u8 {
         self.bits()
     }
 
+    #[inline(always)]
     pub fn idx(&self) -> usize {
         self.bits() as usize
     }
 
+    #[inline(always)]
     pub fn add(&mut self, castle: CastlingRights) {
         *self |= castle
     }
 
+    #[inline(always)]
     pub fn clear(&mut self, castle: CastlingRights) {
         *self &= !castle
     }
 
+    #[inline(always)]
     pub fn all_set(&self) -> bool {
         self.idx() == 15
     }
 
+    #[inline(always)]
     pub fn is_set(&self, castle: CastlingRights) -> bool {
         self.val() & castle.val() != 0
     }
 
+    #[inline(always)]
     pub fn sq_empty(&self, castling: CastlingRights, own: u64, enemy: u64) -> bool {
         let occ = own | enemy;
         let resp = match castling {
@@ -66,6 +73,7 @@ impl CastlingRights {
         resp == 0
     }
 
+    #[inline(always)]
     pub fn sq_att(&self, castle: CastlingRights, game: &Game, _own: u64, _enemy: u64) -> bool {
         let resp = match castle {
             CastlingRights::WKINGSIDE => {
@@ -94,6 +102,7 @@ impl CastlingRights {
         resp != 0
     }
 
+    #[inline(always)]
     pub fn valid(&self, castle: CastlingRights, game: &Game, own: u64, enemy: u64) -> bool {
         self.is_set(castle)
             && self.sq_empty(castle, own, enemy)

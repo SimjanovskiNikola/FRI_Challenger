@@ -24,30 +24,37 @@ pub enum Dir {
 }
 
 impl Dir {
+    #[inline(always)]
     pub fn val(&self) -> u8 {
         *self as u8
     }
 
+    #[inline(always)]
     pub fn idx(&self) -> usize {
         *self as usize
     }
 
+    #[inline(always)]
     pub fn dir_offset(&self) -> (i8, i8) {
         DIR_OFFSET[*self as usize]
     }
 
+    #[inline(always)]
     pub fn is_forward(&self) -> bool {
         self.val() & 0b0001 == 0
     }
 
+    #[inline(always)]
     pub fn is_backward(&self) -> bool {
         self.val() & 0b0001 != 0
     }
 
+    #[inline(always)]
     pub fn is_orthogonal(&self) -> bool {
         self.val() & 0b0100 == 0
     }
 
+    #[inline(always)]
     pub fn is_diagonal(&self) -> bool {
         self.val() & 0b0100 != 0
     }

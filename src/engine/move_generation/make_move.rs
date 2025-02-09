@@ -148,6 +148,7 @@ impl GameMoveTrait for Game {
         }
     }
 
+    #[inline(always)]
     fn quiet_mv(&mut self, from_sq: usize, to_sq: usize, piece: Piece) {
         self.squares[from_sq] = Square::Empty;
         self.squares[to_sq] = Square::Occupied(piece);
@@ -157,6 +158,7 @@ impl GameMoveTrait for Game {
         self.pos_key ^= PieceKeys[to_sq][piece.idx()] | PieceKeys[from_sq][piece.idx()];
     }
 
+    #[inline(always)]
     fn add_piece(&mut self, sq: usize, piece: Piece) {
         match self.squares[sq] {
             Square::Empty => (),
@@ -168,6 +170,7 @@ impl GameMoveTrait for Game {
         self.pos_key ^= PieceKeys[sq][piece.idx()];
     }
 
+    #[inline(always)]
     fn clear_piece(&mut self, sq: usize) {
         match self.squares[sq] {
             Square::Empty => panic!("Clearing a Peace that does not exist"),
@@ -180,6 +183,7 @@ impl GameMoveTrait for Game {
         }
     }
 
+    #[inline(always)]
     fn replace_piece(&mut self, from_sq: usize, to_sq: usize) {
         let piece = match self.squares[from_sq] {
             Square::Empty => {
@@ -196,6 +200,7 @@ impl GameMoveTrait for Game {
         self.add_piece(to_sq, piece);
     }
 
+    #[inline(always)]
     fn generate_pos_key(&self) -> u64 {
         let mut final_key: u64 = 0;
 

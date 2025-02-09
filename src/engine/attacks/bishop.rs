@@ -1,6 +1,7 @@
 use super::generated::bishop::{BISHOP_BASE, BISHOP_LOOKUP, BISHOP_MASKS};
 use super::utility::pext;
 
+#[inline(always)]
 pub fn get_bishop_mv(sq: usize, own: u64, enemy: u64) -> u64 {
     let occupancy = own | enemy;
     let key = pext(occupancy, BISHOP_MASKS[sq]) as usize;
