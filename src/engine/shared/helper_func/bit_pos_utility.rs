@@ -6,8 +6,9 @@ use super::{bitboard::BitboardTrait, const_utility::*};
  Extracts all of the bits from a bitboard(u64);
  * Ex: extract_bits(bitboard: 0....0111) -> [0, 1, 2]
 */
+#[inline(always)]
 pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
-    let mut result = vec![]; //Vec::with_capacity(64);
+    let mut result = vec![];
 
     while bitboard != 0 {
         let next_bit = bitboard.get_lsb();
@@ -18,6 +19,7 @@ pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
     result
 }
 
+#[inline(always)]
 pub fn get_bit_rank(square: usize) -> Rank {
     match Rank::try_from(square / 8) {
         Ok(rank) => rank,
@@ -25,6 +27,7 @@ pub fn get_bit_rank(square: usize) -> Rank {
     }
 }
 
+#[inline(always)]
 pub fn get_bit_file(square: usize) -> File {
     match File::try_from(square % 8) {
         Ok(file) => file,
@@ -32,6 +35,7 @@ pub fn get_bit_file(square: usize) -> File {
     }
 }
 
+#[inline(always)]
 pub fn get_rank_bits(square: usize) -> File {
     match File::try_from(square % 8) {
         Ok(file) => file,
@@ -39,6 +43,7 @@ pub fn get_rank_bits(square: usize) -> File {
     }
 }
 
+#[inline(always)]
 pub fn exclude_file_rank(bitboard: u64, file: Option<usize>, rank: Option<usize>) -> u64 {
     match (rank, file) {
         (Some(r), Some(f)) => (bitboard & !RANK_BITBOARD[r]) & !FILE_BITBOARD[f],
@@ -48,6 +53,7 @@ pub fn exclude_file_rank(bitboard: u64, file: Option<usize>, rank: Option<usize>
     }
 }
 
+#[inline(always)]
 pub fn include_only_file_rank(bitboard: u64, file: Option<usize>, rank: Option<usize>) -> u64 {
     match (rank, file) {
         (Some(r), Some(f)) => (bitboard & RANK_BITBOARD[r]) & FILE_BITBOARD[f],
@@ -101,6 +107,7 @@ pub fn position_to_idx(row: i8, col: i8, check_bounds: Option<bool>) -> i8 {
 Checks if the row and col are inside the board. They should be between 0 and 7 included.
 * Ex: is_inside_board_bounds_row_col(row: 8, col: 4) -> false
 */
+#[inline(always)]
 pub fn is_inside_board_bounds_row_col(row: i8, col: i8) -> bool {
     (0..=7).contains(&row) && (0..=7).contains(&col)
 }
@@ -109,6 +116,7 @@ pub fn is_inside_board_bounds_row_col(row: i8, col: i8) -> bool {
 Checks if the idx is inside the board. It should be between 0 and 63 included .
 * Ex: is_inside_board_bounds_idx(63) -> true
 */
+#[inline(always)]
 pub fn is_inside_board_bounds_idx(idx: usize) -> bool {
     idx <= 63
 }

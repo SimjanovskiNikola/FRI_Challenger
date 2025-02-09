@@ -6,7 +6,7 @@ use crate::engine::attacks::queen::*;
 use crate::engine::attacks::rook::*;
 use crate::engine::game::Game;
 use crate::engine::shared::helper_func::bit_pos_utility::*;
-use crate::engine::shared::helper_func::bitboard::*;
+use crate::engine::shared::helper_func::bitboard::BitboardTrait;
 use crate::engine::shared::helper_func::const_utility::*;
 use crate::engine::shared::structures::castling_struct::*;
 use crate::engine::shared::structures::color::*;
@@ -15,6 +15,7 @@ use crate::engine::shared::structures::piece::*;
 use crate::engine::shared::structures::square::*;
 use crate::engine::shared::structures::square::SqPos::*;
 
+#[inline(always)]
 pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     let mut positions: Vec<InternalMove> = Vec::with_capacity(256);
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
@@ -28,13 +29,14 @@ pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
         }
     }
 
-     positions
+    positions
 }
 
+#[inline(always)]
 fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
     match piece.kind() {
         PAWN => {
-             get_pawn_mv(piece.color(), pos, own_occ, enemy_occ)
+            get_pawn_mv(piece.color(), pos, own_occ, enemy_occ)
                 | get_pawn_att(piece.color(), pos, own_occ, enemy_occ, game.ep)
         }
         KNIGHT => get_knight_mv(pos, own_occ, enemy_occ),
@@ -46,13 +48,12 @@ fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ:
     }
 }
 
+#[inline(always)]
 fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
-    (
-        game.occupancy[(WHITE + piece.color()).idx()],
-        game.occupancy[(BLACK - piece.color()).idx()],
-    )
+    (game.occupancy[(WHITE + piece.color()).idx()], game.occupancy[(BLACK - piece.color()).idx()])
 }
 
+#[inline(always)]
 pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
@@ -71,6 +72,7 @@ pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
         | (get_king_mv(sq, own_occ, enemy_occ) & op_king)
 }
 
+#[inline(always)]
 //FIXME: TODO: REFACTOR
 fn get_internal_moves(
     mut attacks: u64,
@@ -109,6 +111,7 @@ fn get_internal_moves(
 }
 
 #[rustfmt::skip]
+#[inline(always)]
 pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game, positions: &mut Vec<InternalMove>) {
     
     let mv = InternalMove {
@@ -146,6 +149,7 @@ pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game, positions: &mu
 
 }
 
+#[inline(always)]
 pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
     if Some(mv.to) == game.ep {
         let sq = mv.to + 16 * mv.active_color.idx() - 8;
@@ -153,6 +157,7 @@ pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
     }
 }
 
+#[inline(always)]
 pub fn add_promotion_move(mv: &InternalMove, _game: &Game, positions: &mut Vec<InternalMove>) {
     if (mv.active_color.is_white() && get_bit_rank(mv.to) == Rank::Eight)
         || (mv.active_color.is_black() && get_bit_rank(mv.to) == Rank::One)

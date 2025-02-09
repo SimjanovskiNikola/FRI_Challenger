@@ -70,44 +70,54 @@ pub trait BitboardTrait {
 }
 
 impl BitboardTrait for Bitboard {
+    #[inline(always)]
     fn init(sq: usize) -> Bitboard {
         1 << sq
     }
 
+    #[inline(always)]
     fn is_empty(&self) -> bool {
         *self != 0
     }
 
+    #[inline(always)]
     fn intersection(&mut self, bb: Bitboard) -> Bitboard {
         *self &= bb;
         *self
     }
 
+    #[inline(always)]
     fn union(&mut self, bb: Bitboard) -> Bitboard {
         *self |= bb;
         *self
     }
 
+    #[inline(always)]
     fn complement(&mut self) {
         *self = !*self;
     }
 
+    #[inline(always)]
     fn relative_complement(&mut self, bb: Bitboard) {
         *self = !*self & bb;
     }
 
+    #[inline(always)]
     fn implication(&mut self, bb: Bitboard) {
         *self = !*self | bb;
     }
 
+    #[inline(always)]
     fn exclusive_or(&mut self, bb: Bitboard) {
         *self ^= bb;
     }
 
+    #[inline(always)]
     fn equivalent(&mut self, bb: Bitboard) {
         *self = !(*self ^ bb);
     }
 
+    #[inline(always)]
     fn shift(&mut self, shift: Shift) -> Bitboard {
         let shift = shift as isize;
         if shift > 0 {
@@ -119,20 +129,24 @@ impl BitboardTrait for Bitboard {
         *self
     }
 
+    #[inline(always)]
     fn swap_n_bits(&mut self, i: usize, j: usize, n: usize) {
         let m: u64 = (1 << n) - 1;
         let x: u64 = ((*self >> i) ^ (*self >> j)) & m;
         *self = *self ^ (x << i) ^ (x << j);
     }
 
+    #[inline(always)]
     fn get_lsb(self) -> usize {
         self.trailing_zeros() as usize
     }
 
+    #[inline(always)]
     fn get_msb(self) -> usize {
         63 - self.leading_zeros() as usize
     }
 
+    #[inline(always)]
     fn get_bits(self) -> Vec<usize> {
         let mut result = vec![];
         let mut bb = self;
@@ -146,6 +160,7 @@ impl BitboardTrait for Bitboard {
         result
     }
 
+    #[inline(always)]
     fn pop_lsb(&mut self) -> usize {
         let idx = self.get_lsb();
         *self &= *self - 1;
@@ -153,22 +168,27 @@ impl BitboardTrait for Bitboard {
         idx
     }
 
+    #[inline(always)]
     fn set_bit(&mut self, sq: usize) {
         *self |= 1 << sq;
     }
 
+    #[inline(always)]
     fn clear_bit(&mut self, sq: usize) {
         *self &= !(1 << sq);
     }
 
+    #[inline(always)]
     fn count(self) -> usize {
         self.get_bits().len()
     }
 
+    #[inline(always)]
     fn is_set(&self, sq: usize) -> bool {
         Bitboard::is_empty(&(*self & Bitboard::init(sq)))
     }
 
+    #[inline(always)]
     fn print(self, mark: Option<usize>) {
         let mut row = "".to_owned();
         let mut board = "".to_owned();

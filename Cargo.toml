@@ -11,20 +11,26 @@ num_enum = "0.7.3"
 round = "0.1.2"
 criterion="0.5.1"
 pprof = { version = "0.14.0", features = ["flamegraph"] }
+iai-callgrind = "0.14.0"
 bitintr="0.3.0"
 const_for = "0.1.5" 
-clippy = "=0.0.302"
+clippy = "0.0.302"
 
 [[bin]]
 name = "chess-engine"
 path = "src/main.rs"
 
 [[bench]]
-name = "my_benchmark"
-harness = false
+name = "library_benchmark"
+strip = false
+debug = true
+# name = "my_benchmark"
+# harness = false
 
 [profile.dev]
 opt-level = 1
+lto = true
+codegen-units = 1
 
 [profile.release]
 opt-level = 3

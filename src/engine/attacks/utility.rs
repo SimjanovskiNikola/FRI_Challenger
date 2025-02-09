@@ -1,5 +1,6 @@
 use std::arch::x86_64::{_pdep_u64, _pext_u64};
 
+#[inline(always)]
 pub fn insert_bits(mask: u64, occupancy: u64) -> u64 {
     let mut result = 0;
     let mut bit = 0;
@@ -15,10 +16,12 @@ pub fn insert_bits(mask: u64, occupancy: u64) -> u64 {
     result
 }
 
+#[inline]
 pub fn pext(bitboard: u64, mask: u64) -> u64 {
     unsafe { _pext_u64(bitboard, mask) }
 }
 
+#[inline(always)]
 pub fn pdep(bitboard: u64, mask: u64) -> u64 {
     unsafe { _pdep_u64(bitboard, mask) }
 }

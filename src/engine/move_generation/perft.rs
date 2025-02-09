@@ -129,7 +129,7 @@ pub fn init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
 }
 
 pub fn profiler_init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
-    let guard = pprof::ProfilerGuardBuilder::default().frequency(10000).build().unwrap();
+    let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
 
     let stats = init_test_func(fen, depth, dispaly_stats);
 
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_perft_init_pos_five() {
-        let stats = init_test_func(&FEN_START, 5, true);
+        let stats = profiler_init_test_func(&FEN_START, 5, true);
         assert_eq!(stats.nodes, 4865609);
     }
 

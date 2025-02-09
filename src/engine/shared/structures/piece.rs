@@ -45,38 +45,57 @@ pub trait PieceTrait {
 }
 
 impl PieceTrait for Piece {
+    #[inline(always)]
     fn change_color(&mut self) {
         *self ^= 0b0001;
     }
+
+    #[inline(always)]
     fn color(&self) -> Color {
         *self & 0b0001
     }
+
+    #[inline(always)]
     fn kind(&self) -> Piece {
         *self & 0b1110
     }
+
+    #[inline(always)]
     fn idx(&self) -> usize {
         *self as usize
     }
 
+    #[inline(always)]
     fn is_pawn(&self) -> bool {
         self.kind() == PAWN
     }
+
+    #[inline(always)]
     fn is_knight(&self) -> bool {
         self.kind() == KNIGHT
     }
+
+    #[inline(always)]
     fn is_bishop(&self) -> bool {
         self.kind() == BISHOP
     }
+
+    #[inline(always)]
     fn is_rook(&self) -> bool {
         self.kind() == ROOK
     }
+
+    #[inline(always)]
     fn is_queen(&self) -> bool {
         self.kind() == QUEEN
     }
+
+    #[inline(always)]
     fn is_king(&self) -> bool {
         self.kind() == KING
     }
 
+    #[inline(always)]
     fn from_char(c: char) -> Piece {
         match c {
             'P' => WHITE_PAWN,
@@ -95,6 +114,7 @@ impl PieceTrait for Piece {
         }
     }
 
+    #[inline(always)]
     fn to_char(&self) -> char {
         match *self {
             WHITE_PAWN => 'P',
@@ -113,6 +133,7 @@ impl PieceTrait for Piece {
         }
     }
 
+    #[inline(always)]
     fn to_figure(&self) -> String {
         match *self {
             WHITE_PAWN => "♟".to_string(),
