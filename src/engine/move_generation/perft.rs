@@ -232,26 +232,23 @@ mod tests {
         assert_eq!(stats.nodes, 2039);
     }
 
-    // FIXME: Time Needed: 210 ms; Correct: No;  More castles than expected: Mine => 3198, Theirs => 3162
-    // #[test]
-    // fn test_perft_pos_two_depth_3() {
-    //     let stats = init_test_func(&FEN_POS_TWO, 3, true);
-    //     assert_eq!(stats.nodes, 97862);
-    // }
+    #[test]
+    fn test_perft_pos_two_depth_3() {
+        let stats = init_test_func(&FEN_POS_TWO, 3, true);
+        assert_eq!(stats.nodes, 97862);
+    }
 
-    // FIXME: Time Needed: 8160 ms; Correct: No;  More castles than expected: Mine => 128166, Theirs => 128013
-    // #[test]
-    // fn test_perft_pos_two_depth_4() {
-    //     let stats = init_test_func(&FEN_POS_TWO, 4, true);
-    //     assert_eq!(stats.nodes, 4085603);
-    // }
+    #[test]
+    fn test_perft_pos_two_depth_4() {
+        let stats = init_test_func(&FEN_POS_TWO, 4, true);
+        assert_eq!(stats.nodes, 4085603);
+    }
 
-    // FIXME: Time Needed: ??? ms; Correct: ???;
-    // #[test]
-    // fn test_perft_pos_two_depth_5() {
-    //     let stats = init_test_func(&FEN_POS_TWO, 5, true);
-    //     assert_eq!(stats.nodes, 193690690);
-    // }
+    #[test]
+    fn test_perft_pos_two_depth_5() {
+        let stats = init_test_func(&FEN_POS_TWO, 5, true);
+        assert_eq!(stats.nodes, 193690690);
+    }
 
     // FIXME: Time Needed: ??? ms; Correct: ???;
     // #[test]
@@ -331,14 +328,12 @@ mod tests {
         assert_eq!(stats.nodes, 422333);
     }
 
-    // FIXME: Time Needed: 35346 ms; Improved To: 10439ms Correct: Yes;
     #[test]
     fn test_perft_pos_four_depth_5() {
         let stats = init_test_func(&FEN_POS_FOUR, 5, true);
         assert_eq!(stats.nodes, 15833292);
     }
 
-    // FIXME:
     // #[test]
     // fn test_perft_pos_four_depth_6() {
     //     let game = Game::read_fen(&FEN_POS_FOUR);
@@ -410,12 +405,11 @@ mod tests {
         assert_eq!(stats.nodes, 3894594);
     }
 
-    // FIXME: Time Needed: ??? ms; Correct: ???;
-    // #[test]
-    // fn test_perft_pos_six_depth_5() {
-    //     let stats = init_test_func(&FEN_POS_SIX, 5, true);
-    //     assert_eq!(stats.nodes, 164075551);
-    // }
+    #[test]
+    fn test_perft_pos_six_depth_5() {
+        let stats = init_test_func(&FEN_POS_SIX, 5, true);
+        assert_eq!(stats.nodes, 164075551);
+    }
 
     // FIXME: Time Needed: ??? ms; Correct: ???;
     // #[test]
