@@ -17,7 +17,7 @@ use crate::engine::{
 };
 
 pub fn play_chess(game: &mut Game) {
-    let mut move_list: Vec<InternalMove> = Vec::with_capacity(256);
+    let mut move_list: Vec<InternalMove>;
     gen_moves(game.color, game);
 
     loop {
@@ -39,7 +39,7 @@ pub fn play_chess(game: &mut Game) {
                 print_move_list(&move_list);
             }
             "u" => {
-                if game.moves.len() > 0 {
+                if !game.moves.is_empty() {
                     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
                     game.undo_move();
                     print_chess(game);
@@ -63,7 +63,7 @@ pub fn play_chess(game: &mut Game) {
                 print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
                 move_list = gen_moves(game.color, game);
                 let mut idx: usize = rand::rng().random_range(0..(move_list.len() - 1));
-                while !game.make_move(&mut move_list[idx]) {
+                while !game.make_move(&move_list[idx]) {
                     idx = rand::rng().random_range(0..(move_list.len() - 1));
                 }
                 print_chess(game);
@@ -71,16 +71,14 @@ pub fn play_chess(game: &mut Game) {
             }
             str => {
                 move_list = gen_moves(game.color, game);
-                for idx in 0..move_list.len() {
-                    let promotion = match move_list[idx].flag {
+                for mv in &move_list {
+                    let promotion = match mv.flag {
                         Flag::Promotion(piece, _) => Some(piece),
                         _ => None,
                     };
-                    if str
-                        == move_notation(move_list[idx].from, move_list[idx].to, promotion).as_str()
-                    {
+                    if str == move_notation(mv.from, mv.to, promotion).as_str() {
                         print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-                        game.make_move(&mut move_list[idx]);
+                        game.make_move(mv);
                         print_chess(game);
                         if is_repetition(game) {
                             println!("Repetition of a position");

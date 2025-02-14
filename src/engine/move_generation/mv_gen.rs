@@ -73,7 +73,6 @@ pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
 }
 
 #[inline(always)]
-//FIXME: TODO: REFACTOR
 fn get_internal_moves(
     mut attacks: u64,
     piece: &Piece,
@@ -183,7 +182,8 @@ pub fn is_repetition(game: &Game) -> bool {
             return true;
         }
     }
-    return false;
+
+    false
 }
 
 #[cfg(test)]

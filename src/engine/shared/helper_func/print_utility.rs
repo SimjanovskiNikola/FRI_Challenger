@@ -13,10 +13,10 @@ pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
             return "X".to_string();
         }
 
-        return match (bitboard >> idx) & 1 {
+        match (bitboard >> idx) & 1 {
             1 => "O".to_string(),
             _ => " ".to_string(),
-        };
+        }
     });
 
     print_board(&chess_board);
@@ -42,12 +42,10 @@ pub fn print_board(chess_board: &[String; 64]) {
                 }
             } else if i == 0 {
                 print!("  {} ", FILE_LETTERS[j]);
+            } else if j == 7 {
+                print!("| {} |", chess_board[(i - 1) * 8 + (j)]);
             } else {
-                if j == 7 {
-                    print!("| {} |", chess_board[(i - 1) * 8 + (j)]);
-                } else {
-                    print!("| {} ", chess_board[(i - 1) * 8 + (j)]);
-                }
+                print!("| {} ", chess_board[(i - 1) * 8 + (j)]);
             }
         }
         println!()

@@ -25,18 +25,17 @@ lazy_static! {
 }
 
 pub trait GameMoveTrait {
-    fn make_move(&mut self, mv: &mut InternalMove) -> bool;
+    fn make_move(&mut self, mv: &InternalMove) -> bool;
     fn undo_move(&mut self);
     fn generate_pos_key(&mut self);
     fn add_piece(&mut self, sq: usize, piece: Piece);
     fn clear_piece(&mut self, sq: usize);
     fn replace_piece(&mut self, from_sq: usize, to_sq: usize);
-
     fn quiet_mv(&mut self, from_sq: usize, to_sq: usize, piece: Piece);
 }
 
 impl GameMoveTrait for Game {
-    fn make_move(&mut self, mv: &mut InternalMove) -> bool {
+    fn make_move(&mut self, mv: &InternalMove) -> bool {
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.from, mv.to, mv.piece),
             Flag::Capture(_) => self.replace_piece(mv.from, mv.to),
