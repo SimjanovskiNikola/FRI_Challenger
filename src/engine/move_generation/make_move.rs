@@ -5,7 +5,6 @@ use crate::engine::{
         helper_func::{bitboard::BitboardTrait, print_utility::print_chess},
         structures::{
             castling_struct::CASTLE_DATA,
-            color::WHITE,
             internal_move::{Flag, InternalMove},
             piece::{Piece, PieceTrait, KING, ROOK},
             square::Square,
@@ -28,7 +27,7 @@ lazy_static! {
 pub trait GameMoveTrait {
     fn make_move(&mut self, mv: &mut InternalMove) -> bool;
     fn undo_move(&mut self);
-    fn generate_pos_key(&self) -> u64;
+    fn generate_pos_key(&mut self);
     fn add_piece(&mut self, sq: usize, piece: Piece);
     fn clear_piece(&mut self, sq: usize);
     fn replace_piece(&mut self, from_sq: usize, to_sq: usize);
@@ -88,8 +87,8 @@ impl GameMoveTrait for Game {
             self.full_move += 1;
         }
 
-        self.mv_idx += 1;
-        self.moves[self.mv_idx] = Some(*mv);
+        self.generate_pos_key();
+        self.moves.push(*mv);
 
         let king_sq = self.bitboard[(KING + mv.active_color) as usize].get_lsb();
 
@@ -102,18 +101,11 @@ impl GameMoveTrait for Game {
     }
 
     fn undo_move(&mut self) {
-        // println!("Before Taking move: {:#?}", self.moves);
-        // print_chess(self);
-
-        let mv = match self.moves[self.mv_idx] {
+        let mv = match self.moves.pop() {
             Some(mv) => mv,
             None => return,
         };
-        self.mv_idx -= 1;
-
-        // println!("After Taking move: {:#?}", self.moves);
-        // print_chess(self);
-
+        self.generate_pos_key();
         self.full_move -= if self.moves.len() % 2 == 0 { 1 } else { 0 };
         self.half_move = mv.half_move;
         self.ep = mv.ep;
@@ -201,21 +193,11 @@ impl GameMoveTrait for Game {
     }
 
     #[inline(always)]
-    fn generate_pos_key(&self) -> u64 {
-        let mut final_key: u64 = 0;
-
-        if self.color == WHITE {
-            final_key ^= *SideKey;
-        }
+    fn generate_pos_key(&mut self) {
+        self.pos_key ^= (*SideKey * self.color as u64) | CastleKeys[self.castling.idx()];
 
         if let Some(idx) = self.ep {
-            final_key ^= EpKeys[idx]
+            self.pos_key ^= EpKeys[idx]
         }
-
-        if self.castling.idx() < 16 {
-            final_key ^= CastleKeys[self.castling.idx()];
-        }
-
-        final_key
     }
 }

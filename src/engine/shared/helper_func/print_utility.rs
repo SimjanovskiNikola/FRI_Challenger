@@ -59,7 +59,7 @@ pub fn print_board(chess_board: &[String; 64]) {
 pub fn print_move_list(moves: &[InternalMove]) {
     for (idx, mv) in moves.iter().enumerate() {
         let promotion = match mv.flag {
-            Flag::Promotion(_, cap_piece) => cap_piece,
+            Flag::Promotion(promo_piece, _) => Some(promo_piece),
             _ => None,
         };
 
@@ -70,8 +70,8 @@ pub fn print_move_list(moves: &[InternalMove]) {
 pub fn move_notation(sq_from: usize, sq_to: usize, promotion: Option<Piece>) -> String {
     match promotion {
         Some(piece) => {
-            let p_notation = piece.to_string();
-            format!("{}{}{}", sq_notation(sq_from), sq_notation(sq_to), p_notation.trim())
+            let p_notation = piece.to_char();
+            format!("{}{}{}", sq_notation(sq_from), sq_notation(sq_to), p_notation)
         }
         None => format!("{}{}", sq_notation(sq_from), sq_notation(sq_to)),
     }

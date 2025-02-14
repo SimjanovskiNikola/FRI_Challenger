@@ -20,7 +20,7 @@ pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     let mut positions: Vec<InternalMove> = Vec::with_capacity(256);
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
-    for piece in PIECES {
+    for piece in &PIECES {
         let mut bb = game.bitboard[(piece + color) as usize];
         while bb != 0 {
             let pos = bb.pop_lsb();
@@ -84,7 +84,7 @@ fn get_internal_moves(
     while attacks != 0 {
         let p_move = attacks.pop_lsb();
         let mut new_move = InternalMove {
-            position_key: 0,
+            position_key: game.pos_key,
             active_color: game.color,
             from: pos,
             to: p_move,
@@ -175,6 +175,15 @@ pub fn add_promotion_move(mv: &InternalMove, _game: &Game, positions: &mut Vec<I
     } else {
         positions.push(*mv);
     }
+}
+
+pub fn is_repetition(game: &Game) -> bool {
+    for i in (game.moves.len() - game.half_move)..game.moves.len() {
+        if game.moves[i].position_key == game.pos_key {
+            return true;
+        }
+    }
+    return false;
 }
 
 #[cfg(test)]
