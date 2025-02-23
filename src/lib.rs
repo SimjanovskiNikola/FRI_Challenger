@@ -18,6 +18,9 @@ pub mod engine {
         pub mod mv_gen;
         pub mod perft;
     }
+    pub mod search {
+        pub mod transposition_table;
+    }
     pub mod shared {
         pub mod helper_func {
             pub mod bit_pos_utility;
