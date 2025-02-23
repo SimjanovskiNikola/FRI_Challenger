@@ -6,10 +6,8 @@ use rand::Rng;
 
 use crate::engine::{
     game::Game,
-    move_generation::{
-        make_move::GameMoveTrait,
-        mv_gen::{gen_moves, is_repetition},
-    },
+    move_generation::{make_move::GameMoveTrait, mv_gen::gen_moves},
+    search::info::is_repetition,
     shared::{
         helper_func::print_utility::{move_notation, print_chess, print_move_list},
         structures::internal_move::{Flag, InternalMove},
