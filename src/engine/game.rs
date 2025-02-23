@@ -7,6 +7,8 @@ use super::shared::helper_func::const_utility::*;
 use super::shared::structures::color::*;
 use super::shared::structures::internal_move::InternalMove;
 
+// TODO: Maybe The Board should be separated into multiple parts: Make Move, Search, Current State, etc...
+// TODO: Add More Constants, Max position moves, Max Depth
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Game {
     pub squares: [Square; 64],
@@ -22,6 +24,8 @@ pub struct Game {
     pub moves: Vec<InternalMove>,
 
     pub pv: PvTable,
+    s_history: [[u64; 64]; 14], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
+    s_killers: [[u64; 2]; 2048], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
 }
 
 impl Game {
@@ -43,6 +47,9 @@ impl Game {
 
             moves: Vec::with_capacity(1024),
             pv: PvTable::init(),
+
+            s_history: [[0u64; 64]; 14],
+            s_killers: [[0u64; 2]; 2048],
         }
     }
 

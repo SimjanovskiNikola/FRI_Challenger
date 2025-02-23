@@ -19,6 +19,8 @@ pub mod engine {
         pub mod perft;
     }
     pub mod search {
+        pub mod evaluation;
+        pub mod info;
         pub mod transposition_table;
     }
     pub mod shared {

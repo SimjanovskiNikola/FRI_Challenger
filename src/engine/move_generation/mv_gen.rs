@@ -176,16 +176,6 @@ pub fn add_promotion_move(mv: &InternalMove, _game: &Game, positions: &mut Vec<I
     }
 }
 
-pub fn is_repetition(game: &Game) -> bool {
-    for i in (game.moves.len() - game.half_move)..game.moves.len() {
-        if game.moves[i].position_key == game.pos_key {
-            return true;
-        }
-    }
-
-    false
-}
-
 #[cfg(test)]
 mod tests {
 
