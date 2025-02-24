@@ -4,7 +4,7 @@ pub type Color = u8;
 pub const WHITE: Color = 0;
 pub const BLACK: Color = 1;
 pub const COLORS: [Color; 2] = [WHITE, BLACK];
-pub const COLOR_SIGN: [isize; 2] = [-1, 1];
+pub const COLOR_SIGN: [isize; 2] = [1, -1];
 
 pub trait ColorTrait {
     fn is_white(&self) -> bool;
@@ -24,10 +24,12 @@ impl ColorTrait for Color {
         *self & BLACK == 0
     }
 
+    #[inline(always)]
     fn opp(&self) -> Self {
         *self ^ 1
     }
 
+    #[inline(always)]
     fn sign(&self) -> isize {
         COLOR_SIGN[self.idx()]
     }
