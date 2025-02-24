@@ -10,8 +10,6 @@ pub const BISHOP: Piece = 0b1000; // 8
 pub const ROOK: Piece = 0b1010; // 10
 pub const QUEEN: Piece = 0b1100; // 12
 
-pub const PIECES: [Piece; 6] = [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING];
-
 pub const WHITE_PAWN: Piece = WHITE | PAWN;
 pub const WHITE_KNIGHT: Piece = WHITE | KNIGHT;
 pub const WHITE_BISHOP: Piece = WHITE | BISHOP;
@@ -24,6 +22,22 @@ pub const BLACK_BISHOP: Piece = BLACK | BISHOP;
 pub const BLACK_ROOK: Piece = BLACK | ROOK;
 pub const BLACK_QUEEN: Piece = BLACK | QUEEN;
 pub const BLACK_KING: Piece = BLACK | KING;
+
+pub const PIECES: [Piece; 6] = [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING];
+pub const CLR_PIECES: [Piece; 12] = [
+    WHITE_PAWN,
+    WHITE_KNIGHT,
+    WHITE_BISHOP,
+    WHITE_ROOK,
+    WHITE_QUEEN,
+    WHITE_KING,
+    BLACK_PAWN,
+    BLACK_KNIGHT,
+    BLACK_BISHOP,
+    BLACK_ROOK,
+    BLACK_QUEEN,
+    BLACK_KING,
+];
 
 pub trait PieceTrait {
     fn color(&self) -> Color;
