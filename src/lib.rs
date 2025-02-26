@@ -12,15 +12,19 @@ pub mod engine {
         pub mod rook;
         pub mod utility;
     }
-    pub mod move_generation {
+    pub mod fen {
         pub mod fen;
+    }
+    pub mod move_generation {
         pub mod make_move;
         pub mod mv_gen;
         pub mod perft;
     }
-    pub mod search {
+    pub mod evaluation {
         pub mod evaluation;
-        pub mod info;
+    }
+    pub mod search {
+        pub mod searcher;
         pub mod transposition_table;
     }
     pub mod shared {

@@ -1,14 +1,14 @@
 use crate::engine::game::Game;
+use crate::engine::move_generation::make_move::GameMoveTrait;
 use crate::engine::shared::helper_func::bit_pos_utility::*;
 use crate::engine::shared::helper_func::bitboard::BitboardTrait;
 use crate::engine::shared::structures::castling_struct::*;
 use crate::engine::shared::structures::color::*;
 use crate::engine::shared::structures::piece::*;
-use super::make_move::GameMoveTrait;
+
+// TODO: Validate if the fen is correct
 
 pub trait FenTrait {
-    // TODO: Validate if the fen is correct
-
     fn read_fen(fen: &str) -> Self;
     fn set_position(&mut self, position: &str);
     fn set_en_passant(&mut self, square: &str);

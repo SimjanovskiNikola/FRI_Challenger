@@ -126,58 +126,69 @@ const OK_SQ:[usize;64] = [
     0,  1,  2,  3,  4,  5,  6,  7,
 ];
 
-// TODO: Rename Internal Move to a position and every pos that is currently sth else in the program should be renamed
-pub fn evaluate_pos(game: &Game, color: Color) -> isize {
-    (material_balance(game, color) as isize) + material_sq(game, color)
+trait Evaluation {
+    fn evaluate_pos(game: &Game, color: Color) -> isize;
+    fn material_sq(game: &Game, color: Color) -> isize;
+    fn piece_eval(piece: &Piece, sq: usize) -> isize;
+    fn material_balance(game: &Game, color: Color) -> isize;
 }
 
-#[inline(always)]
-pub fn material_sq(game: &Game, color: Color) -> isize {
-    let mut eval_score: isize = 0;
-    for piece in &CLR_PIECES {
-        let mut bb = game.bitboard[(piece + color) as usize];
-        while bb != 0 {
-            let sq = bb.pop_lsb();
-            if color.is_white() {
-                eval_score += piece_eval(piece, OK_SQ[sq]);
-            } else {
-                eval_score -= piece_eval(piece, OPP_SQ[sq]);
+impl Evaluation for Game {
+    #[inline(always)]
+    fn evaluate_pos(game: &Game, color: Color) -> isize {
+        (Self::material_balance(game, color) as isize) + Self::material_sq(game, color)
+    }
+
+    #[inline(always)]
+    fn material_sq(game: &Game, color: Color) -> isize {
+        let mut eval_score: isize = 0;
+        for piece in &CLR_PIECES {
+            let mut bb = game.bitboard[(piece + color) as usize];
+            while bb != 0 {
+                let sq = bb.pop_lsb();
+                if color.is_white() {
+                    eval_score += Self::piece_eval(piece, OK_SQ[sq]);
+                } else {
+                    eval_score -= Self::piece_eval(piece, OPP_SQ[sq]);
+                }
             }
+        }
+
+        (color as isize * -1) * (eval_score)
+    }
+
+    #[inline(always)]
+    fn piece_eval(piece: &Piece, sq: usize) -> isize {
+        match *piece {
+            PAWN => PAWN_EVAL[sq],
+            KNIGHT => KNIGHT_EVAL[sq],
+            BISHOP => BISHOP_EVAL[sq],
+            ROOK => ROOK_EVAL[sq],
+            QUEEN => QUEEN_EVAL[sq],
+            KING => KING_MG_EVAL[sq],
+            _ => panic!(" Not the right type, Something is wrong"),
         }
     }
 
-    (color as isize * -1) * (eval_score)
-}
-
-pub fn piece_eval(piece: &Piece, sq: usize) -> isize {
-    match *piece {
-        PAWN => PAWN_EVAL[sq],
-        KNIGHT => KNIGHT_EVAL[sq],
-        BISHOP => BISHOP_EVAL[sq],
-        ROOK => ROOK_EVAL[sq],
-        QUEEN => QUEEN_EVAL[sq],
-        KING => KING_MG_EVAL[sq],
-        _ => panic!(" Not the right type, Something is wrong"),
+    #[inline(always)]
+    fn material_balance(game: &Game, color: Color) -> isize {
+        (KING_WT
+            * (game.bitboard[(KING + color).idx()].count()
+                - game.bitboard[(KING + color.opp()).idx()].count())
+            + QUEEN_WT
+                * (game.bitboard[(QUEEN + color).idx()].count()
+                    - game.bitboard[(QUEEN + color.opp()).idx()].count())
+            + ROOK_WT
+                * (game.bitboard[(ROOK + color).idx()].count()
+                    - game.bitboard[(ROOK + color.opp()).idx()].count())
+            + KNIGHT_WT
+                * (game.bitboard[(KNIGHT + color).idx()].count()
+                    - game.bitboard[(KNIGHT + color.opp()).idx()].count())
+            + BISHOP_WT
+                * (game.bitboard[(BISHOP + color).idx()].count()
+                    - game.bitboard[(BISHOP + color.opp()).idx()].count())
+            + PAWN_WT
+                * (game.bitboard[(PAWN + color).idx()].count()
+                    - game.bitboard[(PAWN + color.opp()).idx()].count())) as isize
     }
-}
-
-pub fn material_balance(game: &Game, color: Color) -> usize {
-    KING_WT
-        * (game.bitboard[(KING + color).idx()].count()
-            - game.bitboard[(KING + color.opp()).idx()].count())
-        + QUEEN_WT
-            * (game.bitboard[(QUEEN + color).idx()].count()
-                - game.bitboard[(QUEEN + color.opp()).idx()].count())
-        + ROOK_WT
-            * (game.bitboard[(ROOK + color).idx()].count()
-                - game.bitboard[(ROOK + color.opp()).idx()].count())
-        + KNIGHT_WT
-            * (game.bitboard[(KNIGHT + color).idx()].count()
-                - game.bitboard[(KNIGHT + color.opp()).idx()].count())
-        + BISHOP_WT
-            * (game.bitboard[(BISHOP + color).idx()].count()
-                - game.bitboard[(BISHOP + color.opp()).idx()].count())
-        + PAWN_WT
-            * (game.bitboard[(PAWN + color).idx()].count()
-                - game.bitboard[(PAWN + color.opp()).idx()].count())
 }

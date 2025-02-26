@@ -109,6 +109,16 @@ fn get_internal_moves(
     }
 }
 
+pub fn is_repetition(game: &Game) -> bool {
+    for i in (game.moves.len() - game.half_move)..game.moves.len() {
+        if game.moves[i].position_key == game.pos_key {
+            return true;
+        }
+    }
+
+    false
+}
+
 #[rustfmt::skip]
 #[inline(always)]
 pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game, positions: &mut Vec<InternalMove>) {
@@ -180,7 +190,7 @@ pub fn add_promotion_move(mv: &InternalMove, _game: &Game, positions: &mut Vec<I
 mod tests {
 
     use crate::engine::{
-        move_generation::fen::FenTrait,
+        fen::fen::FenTrait,
         shared::{
             helper_func::{
                 bit_pos_utility::*,

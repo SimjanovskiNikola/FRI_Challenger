@@ -1,14 +1,6 @@
 use std::time::Instant;
-
-use iai_callgrind::bincode::de;
-
-use crate::engine::{
-    game::Game,
-    search::transposition_table::get_line,
-    shared::{helper_func::print_utility::move_notation, structures::internal_move::InternalMove},
-};
-
-use super::{evaluation::evaluate_pos, transposition_table::PvEntry};
+use crate::engine::{game::Game, search::transposition_table::get_line};
+use super::transposition_table::PvEntry;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SearchInfo {
@@ -24,17 +16,6 @@ pub struct SearchInfo {
 
     quit: bool,
     stopped: bool,
-}
-
-// TODO: Find Better Place For This
-pub fn is_repetition(game: &Game) -> bool {
-    for i in (game.moves.len() - game.half_move)..game.moves.len() {
-        if game.moves[i].position_key == game.pos_key {
-            return true;
-        }
-    }
-
-    false
 }
 
 pub fn check_time_up() {
