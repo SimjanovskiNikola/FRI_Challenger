@@ -24,8 +24,9 @@ pub struct Game {
     pub moves: Vec<InternalMove>,
 
     pub pv: PvTable,
-    s_history: [[u64; 64]; 14], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
-    s_killers: [[u64; 2]; 2048], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
+    pub s_history: [[u64; 64]; 14], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
+    pub s_killers: [[u64; 2]; 2048], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
+    pub ply: usize,
 }
 
 impl Game {
@@ -50,6 +51,7 @@ impl Game {
 
             s_history: [[0u64; 64]; 14],
             s_killers: [[0u64; 2]; 2048],
+            ply: 0,
         }
     }
 
