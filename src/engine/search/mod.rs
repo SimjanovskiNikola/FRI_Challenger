@@ -1,3 +1,2 @@
-pub mod evaluation;
-pub mod info;
+pub mod searcher;
 pub mod transposition_table;

@@ -1,13 +1,12 @@
 use crate::engine::shared::structures::castling_struct::CastlingRights;
 use crate::engine::shared::structures::square::*;
-use super::move_generation::fen::FenTrait;
+use super::fen::fen::FenTrait;
 use super::search::transposition_table::PvTable;
 use super::shared::helper_func::bitboard::*;
 use super::shared::helper_func::const_utility::*;
 use super::shared::structures::color::*;
 use super::shared::structures::internal_move::InternalMove;
 
-// TODO: Maybe The Board should be separated into multiple parts: Make Move, Search, Current State, etc...
 // TODO: Add More Constants, Max position moves, Max Depth
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Game {

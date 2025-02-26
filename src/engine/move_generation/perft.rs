@@ -1,6 +1,6 @@
 use std::{fs::File, time::Instant};
-use super::fen::FenTrait;
 use super::make_move::GameMoveTrait;
+use crate::engine::fen::fen::FenTrait;
 use crate::engine::game::Game;
 use crate::engine::move_generation::mv_gen::gen_moves;
 use crate::engine::shared::structures::internal_move::*;
