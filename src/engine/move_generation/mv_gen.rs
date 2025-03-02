@@ -15,6 +15,8 @@ use crate::engine::shared::structures::piece::*;
 use crate::engine::shared::structures::square::*;
 use crate::engine::shared::structures::square::SqPos::*;
 
+use super::make_move::GameMoveTrait;
+
 #[inline(always)]
 pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
     let mut positions: Vec<InternalMove> = Vec::with_capacity(256);
@@ -116,6 +118,20 @@ pub fn is_repetition(game: &Game) -> bool {
         }
     }
 
+    false
+}
+
+pub fn move_exists(game: &mut Game, internal_mv: &InternalMove) -> bool {
+    let mut move_list: Vec<InternalMove> = gen_moves(game.color, game);
+
+    for mv in &mut move_list {
+        if mv == internal_mv {
+            if game.make_move(mv) {
+                game.undo_move();
+                return true;
+            }
+        }
+    }
     false
 }
 

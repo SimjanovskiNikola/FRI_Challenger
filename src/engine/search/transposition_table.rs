@@ -1,49 +1,46 @@
 use crate::engine::{
     game::Game,
-    move_generation::{
-        make_move::{GameMoveTrait},
-        mv_gen::gen_moves,
-    },
+    move_generation::{make_move::GameMoveTrait, mv_gen::move_exists},
     shared::structures::internal_move::InternalMove,
 };
 
 const MAX_TT_ENTRIES: usize = 5000;
 
+// #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// pub struct TTEntry {
+//     pub pos_key: u64,
+//     pub mv: InternalMove,
+// }
+
+// impl TTEntry {
+//     fn init(pos_key: u64, mv: InternalMove) -> Self {
+//         Self { pos_key, mv }
+//     }
+// }
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct PvEntry {
-    pub pos_key: u64,
-    pub mv: InternalMove,
+pub struct TTTable {
+    pub table: [Option<InternalMove>; MAX_TT_ENTRIES],
 }
 
-impl PvEntry {
-    fn init(pos_key: u64, mv: InternalMove) -> Self {
-        Self { pos_key, mv }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct PvTable {
-    pub table: [Option<PvEntry>; MAX_TT_ENTRIES],
-}
-
-impl PvTable {
+impl TTTable {
     pub fn init() -> Self {
         Self { table: [None; MAX_TT_ENTRIES] }
     }
 
-    fn idx(pos_key: u64) -> usize {
+    pub fn idx(pos_key: u64) -> usize {
         return (pos_key % MAX_TT_ENTRIES as u64) as usize;
     }
 
     pub fn set(&mut self, pos_key: u64, mv: InternalMove) {
-        self.table[Self::idx(pos_key)] = Some(PvEntry::init(pos_key, mv));
+        self.table[Self::idx(pos_key)] = Some(mv);
     }
 
     pub fn get(&self, pos_key: u64) -> Option<InternalMove> {
         let idx = Self::idx(pos_key);
-        if let Some(entry) = self.table[idx] {
-            if entry.pos_key == pos_key {
-                return Some(entry.mv);
+        if let Some(mv) = self.table[idx] {
+            if mv.position_key == pos_key {
+                return Some(mv);
             }
         }
         return None;
@@ -54,45 +51,30 @@ impl PvTable {
     }
 }
 
-pub fn move_exists(game: &mut Game, internal_mv: &InternalMove) -> bool {
-    let mut move_list: Vec<InternalMove> = gen_moves(game.color, game);
+pub fn get_line(game: &mut Game, pos_key: u64) -> Vec<InternalMove> {
+    let mut line: Vec<InternalMove> = Vec::with_capacity(64); // TODO: Max Depth Add as a constant
+    let mut optional_mv = TTTable::get(&game.tt, pos_key);
+    let mut idx = 0;
 
-    for mv in &mut move_list {
-        if *mv != *internal_mv && game.make_move(mv) {
-            game.undo_move();
-            return true;
-        }
-    }
-    return false;
-}
-
-pub fn get_line(game: &mut Game, pos_key: u64) -> usize {
-    let mut mv = PvTable::get(&game.pv, pos_key);
-    let mut idx: usize = 0;
-    let count: usize;
-
-    while let Some(int_mv) = mv {
-        if idx >= 64 {
+    while let Some(mv) = &optional_mv {
+        if line.len() >= 64 {
             break;
         }
 
-        if move_exists(game, &int_mv) {
-            game.make_move(&int_mv);
-            game.pv.table[idx] = Some(PvEntry::init(pos_key, int_mv));
+        line.push(*mv);
+
+        if move_exists(game, mv) {
             idx += 1;
+            game.make_move(mv);
         } else {
             break;
         }
-
-        mv = PvTable::get(&game.pv, pos_key);
+        optional_mv = TTTable::get(&game.tt, game.pos_key);
     }
 
-    count = idx;
-
-    while idx > 0 {
+    for _ in 0..idx {
         game.undo_move();
-        idx -= 1;
     }
 
-    count
+    line
 }
