@@ -1,7 +1,3 @@
-use std::{
-    isize,
-    time::{Duration, Instant},
-};
 use crate::engine::{
     evaluation::evaluation::Evaluation,
     game::Game,
@@ -18,6 +14,7 @@ use crate::engine::{
         },
     },
 };
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SearchInfo {

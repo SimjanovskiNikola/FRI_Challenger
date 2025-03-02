@@ -1,28 +1,14 @@
+use crate::engine::attacks::generated::zobrist_keys::*;
+use crate::engine::game::Game;
+use crate::engine::shared::helper_func::bitboard::BitboardTrait;
+use crate::engine::shared::helper_func::print_utility::print_chess;
+use crate::engine::shared::structures::castling_struct::CASTLE_DATA;
+use crate::engine::shared::structures::internal_move::*;
+use crate::engine::shared::structures::piece::*;
+use crate::engine::shared::structures::square::Square;
 use core::panic;
-use crate::engine::{
-    game::Game,
-    shared::{
-        helper_func::{bitboard::BitboardTrait, print_utility::print_chess},
-        structures::{
-            castling_struct::CASTLE_DATA,
-            internal_move::{Flag, InternalMove},
-            piece::{Piece, PieceTrait, KING, ROOK},
-            square::Square,
-        },
-    },
-};
-
-use lazy_static::lazy_static;
-use rand::Rng;
 
 use super::mv_gen::sq_attack;
-
-lazy_static! {
-    pub static ref PieceKeys: [[u64; 14]; 64] = [[rand::rng().random(); 14]; 64];
-    pub static ref EpKeys: [u64; 64] = [rand::rng().random(); 64];
-    pub static ref CastleKeys: [u64; 16] = [rand::rng().random(); 16];
-    pub static ref SideKey: u64 = rand::rng().random();
-}
 
 pub trait GameMoveTrait {
     fn make_move(&mut self, mv: &InternalMove) -> bool;
@@ -146,7 +132,7 @@ impl GameMoveTrait for Game {
 
         self.bitboard[piece.idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
         self.occupancy[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
-        self.pos_key ^= PieceKeys[to_sq][piece.idx()] | PieceKeys[from_sq][piece.idx()];
+        self.pos_key ^= PIECE_KEYS[to_sq][piece.idx()] | PIECE_KEYS[from_sq][piece.idx()];
     }
 
     #[inline(always)]
@@ -158,7 +144,7 @@ impl GameMoveTrait for Game {
         self.squares[sq] = Square::Occupied(piece);
         self.bitboard[piece.idx()].set_bit(sq);
         self.occupancy[piece.color().idx()].set_bit(sq);
-        self.pos_key ^= PieceKeys[sq][piece.idx()];
+        self.pos_key ^= PIECE_KEYS[sq][piece.idx()];
     }
 
     #[inline(always)]
@@ -169,7 +155,7 @@ impl GameMoveTrait for Game {
                 self.squares[sq] = Square::Empty;
                 self.bitboard[piece.idx()].clear_bit(sq);
                 self.occupancy[piece.color().idx()].clear_bit(sq);
-                self.pos_key ^= PieceKeys[sq][piece.idx()];
+                self.pos_key ^= PIECE_KEYS[sq][piece.idx()];
             }
         }
     }
@@ -193,10 +179,10 @@ impl GameMoveTrait for Game {
 
     #[inline(always)]
     fn generate_pos_key(&mut self) {
-        self.pos_key ^= (*SideKey * self.color as u64) | CastleKeys[self.castling.idx()];
+        self.pos_key ^= (SIDE_KEY * self.color as u64) | CASTLE_KEYS[self.castling.idx()];
 
         if let Some(idx) = self.ep {
-            self.pos_key ^= EpKeys[idx]
+            self.pos_key ^= EP_KEYS[idx]
         }
     }
 }

@@ -4,7 +4,8 @@
     "editor.fontVariations": false,
     "cSpell.words": [
         "bitboard",
-        "perft"
+        "perft",
+        "zobrist"
     ],
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
 }
