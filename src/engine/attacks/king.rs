@@ -1,6 +1,5 @@
 use super::generated::king::KING_LOOKUP;
 
-// NOTE: GET KING MOVES
 #[inline(always)]
 pub fn get_king_mv(sq: usize, own: u64, _: u64) -> u64 {
     KING_LOOKUP[sq] & !own
@@ -9,8 +8,8 @@ pub fn get_king_mv(sq: usize, own: u64, _: u64) -> u64 {
 #[cfg(test)]
 mod tests {
 
-    use crate::engine::shared::helper_func::bit_pos_utility::extract_all_bits;
     use super::*;
+    use crate::engine::shared::helper_func::bit_pos_utility::extract_all_bits;
 
     #[rustfmt::skip]
     const ALL_KING_MOVES: [usize; 64] = [

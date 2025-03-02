@@ -1,5 +1,5 @@
-use std::vec;
 use super::{bitboard::BitboardTrait, const_utility::*};
+use std::vec;
 
 /**
  TEST: Not sure if the resonse is like that

@@ -12,8 +12,8 @@ use crate::engine::shared::structures::castling_struct::*;
 use crate::engine::shared::structures::color::*;
 use crate::engine::shared::structures::internal_move::*;
 use crate::engine::shared::structures::piece::*;
-use crate::engine::shared::structures::square::*;
 use crate::engine::shared::structures::square::SqPos::*;
+use crate::engine::shared::structures::square::*;
 
 use super::make_move::GameMoveTrait;
 
@@ -205,6 +205,7 @@ pub fn add_promotion_move(mv: &InternalMove, _game: &Game, positions: &mut Vec<I
 #[cfg(test)]
 mod tests {
 
+    use super::*;
     use crate::engine::{
         fen::fen::FenTrait,
         shared::{
@@ -218,7 +219,6 @@ mod tests {
             },
         },
     };
-    use super::*;
 
     fn test_mov_att(fen: &str, piece: Piece, idx: usize) -> Vec<usize> {
         let game = Game::read_fen(&fen);

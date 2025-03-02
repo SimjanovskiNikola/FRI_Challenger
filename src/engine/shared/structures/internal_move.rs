@@ -1,6 +1,6 @@
 use super::castling_struct::*;
-use super::piece::*;
 use super::color::*;
+use super::piece::*;
 
 // Check about BigPawn Flag and what it does
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

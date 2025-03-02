@@ -1,8 +1,9 @@
-use engine::engine::{
-    move_generation::perft::{init_test_func, Stats},
-    shared::helper_func::const_utility::FEN_START,
-};
-use iai_callgrind::{main, library_benchmark_group, library_benchmark};
+use engine::engine::move_generation::perft::init_test_func;
+use engine::engine::move_generation::perft::Stats;
+use engine::engine::shared::helper_func::const_utility::FEN_START;
+use iai_callgrind::library_benchmark;
+use iai_callgrind::library_benchmark_group;
+use iai_callgrind::main;
 use std::hint::black_box;
 
 fn perft_testing(is_long: bool) -> Stats {

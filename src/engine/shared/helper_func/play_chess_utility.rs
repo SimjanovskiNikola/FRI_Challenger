@@ -1,24 +1,22 @@
-use std::{
-    io::{stdin, stdout, Write},
-    process::exit,
-};
+use std::io::stdin;
+use std::io::stdout;
+use std::io::Write;
+use std::process::exit;
+
 use rand::Rng;
 
-use crate::engine::{
-    game::Game,
-    move_generation::{
-        make_move::GameMoveTrait,
-        mv_gen::{gen_moves, is_repetition},
-    },
-    search::{
-        searcher::{iterative_deepening, SearchInfo},
-        transposition_table::get_line,
-    },
-    shared::{
-        helper_func::print_utility::{move_notation, print_chess, print_move_list},
-        structures::internal_move::{Flag, InternalMove},
-    },
-};
+use crate::engine::game::Game;
+use crate::engine::move_generation::make_move::GameMoveTrait;
+use crate::engine::move_generation::mv_gen::gen_moves;
+use crate::engine::move_generation::mv_gen::is_repetition;
+use crate::engine::search::searcher::iterative_deepening;
+use crate::engine::search::searcher::SearchInfo;
+use crate::engine::search::transposition_table::get_line;
+use crate::engine::shared::helper_func::print_utility::move_notation;
+use crate::engine::shared::helper_func::print_utility::print_chess;
+use crate::engine::shared::helper_func::print_utility::print_move_list;
+use crate::engine::shared::structures::internal_move::Flag;
+use crate::engine::shared::structures::internal_move::InternalMove;
 
 pub fn play_chess(game: &mut Game, info: &mut SearchInfo) {
     let mut move_list: Vec<InternalMove>;

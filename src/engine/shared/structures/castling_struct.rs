@@ -1,9 +1,9 @@
 use bitflags::bitflags;
 
+use super::color::*;
 use crate::engine::game::Game;
 use crate::engine::move_generation::mv_gen::*;
 use crate::engine::shared::structures::square::SqPos::*;
-use super::color::*;
 
 pub const CASTLE_DATA: [(usize, usize, CastlingRights, Color); 4] = [
     (H1 as usize, E1 as usize, CastlingRights::WKINGSIDE, WHITE),

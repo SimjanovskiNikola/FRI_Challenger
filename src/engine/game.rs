@@ -1,11 +1,11 @@
-use crate::engine::shared::structures::castling_struct::CastlingRights;
-use crate::engine::shared::structures::square::*;
 use super::fen::fen::FenTrait;
 use super::search::transposition_table::TTTable;
 use super::shared::helper_func::bitboard::*;
 use super::shared::helper_func::const_utility::*;
 use super::shared::structures::color::*;
 use super::shared::structures::internal_move::InternalMove;
+use crate::engine::shared::structures::castling_struct::CastlingRights;
+use crate::engine::shared::structures::square::*;
 
 // TODO: Add More Constants, Max position moves, Max Depth
 #[derive(Debug, PartialEq, Eq, Clone)]

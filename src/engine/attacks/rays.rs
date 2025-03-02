@@ -1,52 +1,5 @@
-use crate::engine::shared::{
-    helper_func::{bit_pos_utility::*, bitboard::BitboardTrait},
-    structures::directions::*,
-};
-use lazy_static::lazy_static;
-
-// NOTE: CONSTANTS
-#[macro_export]
-macro_rules! make_rays {
-    ($ray_fn:ident) => {{
-        let mut rays: [u64; 64] = [0u64; 64];
-
-        for row in 0..8 {
-            for col in 0..8 {
-                rays[row * 8 + col] = $ray_fn(row as i8, col as i8);
-            }
-        }
-
-        rays
-    }};
-}
-
-lazy_static! {
-    pub static ref RAYS: [[u64; 64]; 8] = ray_init();
-}
-
-// NOTE: GET Rays
-pub fn ray_init() -> [[u64; 64]; 8] {
-    let mut rays = [[0u64; 64]; 8];
-    for dir in DIRECTIONS {
-        for row in 0..8 {
-            for col in 0..8 {
-                rays[dir.idx()][row * 8 + col] = rays_att_bitboard(dir, row as i8, col as i8);
-            }
-        }
-    }
-
-    rays
-}
-
-pub fn rays_att_bitboard(dir: Dir, row: i8, col: i8) -> u64 {
-    let mut bitboard = 0;
-    for i in 1..8 {
-        let (row_offset, col_offset) = dir.dir_offset();
-        bitboard = set_bit(bitboard, row + row_offset * i, col + col_offset * i);
-    }
-
-    bitboard
-}
+use crate::engine::shared::helper_func::bitboard::BitboardTrait;
+use crate::engine::shared::structures::directions::*;
 
 pub fn first_hit(dir: Dir, bitboard: u64) -> Option<usize> {
     if bitboard == 0 {
@@ -74,11 +27,11 @@ pub fn blocked_ray_att(dir: Dir, ray_family: &[u64; 64], ray: u64, own: u64, ene
 
 #[cfg(test)]
 mod tests {
-
-    use crate::engine::shared::{
-        helper_func::{bitboard::BitboardTrait, print_utility::print_bitboard},
-        structures::directions::Dir,
-    };
+    use crate::engine::attacks::generated::rays::RAYS_LOOKUP;
+    use crate::engine::shared::helper_func::bit_pos_utility::*;
+    use crate::engine::shared::helper_func::bitboard::BitboardTrait;
+    use crate::engine::shared::helper_func::print_utility::print_bitboard;
+    use crate::engine::shared::structures::directions::Dir;
 
     use super::*;
 
@@ -123,16 +76,16 @@ mod tests {
                 expected_ne_6_7 = set_bit(expected_ne_6_7, row + i, col + i);
             }
         }
-        assert_eq!(RAYS[Dir::SOUTHWEST.idx()][idx], expected_sw_6_7);
-        assert_eq!(RAYS[Dir::WEST.idx()][idx], expected_w_6_7);
-        assert_eq!(RAYS[Dir::NORTHEAST.idx()][idx], expected_ne_6_7);
+        assert_eq!(RAYS_LOOKUP[Dir::SOUTHWEST.idx()][idx], expected_sw_6_7);
+        assert_eq!(RAYS_LOOKUP[Dir::WEST.idx()][idx], expected_w_6_7);
+        assert_eq!(RAYS_LOOKUP[Dir::NORTHEAST.idx()][idx], expected_ne_6_7);
     }
 
     #[test]
     fn test_blocked_rays() {
         let (own, enemy) = get_occupancy();
         let idx = position_to_idx(4, 4, Some(true));
-        let ray_arr = RAYS[Dir::NORTHWEST.idx()];
+        let ray_arr = RAYS_LOOKUP[Dir::NORTHWEST.idx()];
         let blocked_ray =
             blocked_ray_att(Dir::NORTHWEST, &ray_arr, ray_arr[idx as usize], enemy, own);
 
@@ -142,13 +95,13 @@ mod tests {
     #[test]
     fn test_print_rays() {
         let idx = 43;
-        print_bitboard(RAYS[Dir::NORTH.idx()][idx], Some(idx as i8));
-        print_bitboard(RAYS[Dir::NORTHEAST.idx()][idx], Some(idx as i8));
-        print_bitboard(RAYS[Dir::EAST.idx()][idx], Some(idx as i8));
-        print_bitboard(RAYS[Dir::SOUTHEAST.idx()][idx], Some(idx as i8));
-        print_bitboard(RAYS[Dir::SOUTH.idx()][idx], Some(idx as i8));
-        print_bitboard(RAYS[Dir::SOUTHWEST.idx()][idx], Some(idx as i8));
-        print_bitboard(RAYS[Dir::WEST.idx()][idx], Some(idx as i8));
-        print_bitboard(RAYS[Dir::NORTHWEST.idx()][idx], Some(idx as i8));
+        print_bitboard(RAYS_LOOKUP[Dir::NORTH.idx()][idx], Some(idx as i8));
+        print_bitboard(RAYS_LOOKUP[Dir::NORTHEAST.idx()][idx], Some(idx as i8));
+        print_bitboard(RAYS_LOOKUP[Dir::EAST.idx()][idx], Some(idx as i8));
+        print_bitboard(RAYS_LOOKUP[Dir::SOUTHEAST.idx()][idx], Some(idx as i8));
+        print_bitboard(RAYS_LOOKUP[Dir::SOUTH.idx()][idx], Some(idx as i8));
+        print_bitboard(RAYS_LOOKUP[Dir::SOUTHWEST.idx()][idx], Some(idx as i8));
+        print_bitboard(RAYS_LOOKUP[Dir::WEST.idx()][idx], Some(idx as i8));
+        print_bitboard(RAYS_LOOKUP[Dir::NORTHWEST.idx()][idx], Some(idx as i8));
     }
 }

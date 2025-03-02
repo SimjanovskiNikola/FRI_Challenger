@@ -8,8 +8,8 @@ pub fn get_knight_mv(sq: usize, own: u64, _: u64) -> u64 {
 #[cfg(test)]
 mod tests {
 
-    use crate::engine::shared::helper_func::bit_pos_utility::extract_all_bits;
     use super::*;
+    use crate::engine::shared::helper_func::bit_pos_utility::extract_all_bits;
 
     #[rustfmt::skip]
     const ALL_KNIGHT_MOVES: [usize; 64] = [

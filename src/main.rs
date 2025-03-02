@@ -1,9 +1,8 @@
-use engine::{
-    fen::fen::FenTrait,
-    game::Game,
-    search::searcher::SearchInfo,
-    shared::helper_func::{const_utility::FEN_MATE_IN_4, play_chess_utility::play_chess},
-};
+use engine::fen::fen::FenTrait;
+use engine::game::Game;
+use engine::search::searcher::SearchInfo;
+use engine::shared::helper_func::const_utility::FEN_MATE_IN_4;
+use engine::shared::helper_func::play_chess_utility::play_chess;
 
 pub mod engine;
 

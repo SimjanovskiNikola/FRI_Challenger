@@ -1,64 +1,29 @@
-use crate::engine::shared::{
-    helper_func::{bit_pos_utility::*, bitboard::BitboardTrait, const_utility::Rank},
-    structures::{
-        color::{Color, ColorTrait, BLACK, WHITE},
-        piece::PieceTrait,
-    },
-};
-use lazy_static::lazy_static;
+use crate::engine::shared::helper_func::bit_pos_utility::*;
+use crate::engine::shared::helper_func::bitboard::BitboardTrait;
+use crate::engine::shared::helper_func::const_utility::Rank;
 
-lazy_static! {
-    pub static ref PAWN_ATTACK: [[u64; 64]; 2] = create_pawn_attacks();
-    pub static ref PAWN_MOVE: [[u64; 64]; 2] = create_pawn_move();
-}
+use crate::engine::shared::structures::color::*;
+use crate::engine::shared::structures::piece::*;
 
-pub fn create_pawn_attacks() -> [[u64; 64]; 2] {
-    let mut pawn_move = [[0u64; 64]; 2];
-
-    for row in 0..8 {
-        for col in 0..8 {
-            pawn_move[WHITE.idx()][row * 8 + col] = diagonal_move(row as i8, col as i8, WHITE);
-            pawn_move[BLACK.idx()][row * 8 + col] = diagonal_move(row as i8, col as i8, BLACK);
-        }
-    }
-
-    pawn_move
-}
-
-pub fn create_pawn_move() -> [[u64; 64]; 2] {
-    let mut pawn_move = [[0u64; 64]; 2];
-
-    for row in 0..8 {
-        for col in 0..8 {
-            pawn_move[WHITE.idx()][row * 8 + col] = forward_move(row as i8, col as i8, WHITE);
-            pawn_move[BLACK.idx()][row * 8 + col] = forward_move(row as i8, col as i8, BLACK);
-        }
-    }
-
-    pawn_move
-}
+use super::generated::pawn::*;
 
 // PAWN MOVE, ATTACK, EP
 #[inline(always)]
 pub fn get_pawn_mv(color: Color, sq: usize, own: u64, enemy: u64) -> u64 {
-    let moves = PAWN_MOVE[color.idx()][sq] & !(own | enemy);
+    let moves = PAWN_MOVE_LOOKUP[color.idx()][sq] & !(own | enemy);
 
     let bit = match color {
-        WHITE => PAWN_MOVE[color.idx()][sq].get_lsb(),
-        BLACK => PAWN_MOVE[color.idx()][sq].get_msb(),
+        WHITE => PAWN_MOVE_LOOKUP[color.idx()][sq].get_lsb(),
+        BLACK => PAWN_MOVE_LOOKUP[color.idx()][sq].get_msb(),
         _ => panic!("There are only two colors, black and white"),
     };
 
-    if moves.is_set(bit) {
-        moves
-    } else {
-        0
-    }
+    return if moves.is_set(bit) { moves } else { 0 };
 }
 
 #[inline(always)]
 pub fn get_pawn_att(color: Color, sq: usize, own: u64, enemy: u64, ep: Option<usize>) -> u64 {
-    let attacks = PAWN_ATTACK[color.idx()][sq] & !own;
+    let attacks = PAWN_ATTACK_LOOKUP[color.idx()][sq] & !own;
     match ep {
         Some(ep) => attacks & (enemy | get_pawn_ep(color, ep)),
         None => attacks & enemy,
@@ -76,6 +41,8 @@ pub fn get_pawn_ep(color: Color, ep: usize) -> u64 {
 }
 
 // FORWARD AND DIAGONAL MOVES
+// DEPRECATE:
+#[deprecated = "Leaving Here If I need this in the future, otherwise not needed"]
 fn forward_move(row: i8, col: i8, color: Color) -> u64 {
     let mut bitboard = 0;
     if color == WHITE {
@@ -97,6 +64,8 @@ fn forward_move(row: i8, col: i8, color: Color) -> u64 {
     bitboard
 }
 
+// DEPRECATE:
+#[deprecated = "Leaving Here If I need this in the future, otherwise not needed"]
 fn diagonal_move(row: i8, col: i8, color: Color) -> u64 {
     let mut bitboard = 0;
     if color == WHITE && row < 7 {
@@ -110,10 +79,26 @@ fn diagonal_move(row: i8, col: i8, color: Color) -> u64 {
     bitboard
 }
 
+use rand::Rng;
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
+
+    #[test]
+    fn zobrist_keys() {
+        let mut rand: u64 = rand::rng().random();
+
+        for i in 0..48 {
+            println!("[");
+            for i in 0..14 {
+                rand = rand::rng().random();
+                println!("{:?},", rand);
+            }
+            println!("],");
+        }
+    }
 
     #[test]
     fn test_second_row_white_pawn() {
@@ -147,6 +132,9 @@ mod tests {
             assert_eq!(msb as i8, position_to_idx(row - 1, col, None));
             assert_eq!(lsb as i8, position_to_idx(row - 2, col, None));
         }
+
+        // println!("{:#?}", PAWN_ATTACK);
+        // println!("{:#?}", PAWN_MOVE);
     }
 
     #[test]
