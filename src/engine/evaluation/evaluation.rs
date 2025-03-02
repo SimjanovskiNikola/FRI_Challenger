@@ -2,19 +2,18 @@ use crate::engine::{
     game::Game,
     shared::{
         helper_func::bitboard::BitboardTrait,
-        structures::{
-            color::{Color, ColorTrait},
-            piece::*,
-        },
+        structures::{color::*, piece::*},
     },
 };
 
-const KING_WT: usize = 20000;
-const QUEEN_WT: usize = 900;
-const ROOK_WT: usize = 500;
-const BISHOP_WT: usize = 350;
-const KNIGHT_WT: usize = 325;
-const PAWN_WT: usize = 100;
+const KING_WT: isize = 20000;
+const QUEEN_WT: isize = 900;
+const ROOK_WT: isize = 500;
+const BISHOP_WT: isize = 350;
+const KNIGHT_WT: isize = 325;
+const PAWN_WT: isize = 100;
+
+const PIECE_WEIGHTS: [isize; 6] = [PAWN_WT, KNIGHT_WT, BISHOP_WT, ROOK_WT, QUEEN_WT, KING_WT];
 // TODO: Add (-0.5 for doubled, blocked, or isolated Pawns)
 // TODO: Add (+0.1 for Mobility)
 
@@ -126,40 +125,40 @@ const OK_SQ:[usize;64] = [
     0,  1,  2,  3,  4,  5,  6,  7,
 ];
 
-trait Evaluation {
-    fn evaluate_pos(game: &Game, color: Color) -> isize;
-    fn material_sq(game: &Game, color: Color) -> isize;
+pub trait Evaluation {
+    fn evaluate_pos(&self) -> isize;
+    fn material_sq(&self) -> isize;
     fn piece_eval(piece: &Piece, sq: usize) -> isize;
-    fn material_balance(game: &Game, color: Color) -> isize;
+    fn material_balance(&self) -> isize;
 }
 
 impl Evaluation for Game {
     #[inline(always)]
-    fn evaluate_pos(game: &Game, color: Color) -> isize {
-        (Self::material_balance(game, color) as isize) + Self::material_sq(game, color)
+    fn evaluate_pos(&self) -> isize {
+        (Self::material_balance(self) as isize) + Self::material_sq(self)
     }
 
     #[inline(always)]
-    fn material_sq(game: &Game, color: Color) -> isize {
-        let mut eval_score: isize = 0;
+    fn material_sq(&self) -> isize {
+        let mut score: isize = 0;
         for piece in &CLR_PIECES {
-            let mut bb = game.bitboard[(piece + color) as usize];
+            let mut bb = self.bitboard[piece.idx()];
             while bb != 0 {
                 let sq = bb.pop_lsb();
-                if color.is_white() {
-                    eval_score += Self::piece_eval(piece, OK_SQ[sq]);
+                if piece.is_white() {
+                    score += Self::piece_eval(piece, OK_SQ[sq]);
                 } else {
-                    eval_score -= Self::piece_eval(piece, OPP_SQ[sq]);
+                    score -= Self::piece_eval(piece, OPP_SQ[sq]);
                 }
             }
         }
 
-        (color as isize * -1) * (eval_score)
+        score
     }
 
     #[inline(always)]
     fn piece_eval(piece: &Piece, sq: usize) -> isize {
-        match *piece {
+        match piece.kind() {
             PAWN => PAWN_EVAL[sq],
             KNIGHT => KNIGHT_EVAL[sq],
             BISHOP => BISHOP_EVAL[sq],
@@ -171,24 +170,13 @@ impl Evaluation for Game {
     }
 
     #[inline(always)]
-    fn material_balance(game: &Game, color: Color) -> isize {
-        (KING_WT
-            * (game.bitboard[(KING + color).idx()].count()
-                - game.bitboard[(KING + color.opp()).idx()].count())
-            + QUEEN_WT
-                * (game.bitboard[(QUEEN + color).idx()].count()
-                    - game.bitboard[(QUEEN + color.opp()).idx()].count())
-            + ROOK_WT
-                * (game.bitboard[(ROOK + color).idx()].count()
-                    - game.bitboard[(ROOK + color.opp()).idx()].count())
-            + KNIGHT_WT
-                * (game.bitboard[(KNIGHT + color).idx()].count()
-                    - game.bitboard[(KNIGHT + color.opp()).idx()].count())
-            + BISHOP_WT
-                * (game.bitboard[(BISHOP + color).idx()].count()
-                    - game.bitboard[(BISHOP + color.opp()).idx()].count())
-            + PAWN_WT
-                * (game.bitboard[(PAWN + color).idx()].count()
-                    - game.bitboard[(PAWN + color.opp()).idx()].count())) as isize
+    fn material_balance(&self) -> isize {
+        let mut score = 0;
+        for (idx, piece) in PIECES.iter().enumerate() {
+            score += PIECE_WEIGHTS[idx]
+                * (self.bitboard[(piece + WHITE).idx()].count() as isize
+                    - self.bitboard[(piece + BLACK).idx()].count() as isize)
+        }
+        score
     }
 }

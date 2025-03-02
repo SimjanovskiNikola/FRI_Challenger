@@ -1,7 +1,7 @@
 use crate::engine::shared::structures::castling_struct::CastlingRights;
 use crate::engine::shared::structures::square::*;
 use super::fen::fen::FenTrait;
-use super::search::transposition_table::PvTable;
+use super::search::transposition_table::TTTable;
 use super::shared::helper_func::bitboard::*;
 use super::shared::helper_func::const_utility::*;
 use super::shared::structures::color::*;
@@ -22,7 +22,7 @@ pub struct Game {
 
     pub moves: Vec<InternalMove>,
 
-    pub pv: PvTable,
+    pub tt: TTTable,
     pub s_history: [[u64; 64]; 14], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
     pub s_killers: [[u64; 2]; 2048], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
     pub ply: usize,
@@ -46,8 +46,7 @@ impl Game {
             pos_key: 0,
 
             moves: Vec::with_capacity(1024),
-            pv: PvTable::init(),
-
+            tt: TTTable::init(),
             s_history: [[0u64; 64]; 14],
             s_killers: [[0u64; 2]; 2048],
             ply: 0,
@@ -64,7 +63,7 @@ impl Game {
         self.half_move = 0;
         self.full_move = 1;
         self.moves = Vec::with_capacity(1024);
-        self.pv = PvTable::init();
+        self.tt = TTTable::init();
     }
 }
 
