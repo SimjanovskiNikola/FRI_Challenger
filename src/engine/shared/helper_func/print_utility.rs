@@ -54,18 +54,19 @@ pub fn print_board(chess_board: &[String; 64]) {
     println!();
 }
 
-pub fn print_move_list(moves: &[InternalMove]) {
+// pub fn print_move_list(moves: &[InternalMove]) {
+pub fn print_move_list(moves: &[PositionRev]) {
     for (idx, mv) in moves.iter().enumerate() {
-        let promotion = match mv.flag {
-            Flag::Promotion(promo_piece, _) => Some(promo_piece),
-            _ => None,
+        let promotion = match mv.flag.is_promo() {
+            true => Some(mv.flag.get_promo_piece()),
+            false => None,
         };
 
         println!("{}. Move: {}, (Score: {})", idx, move_notation(mv.from, mv.to, promotion), 0);
     }
 }
 
-pub fn move_notation(sq_from: usize, sq_to: usize, promotion: Option<Piece>) -> String {
+pub fn move_notation(sq_from: u8, sq_to: u8, promotion: Option<Piece>) -> String {
     match promotion {
         Some(piece) => {
             let p_notation = piece.to_char();
@@ -75,7 +76,7 @@ pub fn move_notation(sq_from: usize, sq_to: usize, promotion: Option<Piece>) -> 
     }
 }
 
-pub fn sq_notation(square: usize) -> String {
-    let (rank, file) = idx_to_position(square, None);
+pub fn sq_notation(square: u8) -> String {
+    let (rank, file) = idx_to_position(square as usize, None);
     format!("{}{}", FILE_LETTERS[file], rank + 1)
 }

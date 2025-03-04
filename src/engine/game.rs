@@ -3,7 +3,7 @@ use super::search::transposition_table::TTTable;
 use super::shared::helper_func::bitboard::*;
 use super::shared::helper_func::const_utility::*;
 use super::shared::structures::color::*;
-use super::shared::structures::internal_move::InternalMove;
+use super::shared::structures::internal_move::Position;
 use crate::engine::shared::structures::castling_struct::CastlingRights;
 use crate::engine::shared::structures::square::*;
 
@@ -20,11 +20,11 @@ pub struct Game {
     pub full_move: usize,
     pub pos_key: u64,
 
-    pub moves: Vec<InternalMove>,
+    pub moves: Vec<Position>,
 
     pub tt: TTTable,
     pub s_history: [[u64; 64]; 14], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
-    pub s_killers: [[u64; 2]; 2048], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
+    pub s_killers: [[u64; 2]; 64], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
     pub ply: usize,
 }
 
@@ -48,7 +48,7 @@ impl Game {
             moves: Vec::with_capacity(1024),
             tt: TTTable::init(),
             s_history: [[0u64; 64]; 14],
-            s_killers: [[0u64; 2]; 2048],
+            s_killers: [[0u64; 2]; 64],
             ply: 0,
         }
     }

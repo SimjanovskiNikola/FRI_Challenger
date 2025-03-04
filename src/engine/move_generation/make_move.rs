@@ -11,7 +11,7 @@ use core::panic;
 use super::mv_gen::sq_attack;
 
 pub trait GameMoveTrait {
-    fn make_move(&mut self, mv: &InternalMove) -> bool;
+    fn make_move(&mut self, mv: &Position) -> bool;
     fn undo_move(&mut self);
     fn generate_pos_key(&mut self);
     fn add_piece(&mut self, sq: usize, piece: Piece);

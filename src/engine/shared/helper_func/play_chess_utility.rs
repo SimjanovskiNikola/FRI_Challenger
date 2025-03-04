@@ -16,10 +16,12 @@ use crate::engine::shared::helper_func::print_utility::move_notation;
 use crate::engine::shared::helper_func::print_utility::print_chess;
 use crate::engine::shared::helper_func::print_utility::print_move_list;
 use crate::engine::shared::structures::internal_move::Flag;
-use crate::engine::shared::structures::internal_move::InternalMove;
+use crate::engine::shared::structures::internal_move::PositionRev;
+use crate::engine::shared::structures::piece::PieceTrait;
 
 pub fn play_chess(game: &mut Game, info: &mut SearchInfo) {
-    let mut move_list: Vec<InternalMove>;
+    // let mut move_list: Vec<InternalMove>;
+    let mut move_list: Vec<PositionRev>;
     gen_moves(game.color, game);
 
     loop {
@@ -83,11 +85,11 @@ pub fn play_chess(game: &mut Game, info: &mut SearchInfo) {
             str => {
                 move_list = gen_moves(game.color, game);
                 for mv in &move_list {
-                    let promotion = match mv.flag {
-                        Flag::Promotion(piece, _) => Some(piece),
-                        _ => None,
+                    let promotion = match mv.flag.is_promo() {
+                        true => Some(mv.flag.get_promo_piece()),
+                        false => None,
                     };
-                    if str == move_notation(mv.from, mv.to, promotion).as_str() {
+                    if str == move_notation(mv.from.idx(), mv.to.idx(), promotion).as_str() {
                         print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
                         game.make_move(mv);
                         game.tt.set(mv.position_key, *mv);
