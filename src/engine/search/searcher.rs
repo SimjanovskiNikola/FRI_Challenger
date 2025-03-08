@@ -8,10 +8,7 @@ use crate::engine::{
     search::transposition_table::get_line,
     shared::{
         helper_func::{bitboard::BitboardTrait, print_utility::print_move_list},
-        structures::{
-            internal_move::{Flag, InternalMove},
-            piece::KING,
-        },
+        structures::{internal_move::PositionRev, piece::KING},
     },
 };
 use std::time::{Duration, Instant};
@@ -89,17 +86,10 @@ fn quiescence_search(
     alpha = alpha.max(stand_pat);
 
     // TODO: Order Moves with MVV-LVA
-    let mut move_list = gen_moves(game.color, game);
+    let (irr, mut pos_rev) = gen_moves(game.color, game);
 
-    for mv in &mut move_list {
-        match mv.flag {
-            Flag::Capture(_) => (),
-            Flag::EP(_, _) => (),
-            Flag::Promotion(_, Some(_)) => (),
-            _ => continue,
-        }
-
-        if !game.make_move(mv) {
+    for rev in &mut pos_rev {
+        if !rev.flag.is_capture() || !game.make_move(rev, &irr) {
             continue;
         }
 
@@ -142,11 +132,12 @@ fn alpha_beta(
     let mut legal_mv_num = 0;
     let old_alpha: isize = alpha;
 
-    let mut move_list = gen_moves(game.color, game);
+    // let mut move_list = gen_moves(game.color, game);
+    let (irr, mut pos_rev) = gen_moves(game.color, game);
     // TODO: MVV-LVA
 
-    for mv in &mut move_list {
-        if !game.make_move(mv) {
+    for rev in &mut pos_rev {
+        if !game.make_move(rev, &irr) {
             continue;
         }
         legal_mv_num += 1;
@@ -156,7 +147,7 @@ fn alpha_beta(
 
         if score > best_score {
             best_score = score;
-            best_mv = Some(mv);
+            best_mv = Some(rev);
         }
 
         alpha = alpha.max(score);
@@ -180,7 +171,7 @@ fn alpha_beta(
 
     if alpha != old_alpha {
         match best_mv {
-            Some(mv) => game.tt.set(game.pos_key, *mv),
+            Some(mv) => game.tt.set(game.key, *mv),
             None => println!("{:?}", "Best Move Was None"),
         }
     }
@@ -188,7 +179,7 @@ fn alpha_beta(
     best_score
 }
 
-pub fn iterative_deepening(game: &mut Game, info: &mut SearchInfo) -> Option<InternalMove> {
+pub fn iterative_deepening(game: &mut Game, info: &mut SearchInfo) -> Option<PositionRev> {
     info.start_time = Instant::now();
     info.time_limit = Duration::new(10, 0);
     let mut best_mv = None;
@@ -202,20 +193,18 @@ pub fn iterative_deepening(game: &mut Game, info: &mut SearchInfo) -> Option<Int
         //     break;
         // }
 
-        let line = get_line(game, game.pos_key);
+        let line = get_line(game, game.key);
         if line.len() > 0 {
             best_mv = Some(line[0]);
         }
 
-        let mut mv = InternalMove::init();
+        println!("-------------------------");
+        println!("Depth: {:?}", depth);
         match best_mv {
-            Some(m) => mv = m,
+            Some(m) => print_move_list(&[m]),
             None => (),
         };
 
-        println!("-------------------------");
-        println!("Depth: {:?}", depth);
-        print_move_list(&[mv]);
         println!("Score {:?}", best_score);
         println!("-------------------------");
         println!("-------Best Line---------");
@@ -226,7 +215,10 @@ pub fn iterative_deepening(game: &mut Game, info: &mut SearchInfo) -> Option<Int
         println!("");
     }
 
-    best_mv
+    match best_mv {
+        Some(mv) => Some(mv),
+        None => panic!("No Move Was returned"),
+    }
 }
 
 const MAX_INF: isize = isize::MAX / 2;

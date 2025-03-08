@@ -13,13 +13,22 @@ use crate::engine::shared::structures::color::*;
 use crate::engine::shared::structures::internal_move::*;
 use crate::engine::shared::structures::piece::*;
 use crate::engine::shared::structures::square::SqPos::*;
-use crate::engine::shared::structures::square::*;
 
 use super::make_move::GameMoveTrait;
 
 #[inline(always)]
-pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
-    let mut positions: Vec<InternalMove> = Vec::with_capacity(256);
+pub fn gen_moves(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>) {
+    let position_irr = PositionIrr {
+        key: game.key,
+        color: game.color,
+        ep: game.ep,
+        castle: game.castling,
+        half_move: game.half_move,
+        full_move: game.full_move,
+        score: 0,
+    };
+
+    let mut positions_rev: Vec<PositionRev> = Vec::with_capacity(256);
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
     for piece in &PIECES {
@@ -27,11 +36,13 @@ pub fn gen_moves(color: Color, game: &Game) -> Vec<InternalMove> {
         while bb != 0 {
             let pos = bb.pop_lsb();
             let moves = get_all_moves(piece + color, pos, game, own_occ, enemy_occ);
-            get_internal_moves(moves, &(piece + color), pos, game, &mut positions);
+            get_positions_rev(moves, &(piece + color), pos, game, &mut positions_rev);
         }
     }
 
-    positions
+    add_castling_moves(&(KING + color), game, &mut positions_rev);
+
+    (position_irr, positions_rev)
 }
 
 #[inline(always)]
@@ -75,29 +86,26 @@ pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
 }
 
 #[inline(always)]
-fn get_internal_moves(
+fn get_positions_rev(
     mut attacks: u64,
     piece: &Piece,
-    pos: usize,
+    from_sq: usize,
     game: &Game,
-    new_positions: &mut Vec<InternalMove>,
+    new_positions: &mut Vec<PositionRev>,
 ) {
     while attacks != 0 {
-        let p_move = attacks.pop_lsb();
-        let mut new_move = InternalMove {
-            position_key: game.pos_key,
-            active_color: game.color,
-            from: pos,
-            to: p_move,
+        let to_sq = attacks.pop_lsb();
+        let mut new_move = PositionRev {
+            from: from_sq as u8,
+            to: to_sq as u8,
             piece: *piece,
-            ep: game.ep,
-            castle: game.castling,
-            half_move: game.half_move,
-            flag: match game.squares[p_move] {
-                Square::Empty => Flag::Quiet,
-                Square::Occupied(piece) => Flag::Capture(piece),
+            capture: game.squares[to_sq],
+            flag: match game.squares[to_sq] {
+                None => Flag::Quiet,
+                Some(piece) => Flag::Capture(piece),
             },
         };
+
         if new_move.piece.is_pawn() {
             add_ep_move(&mut new_move, game);
             add_promotion_move(&new_move, game, new_positions);
@@ -105,15 +113,11 @@ fn get_internal_moves(
             new_positions.push(new_move)
         }
     }
-
-    if piece.is_king() {
-        add_castling_moves(piece, pos, game, new_positions);
-    }
 }
 
 pub fn is_repetition(game: &Game) -> bool {
-    for i in (game.moves.len() - game.half_move)..game.moves.len() {
-        if game.moves[i].position_key == game.pos_key {
+    for i in (game.pos_irr.len() - game.half_move as usize)..game.pos_irr.len() {
+        if game.pos_irr[i].key == game.key {
             return true;
         }
     }
@@ -121,12 +125,12 @@ pub fn is_repetition(game: &Game) -> bool {
     false
 }
 
-pub fn move_exists(game: &mut Game, internal_mv: &InternalMove) -> bool {
-    let mut move_list: Vec<InternalMove> = gen_moves(game.color, game);
+pub fn move_exists(game: &mut Game, rev: &PositionRev) -> bool {
+    let (irr, mut pos_rev) = gen_moves(game.color, game);
 
-    for mv in &mut move_list {
-        if mv == internal_mv {
-            if game.make_move(mv) {
+    for temp_rev in &mut pos_rev {
+        if rev == temp_rev {
+            if game.make_move(rev, &irr) {
                 game.undo_move();
                 return true;
             }
@@ -135,70 +139,75 @@ pub fn move_exists(game: &mut Game, internal_mv: &InternalMove) -> bool {
     false
 }
 
-#[rustfmt::skip]
 #[inline(always)]
-pub fn add_castling_moves(piece: &Piece, pos: usize, game: &Game, positions: &mut Vec<InternalMove>) {
-    
-    let mv = InternalMove {
-            position_key: 0, 
-            active_color: game.color,
-            from: pos,
-            to: 0,
-            piece: *piece,
-            ep: game.ep,
-            castle: game.castling,
-            half_move: game.half_move,
-            flag: Flag::Quiet,
-        };
-
+pub fn add_castling_moves(piece: &Piece, game: &Game, positions: &mut Vec<PositionRev>) {
     let (own, enemy) = get_occupancy(piece, game);
-    match mv.active_color {
+    match piece.color() {
         WHITE => {
             if game.castling.valid(CastlingRights::WKINGSIDE, game, own, enemy) {
-               positions.push(InternalMove { to: SqPos::G1.idx(), flag: Flag::KingSideCastle(H1 as usize, F1 as usize), ..mv });
+                positions.push(PositionRev::init(
+                    E1 as u8,
+                    G1 as u8,
+                    *piece,
+                    None,
+                    Flag::KingCastle,
+                ));
             }
             if game.castling.valid(CastlingRights::WQUEENSIDE, game, own, enemy) {
-               positions.push(InternalMove { to: SqPos::C1.idx(), flag: Flag::QueenSideCastle(A1 as usize, D1 as usize), ..mv });
+                positions.push(PositionRev::init(
+                    E1 as u8,
+                    C1 as u8,
+                    *piece,
+                    None,
+                    Flag::QueenCastle,
+                ));
             }
         }
-         BLACK => {
+        BLACK => {
             if game.castling.valid(CastlingRights::BKINGSIDE, game, own, enemy) {
-               positions.push(InternalMove { to: SqPos::G8.idx(), flag: Flag::KingSideCastle(H8 as usize, F8 as usize), ..mv });
+                positions.push(PositionRev::init(
+                    E8 as u8,
+                    G8 as u8,
+                    *piece,
+                    None,
+                    Flag::KingCastle,
+                ));
             }
             if game.castling.valid(CastlingRights::BQUEENSIDE, game, own, enemy) {
-               positions.push(InternalMove { to: SqPos::C8.idx(), flag: Flag::QueenSideCastle(A8 as usize, D8 as usize), ..mv });
+                positions.push(PositionRev::init(
+                    E8 as u8,
+                    C8 as u8,
+                    *piece,
+                    None,
+                    Flag::QueenCastle,
+                ));
             }
         }
-        _ => panic!("Invalid Castling")
+        _ => panic!("Invalid Castling"),
     }
-
 }
 
 #[inline(always)]
-pub fn add_ep_move(mv: &mut InternalMove, game: &Game) {
+pub fn add_ep_move(mv: &mut PositionRev, game: &Game) {
     if Some(mv.to) == game.ep {
-        let sq = mv.to + 16 * mv.active_color.idx() - 8;
-        mv.flag = Flag::EP(sq, PAWN + BLACK - mv.active_color);
+        mv.flag = Flag::EP;
     }
 }
 
 #[inline(always)]
-pub fn add_promotion_move(mv: &InternalMove, _game: &Game, positions: &mut Vec<InternalMove>) {
-    if (mv.active_color.is_white() && get_bit_rank(mv.to) == Rank::Eight)
-        || (mv.active_color.is_black() && get_bit_rank(mv.to) == Rank::One)
+pub fn add_promotion_move(mv: &PositionRev, game: &Game, positions_rev: &mut Vec<PositionRev>) {
+    if (mv.piece.is_white() && get_bit_rank(mv.to as usize) == Rank::Eight)
+        || (mv.piece.is_black() && get_bit_rank(mv.to as usize) == Rank::One)
     {
         let color = mv.piece.color();
-        let cap_piece: Option<Piece> = match mv.flag {
-            Flag::Capture(piece) => Some(piece),
-            _ => None,
-        };
+        let cap_piece: Option<Piece> = game.squares[mv.to as usize];
 
-        positions.push(InternalMove { flag: Flag::Promotion(QUEEN + color, cap_piece), ..*mv });
-        positions.push(InternalMove { flag: Flag::Promotion(ROOK + color, cap_piece), ..*mv });
-        positions.push(InternalMove { flag: Flag::Promotion(BISHOP + color, cap_piece), ..*mv });
-        positions.push(InternalMove { flag: Flag::Promotion(KNIGHT + color, cap_piece), ..*mv });
+        positions_rev.push(PositionRev { flag: Flag::Promotion(QUEEN + color, cap_piece), ..*mv });
+        positions_rev.push(PositionRev { flag: Flag::Promotion(ROOK + color, cap_piece), ..*mv });
+        positions_rev.push(PositionRev { flag: Flag::Promotion(BISHOP + color, cap_piece), ..*mv });
+        positions_rev.push(PositionRev { flag: Flag::Promotion(KNIGHT + color, cap_piece), ..*mv });
     } else {
-        positions.push(*mv);
+        positions_rev.push(*mv);
     }
 }
 
@@ -226,8 +235,8 @@ mod tests {
         let (own_occ, enemy_occ) = get_occupancy(&piece, &game);
         let all_pieces = extract_all_bits(game.bitboard[piece.idx()]);
         let piece = match game.squares[all_pieces[idx]] {
-            Square::Empty => panic!("The Piece Must exist"),
-            Square::Occupied(piece) => piece,
+            None => panic!("The Piece Must exist"),
+            Some(piece) => piece,
         };
         return extract_all_bits(get_all_moves(piece, all_pieces[idx], &game, own_occ, enemy_occ));
 
@@ -240,26 +249,26 @@ mod tests {
     #[test]
     fn test_white_pawns_mv_gen() {
         let game = Game::read_fen(&FEN_PAWNS_WHITE);
-        let moves = gen_moves(WHITE, &game);
-        assert_eq!(42, moves.len());
-        print_move_list(&moves);
+        let (_, positions) = gen_moves(WHITE, &game);
+        assert_eq!(42, positions.len());
+        print_move_list(&positions);
     }
 
     #[test]
     fn test_mv_gen() {
         let game = Game::read_fen(&FEN_CASTLE_TWO);
-        let moves = gen_moves(WHITE, &game);
+        let (_, positions) = gen_moves(WHITE, &game);
         print_chess(&game);
-        print_move_list(&moves);
-        assert_eq!(48, moves.len());
+        print_move_list(&positions);
+        assert_eq!(48, positions.len());
     }
 
     #[test]
     fn test_white_black_mv_gen() {
         let game = Game::read_fen(&FEN_PAWNS_BLACK);
-        let moves = gen_moves(BLACK, &game);
-        assert_eq!(42, moves.len());
-        print_move_list(&moves);
+        let (_, positions) = gen_moves(BLACK, &game);
+        assert_eq!(42, positions.len());
+        print_move_list(&positions);
     }
 
     #[test]

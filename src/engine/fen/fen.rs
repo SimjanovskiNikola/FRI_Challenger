@@ -67,7 +67,7 @@ impl FenTrait for Game {
         self.ep = match square {
             "-" => None,
             s => match position_to_bit(s) {
-                Ok(bit) => Some(bit.get_lsb()),
+                Ok(bit) => Some(bit.get_lsb() as u8),
                 Err(e) => panic!("Unknown En Passant Position: {}", e),
             },
         }
@@ -138,7 +138,7 @@ mod tests {
         let game = Game::read_fen(FEN_PAWNS_BLACK);
         assert_eq!(game.color, BLACK);
         assert_eq!(game.castling, CastlingRights::ALL);
-        assert_eq!(game.ep, Some(SqPos::E3 as usize));
+        assert_eq!(game.ep, Some(SqPos::E3 as u8));
         assert_eq!(game.half_move, 0);
         assert_eq!(game.full_move, 1);
 

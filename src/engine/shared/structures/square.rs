@@ -1,5 +1,3 @@
-use super::piece::Piece;
-
 #[rustfmt::skip]
 pub enum SqPos {
     A1 = 0,  B1 = 1,  C1 = 2,  D1 = 3,  E1 = 4,  F1 = 5,  G1 = 6,  H1 = 7,
@@ -17,11 +15,4 @@ impl SqPos {
     pub fn idx(self) -> usize {
         self as usize
     }
-}
-
-/** Determines if the square is empty or occupied. */
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Square {
-    Empty,
-    Occupied(Piece),
 }

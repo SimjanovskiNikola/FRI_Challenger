@@ -1,6 +1,7 @@
 use bitflags::bitflags;
 
 use super::color::*;
+use super::square::SqPos;
 use crate::engine::game::Game;
 use crate::engine::move_generation::mv_gen::*;
 use crate::engine::shared::structures::square::SqPos::*;
@@ -10,6 +11,11 @@ pub const CASTLE_DATA: [(usize, usize, CastlingRights, Color); 4] = [
     (A1 as usize, E1 as usize, CastlingRights::WQUEENSIDE, WHITE),
     (H8 as usize, E8 as usize, CastlingRights::BKINGSIDE, BLACK),
     (A8 as usize, E8 as usize, CastlingRights::BQUEENSIDE, BLACK),
+];
+
+pub const ROOK_SQ: [[(usize, usize); 2]; 2] = [
+    [(SqPos::H1 as usize, SqPos::F1 as usize), (SqPos::A1 as usize, SqPos::D1 as usize)],
+    [(SqPos::H8 as usize, SqPos::F8 as usize), (SqPos::A8 as usize, SqPos::D8 as usize)],
 ];
 
 bitflags! {
