@@ -16,13 +16,10 @@ use crate::engine::shared::helper_func::print_utility::move_notation;
 use crate::engine::shared::helper_func::print_utility::print_chess;
 use crate::engine::shared::helper_func::print_utility::print_move_list;
 use crate::engine::shared::structures::internal_move::Flag;
-use crate::engine::shared::structures::internal_move::PositionRev;
-use crate::engine::shared::structures::piece::PieceTrait;
 
 pub fn play_chess(game: &mut Game, info: &mut SearchInfo) {
     // let mut move_list: Vec<InternalMove>;
-    let mut move_list: Vec<PositionRev>;
-    gen_moves(game.color, game);
+    let (mut irr, mut pos_rev) = gen_moves(game.color, game);
 
     loop {
         let mut s = String::new();
@@ -38,18 +35,18 @@ pub fn play_chess(game: &mut Game, info: &mut SearchInfo) {
                 print_chess(game);
             }
             "l" => {
-                print_move_list(&get_line(game, game.pos_key));
+                print_move_list(&get_line(game, game.key));
             }
             "a" => {
                 println!("{:#?}", game.tt.table);
             }
             "m" => {
-                move_list = gen_moves(game.color, game);
+                (irr, pos_rev) = gen_moves(game.color, game);
                 println!("{:?}", "Please choose a number: ");
-                print_move_list(&move_list);
+                print_move_list(&pos_rev);
             }
             "u" => {
-                if !game.moves.is_empty() {
+                if !game.pos_rev.is_empty() {
                     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
                     game.undo_move();
                     print_chess(game);
@@ -65,34 +62,34 @@ pub fn play_chess(game: &mut Game, info: &mut SearchInfo) {
                 println!("EP: {:#?}", game.ep);
                 println!("Half Move: {:#?}", game.half_move);
                 println!("Full Move: {:#?}", game.full_move);
-                println!("Position Key: {:#?}", game.pos_key);
-                for i in &game.moves {
-                    println!("{:?}", i.position_key);
+                println!("Position Key: {:#?}", game.key);
+                for irr in &game.pos_irr {
+                    println!("{:?}", irr.key);
                 }
             }
             "r" => {
                 print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-                move_list = gen_moves(game.color, game);
-                let mut idx: usize = rand::rng().random_range(0..(move_list.len() - 1));
-                while !game.make_move(&move_list[idx]) {
-                    idx = rand::rng().random_range(0..(move_list.len() - 1));
+                (irr, pos_rev) = gen_moves(game.color, game);
+                let mut idx: usize = rand::rng().random_range(0..(pos_rev.len() - 1));
+                while !game.make_move(&pos_rev[idx], &irr) {
+                    idx = rand::rng().random_range(0..(pos_rev.len() - 1));
                 }
-                game.tt.set(move_list[idx].position_key, move_list[idx]);
-                println!("{:?}", move_list[idx].position_key);
+                game.tt.set(irr.key, pos_rev[idx]);
+                println!("{:?}", irr.key);
                 print_chess(game);
-                move_list.clear();
+                pos_rev.clear();
             }
             str => {
-                move_list = gen_moves(game.color, game);
-                for mv in &move_list {
-                    let promotion = match mv.flag.is_promo() {
-                        true => Some(mv.flag.get_promo_piece()),
-                        false => None,
+                (irr, pos_rev) = gen_moves(game.color, game);
+                for rev in &pos_rev {
+                    let promotion = match rev.flag {
+                        Flag::Promotion(piece, _) => Some(piece),
+                        _ => None,
                     };
-                    if str == move_notation(mv.from.idx(), mv.to.idx(), promotion).as_str() {
+                    if str == move_notation(rev.from, rev.to, promotion).as_str() {
                         print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-                        game.make_move(mv);
-                        game.tt.set(mv.position_key, *mv);
+                        game.make_move(rev, &irr);
+                        game.tt.set(irr.key, *rev);
 
                         print_chess(game);
                         if is_repetition(game) {
@@ -100,7 +97,7 @@ pub fn play_chess(game: &mut Game, info: &mut SearchInfo) {
                         }
                     }
                 }
-                move_list.clear();
+                pos_rev.clear();
             }
         }
     }

@@ -24,8 +24,8 @@ pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
 
 pub fn print_chess(game: &Game) {
     let chess_board: [String; 64] = array::from_fn(|idx| match game.squares[idx] {
-        Square::Empty => " ".to_string(),
-        Square::Occupied(piece) => piece.to_figure(),
+        None => " ".to_string(),
+        Some(piece) => piece.to_figure(),
     });
 
     print_board(&chess_board);
@@ -57,9 +57,9 @@ pub fn print_board(chess_board: &[String; 64]) {
 // pub fn print_move_list(moves: &[InternalMove]) {
 pub fn print_move_list(moves: &[PositionRev]) {
     for (idx, mv) in moves.iter().enumerate() {
-        let promotion = match mv.flag.is_promo() {
-            true => Some(mv.flag.get_promo_piece()),
-            false => None,
+        let promotion = match mv.flag {
+            Flag::Promotion(piece, _) => Some(piece),
+            _ => None,
         };
 
         println!("{}. Move: {}, (Score: {})", idx, move_notation(mv.from, mv.to, promotion), 0);

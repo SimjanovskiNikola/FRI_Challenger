@@ -92,19 +92,19 @@ pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
         return 1;
     }
 
-    let mut move_list: Vec<InternalMove> = gen_moves(game.color, game);
-    for mv in &mut move_list {
-        if !game.make_move(mv) {
+    let (irr, mut pos_rev) = gen_moves(game.color, game);
+    for rev in &mut pos_rev {
+        if !game.make_move(rev, &irr) {
             continue;
         }
 
         if depth == 1 {
-            match mv.flag {
+            match rev.flag {
                 Flag::Quiet => stats.add_node(),
                 Flag::Capture(_) => stats.add_capture(),
-                Flag::EP(_, _) => stats.add_ep(),
+                Flag::EP => stats.add_ep(),
                 Flag::Promotion(_, _) => stats.add_promotion(),
-                Flag::KingSideCastle(_, _) | Flag::QueenSideCastle(_, _) => stats.add_castle(),
+                Flag::KingCastle | Flag::QueenCastle => stats.add_castle(),
             }
         }
 
