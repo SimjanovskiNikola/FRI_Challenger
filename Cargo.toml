@@ -20,11 +20,11 @@ name = "chess-engine"
 path = "src/main.rs"
 
 [[bench]]
-name = "library_benchmark"
+# name = "library_benchmark"
 strip = false
 debug = true
-# name = "my_benchmark"
-# harness = false
+name = "my_benchmark"
+harness = false
 
 [profile.dev]
 opt-level = 1
