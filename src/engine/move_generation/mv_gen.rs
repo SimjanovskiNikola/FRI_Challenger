@@ -42,7 +42,68 @@ pub fn gen_moves(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>) {
 
     add_castling_moves(&(KING + color), game, &mut positions_rev);
 
+    positions_rev.sort_unstable_by(|a, b| eval_pos(b, &game).cmp(&eval_pos(a, &game)));
     (position_irr, positions_rev)
+}
+
+#[inline(always)]
+pub fn gen_captures(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>) {
+    let position_irr = PositionIrr {
+        key: game.key,
+        color: game.color,
+        ep: game.ep,
+        castle: game.castling,
+        half_move: game.half_move,
+        full_move: game.full_move,
+        score: 0,
+    };
+
+    let mut positions_rev: Vec<PositionRev> = Vec::with_capacity(256);
+    let (own_occ, enemy_occ) = get_occupancy(&color, game);
+
+    for piece in &PIECES {
+        let mut bb = game.bitboard[(piece + color) as usize];
+        while bb != 0 {
+            let pos = bb.pop_lsb();
+            let moves = match piece.kind() {
+                PAWN => get_pawn_att(color, pos, own_occ, enemy_occ, game.ep),
+                KNIGHT => get_knight_mv(pos, own_occ, enemy_occ) & enemy_occ,
+                BISHOP => get_bishop_mv(pos, own_occ, enemy_occ) & enemy_occ,
+                ROOK => get_rook_mv(pos, own_occ, enemy_occ) & enemy_occ,
+                QUEEN => get_queen_mv(pos, own_occ, enemy_occ) & enemy_occ,
+                KING => get_king_mv(pos, own_occ, enemy_occ) & enemy_occ,
+                _ => panic!("Invalid Peace Type"),
+            };
+            get_positions_rev(moves, &(piece + color), pos, game, &mut positions_rev);
+        }
+    }
+
+    positions_rev.sort_unstable_by(|a, b| eval_pos(b, &game).cmp(&eval_pos(a, &game)));
+    (position_irr, positions_rev)
+}
+
+fn eval_pos(pos: &PositionRev, game: &Game) -> isize {
+    if matches!(game.tt.get(game.key), Some(x) if x.rev == *pos) {
+        return 95000;
+    }
+
+    match pos.flag {
+        Flag::Quiet => {
+            if matches!(game.s_killers[game.ply][0], Some(x) if x == *pos) {
+                90000
+            } else if matches!(game.s_killers[game.ply][1], Some(x) if x == *pos) {
+                80000
+            } else {
+                game.s_history[pos.piece.idx()][pos.to as usize] as isize
+            }
+        }
+        Flag::KingCastle => 20,
+        Flag::QueenCastle => 20,
+        Flag::Capture(cap) => cap.weight() - pos.piece as isize,
+        Flag::EP => PAWN.weight(),
+        Flag::Promotion(promo, Some(cap)) => cap.weight() - pos.piece as isize + promo.weight(),
+        Flag::Promotion(promo, None) => promo.weight(),
+    }
 }
 
 #[inline(always)]

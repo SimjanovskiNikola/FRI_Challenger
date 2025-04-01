@@ -21,14 +21,14 @@ pub struct Game {
     pub ep: Option<u8>,
     pub half_move: u8,
     pub full_move: u16,
+    pub ply: usize,
 
     pub pos_rev: Vec<PositionRev>,
     pub pos_irr: Vec<PositionIrr>,
 
     pub tt: TTTable,
-    pub s_history: [[u64; 64]; 14], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
-    pub s_killers: [[u64; 2]; 64], // FIXME: Rename This and check for better takes implementation because it takes a lot of memory
-    pub ply: usize,
+    pub s_history: [[u64; 64]; 14],
+    pub s_killers: [[Option<PositionRev>; 2]; 64],
 }
 
 impl Game {
@@ -52,7 +52,7 @@ impl Game {
             pos_irr: Vec::with_capacity(1024),
             tt: TTTable::init(),
             s_history: [[0u64; 64]; 14],
-            s_killers: [[0u64; 2]; 64],
+            s_killers: [[None; 2]; 64],
             ply: 0,
         }
     }

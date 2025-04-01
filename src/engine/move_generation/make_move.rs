@@ -76,6 +76,8 @@ impl GameMoveTrait for Game {
             self.full_move += 1;
         }
 
+        self.ply += 1;
+
         self.generate_pos_key();
 
         self.pos_irr.push(*irr);
@@ -99,6 +101,7 @@ impl GameMoveTrait for Game {
         };
 
         self.generate_pos_key();
+        self.ply -= 1;
         self.full_move = irr.full_move;
         self.half_move = irr.half_move;
         self.ep = irr.ep;

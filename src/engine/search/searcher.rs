@@ -3,12 +3,15 @@ use crate::engine::{
     game::Game,
     move_generation::{
         make_move::GameMoveTrait,
-        mv_gen::{gen_moves, is_repetition, sq_attack},
+        mv_gen::{gen_captures, gen_moves, is_repetition, sq_attack},
     },
     search::transposition_table::get_line,
     shared::{
         helper_func::{bitboard::BitboardTrait, print_utility::print_move_list},
-        structures::{internal_move::PositionRev, piece::KING},
+        structures::{
+            internal_move::PositionRev,
+            piece::{PieceTrait, KING},
+        },
     },
 };
 use std::time::{Duration, Instant};
@@ -61,7 +64,7 @@ pub fn check_time_up() {
 }
 
 pub fn clear_search(game: &mut Game, info: &mut SearchInfo) {
-    game.s_killers.iter_mut().for_each(|arr| arr.fill(0));
+    game.s_killers.iter_mut().for_each(|arr| arr.fill(None));
     game.s_history.iter_mut().for_each(|arr| arr.fill(0));
     game.tt.clear();
     game.ply = 0;
@@ -77,19 +80,18 @@ fn quiescence_search(
     game: &mut Game,
     info: &mut SearchInfo,
 ) -> isize {
+    info.nodes += 1;
     let stand_pat = game.evaluate_pos();
-
     if stand_pat >= beta {
         return beta;
     }
 
     alpha = alpha.max(stand_pat);
 
-    // TODO: Order Moves with MVV-LVA
-    let (irr, mut pos_rev) = gen_moves(game.color, game);
+    let (irr, mut pos_rev) = gen_captures(game.color, game);
 
     for rev in &mut pos_rev {
-        if !rev.flag.is_capture() || !game.make_move(rev, &irr) {
+        if !game.make_move(rev, &irr) {
             continue;
         }
 
@@ -117,8 +119,7 @@ fn alpha_beta(
     // || game.is_over()
     if depth == 0 {
         info.nodes += 1;
-        // return quiescence_search(alpha, beta, game, info);
-        return game.evaluate_pos();
+        return quiescence_search(alpha, beta, game, info);
     }
 
     info.nodes += 1;
@@ -132,9 +133,7 @@ fn alpha_beta(
     let mut legal_mv_num = 0;
     let old_alpha: isize = alpha;
 
-    // let mut move_list = gen_moves(game.color, game);
     let (irr, mut pos_rev) = gen_moves(game.color, game);
-    // TODO: MVV-LVA
 
     for rev in &mut pos_rev {
         if !game.make_move(rev, &irr) {
@@ -150,13 +149,28 @@ fn alpha_beta(
             best_mv = Some(rev);
         }
 
-        alpha = alpha.max(score);
-        if alpha >= beta {
-            if legal_mv_num == 1 {
-                info.fail_hard_first += 1;
+        if score > alpha {
+            if score >= beta {
+                if legal_mv_num == 1 {
+                    info.fail_hard_first += 1;
+                }
+
+                if let Some(mv) = &best_mv {
+                    if !mv.flag.is_capture() {
+                        game.s_killers[game.ply][0] = game.s_killers[game.ply][1];
+                        game.s_killers[game.ply][1] = Some(**mv);
+                    }
+                }
+
+                info.fail_hard += 1;
+                return beta;
             }
-            info.fail_hard += 1;
-            break;
+            alpha = score; //alpha.max(score);
+            if let Some(mv) = &best_mv {
+                if !mv.flag.is_capture() {
+                    game.s_history[mv.piece.idx()][mv.to as usize] += (depth * depth) as u64;
+                }
+            }
         }
     }
 
@@ -211,7 +225,8 @@ pub fn iterative_deepening(game: &mut Game, info: &mut SearchInfo) -> Option<Pos
         print_move_list(&line);
         println!("");
         // println!("Fail Hard First: {:?}, Fail Hard: {:?}", info.fail_hard_first, info.fail_hard);
-        println!("Ordering: {:.2}", ((info.fail_hard_first) as f64 / (info.fail_hard + 1) as f64));
+        println!("Ordering: {:.4}", ((info.fail_hard_first) as f64 / (info.fail_hard + 1) as f64));
+        println!("Nodes Checked: {:?}", info.nodes);
         println!("");
     }
 

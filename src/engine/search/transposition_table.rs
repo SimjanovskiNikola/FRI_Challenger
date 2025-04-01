@@ -4,7 +4,7 @@ use crate::engine::{
     shared::structures::internal_move::{PositionIrr, PositionRev},
 };
 
-const MAX_TT_ENTRIES: usize = 40000;
+const MAX_TT_ENTRIES: usize = 20000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TTEntry {
@@ -13,7 +13,7 @@ pub struct TTEntry {
 }
 
 impl TTEntry {
-    fn init(key: u64, rev: PositionRev) -> Self {
+    pub fn init(key: u64, rev: PositionRev) -> Self {
         Self { key, rev }
     }
 }
