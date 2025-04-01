@@ -29,6 +29,7 @@ pub const FEN_BUG_2SQ_PAWN: &str = "8/8/8/K7/5p1k/8/4P3/8 w - - 0 1";
 
 pub const FEN_MATE_IN_3: &str = "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1";
 pub const FEN_MATE_IN_4: &str = "r1b1Rbk1/1p3p1p/p2q2pQ/3P4/3Nn3/1P1n1PP1/PB4BP/R5K1 w - - 0 1";
+pub const FEN_MATE_IN_5: &str = "N1bk3r/P5pp/3b1p2/3B4/R2nP1nq/3P3N/1BP3KP/4Q2R b - - 0 1";
 // **** END: FEN STRINGS ****
 
 /* A Chess board has files and ranks */

@@ -6,14 +6,6 @@ use crate::engine::{
     },
 };
 
-const KING_WT: isize = 20000;
-const QUEEN_WT: isize = 900;
-const ROOK_WT: isize = 500;
-const BISHOP_WT: isize = 350;
-const KNIGHT_WT: isize = 325;
-const PAWN_WT: isize = 100;
-
-const PIECE_WEIGHTS: [isize; 6] = [PAWN_WT, KNIGHT_WT, BISHOP_WT, ROOK_WT, QUEEN_WT, KING_WT];
 // TODO: Add (-0.5 for doubled, blocked, or isolated Pawns)
 // TODO: Add (+0.1 for Mobility)
 
@@ -135,7 +127,7 @@ pub trait Evaluation {
 impl Evaluation for Game {
     #[inline(always)]
     fn evaluate_pos(&self) -> isize {
-        (Self::material_balance(self) as isize) + Self::material_sq(self)
+        ((Self::material_balance(self) as isize) + Self::material_sq(self)) * self.color.sign()
     }
 
     #[inline(always)]
@@ -172,8 +164,8 @@ impl Evaluation for Game {
     #[inline(always)]
     fn material_balance(&self) -> isize {
         let mut score = 0;
-        for (idx, piece) in PIECES.iter().enumerate() {
-            score += PIECE_WEIGHTS[idx]
+        for piece in &PIECES {
+            score += piece.weight()
                 * (self.bitboard[(piece + WHITE).idx()].count() as isize
                     - self.bitboard[(piece + BLACK).idx()].count() as isize)
         }
