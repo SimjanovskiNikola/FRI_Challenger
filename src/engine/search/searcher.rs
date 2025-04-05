@@ -14,37 +14,37 @@ use crate::engine::{
         },
     },
 };
-use std::time::{Duration, Instant};
+use std::{
+    time::{Duration, Instant},
+    u64,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SearchInfo {
-    start_time: Instant,
-    end_time: usize,
-    time_limit: Duration,
-    depth: usize,
-    depth_set: usize,
-    time_set: usize,
-    moves_togo: usize,
-    infinite: bool,
+    pub start_time: Instant,
+    pub time_limit: Option<Duration>,
 
-    nodes: usize,
+    pub depth: Option<usize>,
 
-    quit: bool,
-    stopped: bool,
+    pub moves_togo: usize,
+    pub infinite: bool,
 
-    fail_hard: usize,
-    fail_hard_first: usize,
+    pub nodes: usize,
+
+    pub quit: bool,
+    pub stopped: bool,
+
+    pub fail_hard: usize,
+    pub fail_hard_first: usize,
 }
 
 impl SearchInfo {
     pub fn init() -> Self {
         Self {
             start_time: Instant::now(),
-            end_time: 0,
-            time_limit: Duration::new(2, 0),
-            depth: 0,
-            depth_set: 0,
-            time_set: 0,
+            time_limit: None,
+            depth: None,
+
             moves_togo: 0,
             infinite: false,
 
@@ -63,24 +63,19 @@ pub fn check_time_up() {
     todo!();
 }
 
-pub fn clear_search(game: &mut Game, info: &mut SearchInfo) {
+pub fn clear_search(game: &mut Game) {
     game.s_killers.iter_mut().for_each(|arr| arr.fill(None));
     game.s_history.iter_mut().for_each(|arr| arr.fill(0));
     game.tt.clear();
     game.ply = 0;
 
-    info.start_time = Instant::now();
-    info.stopped = false;
-    info.nodes = 0;
+    game.info.start_time = Instant::now();
+    game.info.stopped = false;
+    game.info.nodes = 0;
 }
 
-fn quiescence_search(
-    mut alpha: isize,
-    beta: isize,
-    game: &mut Game,
-    info: &mut SearchInfo,
-) -> isize {
-    info.nodes += 1;
+fn quiescence_search(mut alpha: isize, beta: isize, game: &mut Game) -> isize {
+    game.info.nodes += 1;
     let stand_pat = game.evaluate_pos();
     if stand_pat >= beta {
         return beta;
@@ -91,11 +86,15 @@ fn quiescence_search(
     let (irr, mut pos_rev) = gen_captures(game.color, game);
 
     for rev in &mut pos_rev {
+        if time_over_or_stopped(game) {
+            break;
+        }
+
         if !game.make_move(rev, &irr) {
             continue;
         }
 
-        let score = -quiescence_search(-beta, -alpha, game, info);
+        let score = -quiescence_search(-beta, -alpha, game);
         game.undo_move();
 
         if score >= beta {
@@ -113,17 +112,13 @@ fn alpha_beta(
     mut beta: isize,
     depth: usize,
     game: &mut Game,
-    info: &mut SearchInfo,
     take_null: bool,
 ) -> isize {
-    // || game.is_over()
+    game.info.nodes += 1;
     if depth == 0 {
-        info.nodes += 1;
-        return quiescence_search(alpha, beta, game, info);
+        return quiescence_search(alpha, beta, game);
     }
 
-    info.nodes += 1;
-    // info.start_time.elapsed() >= info.time_limit ||
     if is_repetition(game) || game.half_move >= 100 {
         return 0;
     }
@@ -136,11 +131,15 @@ fn alpha_beta(
     let (irr, mut pos_rev) = gen_moves(game.color, game);
 
     for rev in &mut pos_rev {
+        if time_over_or_stopped(game) {
+            break;
+        }
+
         if !game.make_move(rev, &irr) {
             continue;
         }
         legal_mv_num += 1;
-        let score = -alpha_beta(-beta, -alpha, depth - 1, game, info, true);
+        let score = -alpha_beta(-beta, -alpha, depth - 1, game, true);
 
         game.undo_move();
 
@@ -152,7 +151,7 @@ fn alpha_beta(
         if score > alpha {
             if score >= beta {
                 if legal_mv_num == 1 {
-                    info.fail_hard_first += 1;
+                    game.info.fail_hard_first += 1;
                 }
 
                 if let Some(mv) = &best_mv {
@@ -162,10 +161,10 @@ fn alpha_beta(
                     }
                 }
 
-                info.fail_hard += 1;
+                game.info.fail_hard += 1;
                 return beta;
             }
-            alpha = score; //alpha.max(score);
+            alpha = score;
             if let Some(mv) = &best_mv {
                 if !mv.flag.is_capture() {
                     game.s_history[mv.piece.idx()][mv.to as usize] += (depth * depth) as u64;
@@ -193,19 +192,17 @@ fn alpha_beta(
     best_score
 }
 
-pub fn iterative_deepening(game: &mut Game, info: &mut SearchInfo) -> Option<PositionRev> {
-    info.start_time = Instant::now();
-    info.time_limit = Duration::new(10, 0);
+pub fn iterative_deepening(game: &mut Game) -> Option<PositionRev> {
     let mut best_mv = None;
     let mut best_score = MIN_INF;
-    clear_search(game, info);
+    clear_search(game);
 
-    for depth in 1..8 {
-        best_score = alpha_beta(MIN_INF, MAX_INF, depth, game, info, true);
+    for depth in 1..game.info.depth.unwrap_or(63) + 1 {
+        best_score = alpha_beta(MIN_INF, MAX_INF, depth, game, true);
 
-        // if info.start_time.elapsed() >= info.time_limit {
-        //     break;
-        // }
+        if time_over_or_stopped(game) {
+            break;
+        }
 
         let line = get_line(game, game.key);
         if line.len() > 0 {
@@ -225,15 +222,21 @@ pub fn iterative_deepening(game: &mut Game, info: &mut SearchInfo) -> Option<Pos
         print_move_list(&line);
         println!("");
         // println!("Fail Hard First: {:?}, Fail Hard: {:?}", info.fail_hard_first, info.fail_hard);
-        println!("Ordering: {:.4}", ((info.fail_hard_first) as f64 / (info.fail_hard + 1) as f64));
-        println!("Nodes Checked: {:?}", info.nodes);
-        println!("");
+        // println!(
+        //     "Ordering: {:.4}",
+        //     ((game.info.fail_hard_first) as f64 / (game.info.fail_hard + 1) as f64)
+        // );
+        // println!("Nodes Checked: {:?}", game.info.nodes);
+        // println!("");
     }
 
-    match best_mv {
-        Some(mv) => Some(mv),
-        None => panic!("No Move Was returned"),
-    }
+    best_mv
+}
+
+fn time_over_or_stopped(game: &Game) -> bool {
+    game.info.start_time.elapsed()
+        >= game.info.time_limit.unwrap_or(Duration::from_millis(u64::MAX))
+        || game.info.stopped
 }
 
 const MAX_INF: isize = isize::MAX / 2;
