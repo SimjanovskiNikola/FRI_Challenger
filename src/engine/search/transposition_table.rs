@@ -4,7 +4,7 @@ use crate::engine::{
     shared::structures::internal_move::{PositionIrr, PositionRev},
 };
 
-const MAX_TT_ENTRIES: usize = 20000;
+const MAX_TT_ENTRIES: usize = 100000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TTEntry {
@@ -18,14 +18,14 @@ impl TTEntry {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TTTable {
-    pub table: [Option<TTEntry>; MAX_TT_ENTRIES],
+    pub table: Vec<Option<TTEntry>>,
 }
 
 impl TTTable {
     pub fn init() -> Self {
-        Self { table: [None; MAX_TT_ENTRIES] }
+        Self { table: vec![None; MAX_TT_ENTRIES] }
     }
 
     pub fn idx(key: u64) -> usize {
@@ -33,14 +33,16 @@ impl TTTable {
     }
 
     pub fn set(&mut self, key: u64, rev: PositionRev) {
-        self.table[Self::idx(key)] = Some(TTEntry::init(key, rev));
+        self.table.insert(Self::idx(key), Some(TTEntry::init(key, rev)));
     }
 
     pub fn get(&self, key: u64) -> Option<TTEntry> {
         let idx = Self::idx(key);
-        if let Some(entry) = self.table[idx] {
-            if entry.key == key {
-                return Some(entry);
+        if let Some(entry) = self.table.get(idx) {
+            if let Some(e) = *entry {
+                if e.key == key {
+                    return Some(e);
+                }
             }
         }
         return None;

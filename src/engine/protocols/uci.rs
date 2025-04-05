@@ -42,8 +42,6 @@ impl UCI {
     }
 
     pub fn main(&mut self) {
-        Self::engine_metadata();
-
         let (tx, rx) = mpsc::channel::<String>();
 
         let _input_handle = thread::spawn(move || {
@@ -74,6 +72,7 @@ impl UCI {
                     }
 
                     match args[0] {
+                        "uci" => self.uci(),
                         "quit" => {
                             self.abort_search();
                             break;
@@ -96,6 +95,12 @@ impl UCI {
 
             thread::sleep(Duration::from_millis(5));
         }
+    }
+
+    fn uci(&mut self) {
+        println!("id name {}", "Challenger 1.0");
+        println!("id author Nikola Simjanovski");
+        println!("uciok");
     }
 
     fn stop(&mut self) {
@@ -140,7 +145,7 @@ impl UCI {
             self.game.make_move(&rev, &irr);
         }
         self.game.ply = 0;
-        print_chess(&self.game);
+        // print_chess(&self.game);
     }
 
     fn go(&mut self, args: &[&str]) {
@@ -198,11 +203,11 @@ impl UCI {
 
             if !infinite && matches!(time_limit, None) && game_clone.color.is_white() {
                 game_clone.info.time_limit = Some(Duration::from_millis(
-                    ((wtime.unwrap_or(0) / moves_togo.unwrap_or(2)) + winc.unwrap_or(0)) as u64,
+                    ((wtime.unwrap_or(0) / moves_togo.unwrap_or(40)) + winc.unwrap_or(0)) as u64,
                 ));
             } else if !infinite && matches!(time_limit, None) && game_clone.color.is_black() {
                 game_clone.info.time_limit = Some(Duration::from_millis(
-                    ((btime.unwrap_or(0) / moves_togo.unwrap_or(2)) + binc.unwrap_or(0)) as u64,
+                    ((btime.unwrap_or(0) / moves_togo.unwrap_or(40)) + binc.unwrap_or(0)) as u64,
                 ));
             } else {
                 game_clone.info.time_limit = time_limit.or(Some(Duration::from_millis(u64::MAX)));

@@ -60,7 +60,6 @@ pub fn print_board(chess_board: &[String; 64]) {
     println!();
 }
 
-// pub fn print_move_list(moves: &[InternalMove]) {
 pub fn print_move_list(moves: &[PositionRev]) {
     for (idx, mv) in moves.iter().enumerate() {
         let promotion = match mv.flag {
@@ -70,6 +69,20 @@ pub fn print_move_list(moves: &[PositionRev]) {
 
         println!("{}. Move: {}, (Score: {})", idx, move_notation(mv.from, mv.to, promotion), 0);
     }
+}
+
+pub fn get_move_list(moves: &[PositionRev]) -> String {
+    let mut move_list_resp: String = String::new();
+    for mv in moves {
+        let promotion = match mv.flag {
+            Flag::Promotion(piece, _) => Some(piece),
+            _ => None,
+        };
+        move_list_resp.push_str(" ");
+        move_list_resp.push_str(move_notation(mv.from, mv.to, promotion).as_str());
+    }
+
+    return move_list_resp;
 }
 
 pub fn move_notation(sq_from: u8, sq_to: u8, promotion: Option<Piece>) -> String {

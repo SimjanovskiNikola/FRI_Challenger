@@ -7,7 +7,10 @@ use crate::engine::{
     },
     search::transposition_table::get_line,
     shared::{
-        helper_func::{bitboard::BitboardTrait, print_utility::print_move_list},
+        helper_func::{
+            bitboard::BitboardTrait,
+            print_utility::{get_move_list, print_move_list},
+        },
         structures::{
             internal_move::PositionRev,
             piece::{PieceTrait, KING},
@@ -209,18 +212,13 @@ pub fn iterative_deepening(game: &mut Game) -> Option<PositionRev> {
             best_mv = Some(line[0]);
         }
 
-        println!("-------------------------");
-        println!("Depth: {:?}", depth);
-        match best_mv {
-            Some(m) => print_move_list(&[m]),
-            None => (),
-        };
-
-        println!("Score {:?}", best_score);
-        println!("-------------------------");
-        println!("-------Best Line---------");
-        print_move_list(&line);
-        println!("");
+        println!(
+            "info depth {} nodes {} score cp {} pv{}",
+            depth,
+            game.info.nodes,
+            best_score,
+            get_move_list(&line)
+        );
         // println!("Fail Hard First: {:?}, Fail Hard: {:?}", info.fail_hard_first, info.fail_hard);
         // println!(
         //     "Ordering: {:.4}",

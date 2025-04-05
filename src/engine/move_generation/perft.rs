@@ -129,18 +129,20 @@ pub fn init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
     stats
 }
 
-pub fn profiler_init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
-    let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
+// It is commented Out because I can't cargo build --release my engine without going into the Dev Container
+// NOTE: To use uncomment the pprof inside Cargo.toml
+// pub fn profiler_init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
+//     let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
 
-    let stats = init_test_func(fen, depth, dispaly_stats);
+//     let stats = init_test_func(fen, depth, dispaly_stats);
 
-    if let Ok(report) = guard.report().build() {
-        let file = File::create("flamegraph.svg").unwrap();
-        report.flamegraph(file).unwrap();
-    };
+//     if let Ok(report) = guard.report().build() {
+//         let file = File::create("flamegraph.svg").unwrap();
+//         report.flamegraph(file).unwrap();
+//     };
 
-    stats
-}
+//     stats
+// }
 
 #[cfg(test)]
 mod tests {
