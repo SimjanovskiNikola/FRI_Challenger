@@ -1,7 +1,13 @@
+use core::panic;
 use std::array;
 
+use iai_callgrind::Direction;
+
 use crate::engine::game::*;
+use crate::engine::move_generation::mv_gen::gen_moves;
+use crate::engine::move_generation::mv_gen::move_exists;
 use crate::engine::shared::helper_func::bit_pos_utility::*;
+use crate::engine::shared::helper_func::bitboard::Bitboard;
 use crate::engine::shared::helper_func::const_utility::*;
 use crate::engine::shared::structures::internal_move::*;
 use crate::engine::shared::structures::piece::*;
@@ -79,4 +85,16 @@ pub fn move_notation(sq_from: u8, sq_to: u8, promotion: Option<Piece>) -> String
 pub fn sq_notation(square: u8) -> String {
     let (rank, file) = idx_to_position(square as usize, None);
     format!("{}{}", FILE_LETTERS[file], rank + 1)
+}
+
+pub fn from_move_notation(notation: &str, game: &Game) -> (PositionIrr, PositionRev) {
+    let (irr, pos_rev) = gen_moves(game.color, game);
+
+    for rev in &pos_rev {
+        let mv_notation = move_notation(rev.from, rev.to, rev.flag.get_promo_piece());
+        if notation == mv_notation {
+            return (irr, *rev);
+        }
+    }
+    panic!("Something is wrong with the move");
 }

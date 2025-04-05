@@ -10,14 +10,13 @@ use crate::engine::move_generation::make_move::GameMoveTrait;
 use crate::engine::move_generation::mv_gen::gen_moves;
 use crate::engine::move_generation::mv_gen::is_repetition;
 use crate::engine::search::searcher::iterative_deepening;
-use crate::engine::search::searcher::SearchInfo;
 use crate::engine::search::transposition_table::get_line;
 use crate::engine::shared::helper_func::print_utility::move_notation;
 use crate::engine::shared::helper_func::print_utility::print_chess;
 use crate::engine::shared::helper_func::print_utility::print_move_list;
 use crate::engine::shared::structures::internal_move::Flag;
 
-pub fn play_chess(game: &mut Game, info: &mut SearchInfo) {
+pub fn play_chess(game: &mut Game) {
     // let mut move_list: Vec<InternalMove>;
     let (mut irr, mut pos_rev) = gen_moves(game.color, game);
 
@@ -53,7 +52,7 @@ pub fn play_chess(game: &mut Game, info: &mut SearchInfo) {
                 }
             }
             "s" => {
-                iterative_deepening(game, info);
+                iterative_deepening(game);
                 // println!("{:#?}", game.moves.last());
             }
             "g" => {

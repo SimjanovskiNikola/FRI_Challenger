@@ -21,6 +21,13 @@ impl Flag {
             _ => false,
         }
     }
+
+    pub fn get_promo_piece(&self) -> Option<Piece> {
+        match *self {
+            Flag::Promotion(piece, _) => Some(piece),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

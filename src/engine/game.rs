@@ -1,4 +1,5 @@
 use super::fen::fen::FenTrait;
+use super::search::searcher::SearchInfo;
 use super::search::transposition_table::TTTable;
 use super::shared::helper_func::bitboard::*;
 use super::shared::helper_func::const_utility::*;
@@ -8,27 +9,39 @@ use super::shared::structures::internal_move::PositionRev;
 use super::shared::structures::piece::Piece;
 use crate::engine::shared::structures::castling_struct::CastlingRights;
 
-// TODO: Add More Constants, Max position moves, Max Depth
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Game {
+    // Peace Occupancy (Bitboard Representation)
     pub squares: [Option<Piece>; 64],
     pub occupancy: [Bitboard; 2],
     pub bitboard: [Bitboard; 14],
 
+    // Position Vectors (Moves until now)
+    pub pos_rev: Vec<PositionRev>,
+    pub pos_irr: Vec<PositionIrr>,
+
+    // Position Key
     pub key: u64,
+
+    // Fen Parameters
     pub color: Color,
     pub castling: CastlingRights,
     pub ep: Option<u8>,
     pub half_move: u8,
     pub full_move: u16,
+
+    // Moves Played from the position that is on the board.
     pub ply: usize,
 
-    pub pos_rev: Vec<PositionRev>,
-    pub pos_irr: Vec<PositionIrr>,
-
+    // Transposition Table
     pub tt: TTTable,
+
+    // Move Ordering Technics
     pub s_history: [[u64; 64]; 14],
     pub s_killers: [[Option<PositionRev>; 2]; 64],
+
+    // Search Info and UCI commands FIXME: Split maybe in two structs
+    pub info: SearchInfo,
 }
 
 impl Game {
@@ -54,6 +67,7 @@ impl Game {
             s_history: [[0u64; 64]; 14],
             s_killers: [[None; 2]; 64],
             ply: 0,
+            info: SearchInfo::init(),
         }
     }
 
@@ -69,6 +83,7 @@ impl Game {
         self.pos_rev = Vec::with_capacity(1024);
         self.pos_irr = Vec::with_capacity(1024);
         self.tt = TTTable::init();
+        self.info = SearchInfo::init();
     }
 }
 

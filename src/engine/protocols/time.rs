@@ -1,3 +1,3 @@
-trait Time {}
+// trait Time {}
 
-impl Time for Game {}
+// impl Time for Game {}

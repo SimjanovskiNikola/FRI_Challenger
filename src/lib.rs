@@ -23,6 +23,10 @@ pub mod engine {
     pub mod evaluation {
         pub mod evaluation;
     }
+    pub mod protocols {
+        pub mod time;
+        pub mod uci;
+    }
     pub mod search {
         pub mod searcher;
         pub mod transposition_table;
