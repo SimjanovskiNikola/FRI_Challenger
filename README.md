@@ -1,1 +1,1 @@
-# Simple Man Chess Engine
+# FRI_Challenger
