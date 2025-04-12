@@ -197,7 +197,7 @@ impl UCI {
         let handle = thread::spawn(move || {
             game_clone.info.start_time = Instant::now();
             game_clone.info.infinite = infinite;
-            game_clone.info.depth = depth.or(Some(12));
+            game_clone.info.depth = depth.or(Some(30));
             game_clone.info.infinite = infinite;
 
             if !infinite && matches!(time_limit, None) && game_clone.color.is_white() {
