@@ -99,10 +99,10 @@ fn eval_pos(pos: &PositionRev, game: &Game) -> isize {
         }
         Flag::KingCastle => 20,
         Flag::QueenCastle => 20,
-        Flag::Capture(cap) => cap.weight() - pos.piece as isize,
-        Flag::EP => PAWN.weight(),
-        Flag::Promotion(promo, Some(cap)) => cap.weight() - pos.piece as isize + promo.weight(),
-        Flag::Promotion(promo, None) => promo.weight(),
+        Flag::Capture(cap) => cap.weight(0) - pos.piece as isize,
+        Flag::EP => PAWN.weight(0),
+        Flag::Promotion(promo, Some(cap)) => cap.weight(0) - pos.piece as isize + promo.weight(0),
+        Flag::Promotion(promo, None) => promo.weight(0),
     }
 }
 
@@ -123,7 +123,7 @@ fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ:
 }
 
 #[inline(always)]
-fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
+pub fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
     (game.occupancy[(WHITE + piece.color()).idx()], game.occupancy[(BLACK - piece.color()).idx()])
 }
 
@@ -160,7 +160,6 @@ fn get_positions_rev(
             from: from_sq as u8,
             to: to_sq as u8,
             piece: *piece,
-            capture: game.squares[to_sq],
             flag: match game.squares[to_sq] {
                 None => Flag::Quiet,
                 Some(piece) => Flag::Capture(piece),
@@ -206,42 +205,18 @@ pub fn add_castling_moves(piece: &Piece, game: &Game, positions: &mut Vec<Positi
     match piece.color() {
         WHITE => {
             if game.castling.valid(CastlingRights::WKINGSIDE, game, own, enemy) {
-                positions.push(PositionRev::init(
-                    E1 as u8,
-                    G1 as u8,
-                    *piece,
-                    None,
-                    Flag::KingCastle,
-                ));
+                positions.push(PositionRev::init(E1 as u8, G1 as u8, *piece, Flag::KingCastle));
             }
             if game.castling.valid(CastlingRights::WQUEENSIDE, game, own, enemy) {
-                positions.push(PositionRev::init(
-                    E1 as u8,
-                    C1 as u8,
-                    *piece,
-                    None,
-                    Flag::QueenCastle,
-                ));
+                positions.push(PositionRev::init(E1 as u8, C1 as u8, *piece, Flag::QueenCastle));
             }
         }
         BLACK => {
             if game.castling.valid(CastlingRights::BKINGSIDE, game, own, enemy) {
-                positions.push(PositionRev::init(
-                    E8 as u8,
-                    G8 as u8,
-                    *piece,
-                    None,
-                    Flag::KingCastle,
-                ));
+                positions.push(PositionRev::init(E8 as u8, G8 as u8, *piece, Flag::KingCastle));
             }
             if game.castling.valid(CastlingRights::BQUEENSIDE, game, own, enemy) {
-                positions.push(PositionRev::init(
-                    E8 as u8,
-                    C8 as u8,
-                    *piece,
-                    None,
-                    Flag::QueenCastle,
-                ));
+                positions.push(PositionRev::init(E8 as u8, C8 as u8, *piece, Flag::QueenCastle));
             }
         }
         _ => panic!("Invalid Castling"),

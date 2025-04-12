@@ -143,9 +143,8 @@ impl UCI {
         for s in moves {
             let (irr, rev) = from_move_notation(s, &self.game);
             self.game.make_move(&rev, &irr);
+            self.game.ply = 0;
         }
-        self.game.ply = 0;
-        // print_chess(&self.game);
     }
 
     fn go(&mut self, args: &[&str]) {

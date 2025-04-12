@@ -39,14 +39,8 @@ pub const CLR_PIECES: [Piece; 12] = [
     BLACK_KING,
 ];
 
-const KING_WT: isize = 20000;
-const QUEEN_WT: isize = 900;
-const ROOK_WT: isize = 500;
-const BISHOP_WT: isize = 350;
-const KNIGHT_WT: isize = 325;
-const PAWN_WT: isize = 100;
-
-pub const PIECE_WT: [isize; 6] = [PAWN_WT, KNIGHT_WT, BISHOP_WT, ROOK_WT, QUEEN_WT, KING_WT];
+pub const PIECE_WT: [[isize; 6]; 2] =
+    [[82, 337, 20000, 365, 477, 1025], [94, 281, 20000, 297, 512, 936]];
 
 pub trait PieceTrait {
     fn color(&self) -> Color;
@@ -61,7 +55,7 @@ pub trait PieceTrait {
     fn is_queen(&self) -> bool;
     fn is_king(&self) -> bool;
 
-    fn weight(&self) -> isize;
+    fn weight(&self, stage: usize) -> isize;
 
     fn from_char(c: char) -> Self;
     fn to_char(&self) -> char;
@@ -121,8 +115,8 @@ impl PieceTrait for Piece {
     }
 
     #[inline(always)]
-    fn weight(&self) -> isize {
-        PIECE_WT[(self.kind() / 2).idx() - 1]
+    fn weight(&self, stage: usize) -> isize {
+        PIECE_WT[stage][(self.kind() / 2).idx() - 1]
     }
 
     #[inline(always)]
