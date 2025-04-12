@@ -35,13 +35,12 @@ pub struct PositionRev {
     pub from: u8,
     pub to: u8,
     pub piece: Piece,
-    pub capture: Option<Piece>,
     pub flag: Flag,
 }
 
 impl PositionRev {
-    pub fn init(from: u8, to: u8, piece: Piece, capture: Option<Piece>, flag: Flag) -> Self {
-        Self { from, to, piece, capture, flag }
+    pub fn init(from: u8, to: u8, piece: Piece, flag: Flag) -> Self {
+        Self { from, to, piece, flag }
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
