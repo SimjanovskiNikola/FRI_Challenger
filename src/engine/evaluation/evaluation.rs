@@ -189,10 +189,10 @@ const OK_SQ:[usize;64] = [
 
 pub trait Evaluation {
     fn evaluate_pos(&self) -> isize;
-    // fn material_sq(&self) -> isize;
-    // fn piece_eval(piece: &Piece, sq: usize) -> isize;
+    fn material_sq(&self) -> isize;
+    fn piece_eval(piece: &Piece, sq: usize) -> isize;
     // fn pawn_eval(piece: &Piece, sq: usize, pawns: (u64, u64)) -> isize;
-    // fn material_balance(&self) -> isize;
+    fn material_balance(&self) -> isize;
 }
 
 impl Evaluation for Game {
@@ -206,7 +206,11 @@ impl Evaluation for Game {
         for piece in &CLR_PIECES {
             let mut bb = self.bitboard[piece.idx()];
             while bb != 0 {
-                let sq = bb.pop_lsb();
+                let mut sq = bb.pop_lsb();
+                if piece.is_black() {
+                    sq = OK_SQ[sq];
+                }
+
                 middle_game[piece.color().idx()] +=
                     EVAL_TABLE[((piece.kind() / 2) - 1).idx()][0][sq];
                 end_game[piece.color().idx()] += EVAL_TABLE[((piece.kind() / 2) - 1).idx()][1][sq];
@@ -218,66 +222,67 @@ impl Evaluation for Game {
             }
         }
 
-        let mg_score = (middle_game[WHITE.idx()] - middle_game[BLACK.idx()]) * self.color.sign();
-        let eg_score = (end_game[WHITE.idx()] - end_game[BLACK.idx()]) * self.color.sign();
+        let mg_score = middle_game[self.color.idx()] - middle_game[self.color.opp().idx()];
+        let eg_score = end_game[self.color.idx()] - end_game[self.color.opp().idx()];
         let mg_phase = game_phase.min(24);
         let eg_phase = 24 - mg_phase;
+
         return (mg_score * mg_phase + eg_score * eg_phase) / 24;
 
         // (Self::material_balance(self) + Self::material_sq(self)) * self.color.sign()
     }
 
-    // #[inline(always)]
-    // fn material_sq(&self) -> isize {
-    //     let mut score: isize = 0;
-    //     for piece in &CLR_PIECES {
-    //         let mut bb = self.bitboard[piece.idx()];
-    //         while bb != 0 {
-    //             let sq = bb.pop_lsb();
-    //             if piece.is_white() {
-    //                 score += Self::piece_eval(piece, OK_SQ[sq]);
-    //                 score += Self::pawn_eval(
-    //                     piece,
-    //                     sq,
-    //                     (self.bitboard[WHITE_PAWN.idx()], self.bitboard[BLACK_PAWN.idx()]),
-    //                 )
-    //             } else {
-    //                 score -= Self::piece_eval(piece, OPP_SQ[sq]);
-    //                 score -= Self::pawn_eval(
-    //                     piece,
-    //                     sq,
-    //                     (self.bitboard[BLACK_PAWN.idx()], self.bitboard[WHITE_PAWN.idx()]),
-    //                 )
-    //             }
-    //         }
-    //     }
+    #[inline(always)]
+    fn material_sq(&self) -> isize {
+        let mut score: isize = 0;
+        for piece in &CLR_PIECES {
+            let mut bb = self.bitboard[piece.idx()];
+            while bb != 0 {
+                let sq = bb.pop_lsb();
+                if piece.is_white() {
+                    score += Self::piece_eval(piece, OK_SQ[sq]);
+                    // score += Self::pawn_eval(
+                    //     piece,
+                    //     sq,
+                    //     (self.bitboard[WHITE_PAWN.idx()], self.bitboard[BLACK_PAWN.idx()]),
+                    // )
+                } else {
+                    score -= Self::piece_eval(piece, OPP_SQ[sq]);
+                    // score -= Self::pawn_eval(
+                    //     piece,
+                    //     sq,
+                    //     (self.bitboard[BLACK_PAWN.idx()], self.bitboard[WHITE_PAWN.idx()]),
+                    // )
+                }
+            }
+        }
 
-    //     score
-    // }
+        score
+    }
 
-    // #[inline(always)]
-    // fn piece_eval(piece: &Piece, sq: usize) -> isize {
-    //     match piece.kind() {
-    //         PAWN => PAWN_EVAL[sq],
-    //         KNIGHT => KNIGHT_EVAL[sq],
-    //         BISHOP => BISHOP_EVAL[sq],
-    //         ROOK => ROOK_EVAL[sq],
-    //         QUEEN => QUEEN_EVAL[sq],
-    //         KING => KING_MG_EVAL[sq],
-    //         _ => panic!(" Not the right type, Something is wrong"),
-    //     }
-    // }
+    #[inline(always)]
+    fn piece_eval(piece: &Piece, sq: usize) -> isize {
+        match piece.kind() {
+            PAWN => PAWN_EVAL[0][sq],
+            KNIGHT => KNIGHT_EVAL[0][sq],
+            BISHOP => BISHOP_EVAL[0][sq],
+            ROOK => ROOK_EVAL[0][sq],
+            QUEEN => QUEEN_EVAL[0][sq],
+            KING => KING_EVAL[0][sq],
+            _ => panic!(" Not the right type, Something is wrong"),
+        }
+    }
 
-    // #[inline(always)]
-    // fn material_balance(&self) -> isize {
-    //     let mut score = 0;
-    //     for piece in &PIECES {
-    //         score += piece.weight()
-    //             * (self.bitboard[(piece + WHITE).idx()].count() as isize
-    //                 - self.bitboard[(piece + BLACK).idx()].count() as isize)
-    //     }
-    //     score
-    // }
+    #[inline(always)]
+    fn material_balance(&self) -> isize {
+        let mut score = 0;
+        for piece in &PIECES {
+            score += piece.weight(0)
+                * (self.bitboard[(piece + WHITE).idx()].count() as isize
+                    - self.bitboard[(piece + BLACK).idx()].count() as isize)
+        }
+        score
+    }
 
     // #[inline(always)]
     // fn pawn_eval(piece: &Piece, sq: usize, (own_pawns, enemy_pawns): (u64, u64)) -> isize {
@@ -308,38 +313,3 @@ impl Evaluation for Game {
 // 3. Unique parameters that give advantage (Rook -> Open Files, Rook -> Connectivity Pawn -> Passed Pawn, etc...)
 // 4. Mobility
 // 5.
-
-// fn evaluation(game: &Game) -> isize {
-//     let mut eval = 0;
-//     // NOTE: WHITE_PAWN
-//     eval += (game.bitboard[WHITE_PAWN.idx()].count() as isize) * WHITE_PAWN.weight();
-//     eval += (game.bitboard[BLACK_PAWN.idx()].count() as isize) * BLACK_PAWN.weight();
-//     eval += (game.bitboard[WHITE_KNIGHT.idx()].count() as isize) * WHITE_KNIGHT.weight();
-//     eval += (game.bitboard[BLACK_KNIGHT.idx()].count() as isize) * BLACK_KNIGHT.weight();
-//     eval += (game.bitboard[WHITE_BISHOP.idx()].count() as isize) * WHITE_BISHOP.weight();
-//     eval += (game.bitboard[BLACK_BISHOP.idx()].count() as isize) * BLACK_BISHOP.weight();
-//     eval += (game.bitboard[WHITE_ROOK.idx()].count() as isize) * WHITE_ROOK.weight();
-//     eval += (game.bitboard[BLACK_ROOK.idx()].count() as isize) * BLACK_ROOK.weight();
-//     eval += (game.bitboard[WHITE_QUEEN.idx()].count() as isize) * WHITE_QUEEN.weight();
-//     eval += (game.bitboard[BLACK_QUEEN.idx()].count() as isize) * BLACK_QUEEN.weight();
-//     eval += (game.bitboard[WHITE_KING.idx()].count() as isize) * WHITE_KING.weight();
-//     eval += (game.bitboard[BLACK_KING.idx()].count() as isize) * BLACK_KING.weight();
-
-//     let mut bb = game.bitboard[WHITE_PAWN.idx()];
-//     while bb != 0 {
-//         let sq = bb.pop_lsb();
-
-//     }
-
-//     return eval;
-// }
-
-// fn piece_eval();
-
-// fn pawn_eval();
-// fn knight_eval();
-// fn bishop_eval();
-// fn rook_eval();
-// fn queen_eval();
-// fn king_eval();
-// fn

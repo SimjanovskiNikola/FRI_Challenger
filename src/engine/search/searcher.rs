@@ -200,11 +200,22 @@ pub fn iterative_deepening(game: &mut Game) -> Option<PositionRev> {
     let mut best_score = MIN_INF;
     clear_search(game);
 
+    let mut alpha = MIN_INF;
+    let mut beta = MAX_INF;
+
     for depth in 1..game.info.depth.unwrap_or(63) + 1 {
-        best_score = alpha_beta(MIN_INF, MAX_INF, depth, game, true);
+        best_score = alpha_beta(alpha, beta, depth, game, true);
 
         if time_over_or_stopped(game) {
             break;
+        }
+
+        if (best_score <= alpha) || (best_score >= beta) {
+            alpha = MIN_INF;
+            beta = MAX_INF;
+        } else {
+            alpha = best_score - 10;
+            beta = best_score + 10;
         }
 
         let line = get_line(game, game.key);
