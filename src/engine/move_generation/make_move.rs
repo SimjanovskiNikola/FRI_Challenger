@@ -15,6 +15,8 @@ use super::mv_gen::sq_attack;
 pub trait GameMoveTrait {
     fn make_move(&mut self, rev: &PositionRev, irr: &PositionIrr) -> bool;
     fn undo_move(&mut self);
+    fn make_null_move(&mut self) -> bool;
+    fn undo_null_move(&mut self) -> bool;
     fn generate_pos_key(&mut self);
     fn add_piece(&mut self, sq: usize, piece: Piece);
     fn clear_piece(&mut self, sq: usize);
@@ -200,5 +202,13 @@ impl GameMoveTrait for Game {
         if let Some(idx) = self.ep {
             self.key ^= EP_KEYS[idx as usize]
         }
+    }
+
+    fn make_null_move(&mut self) -> bool {
+        todo!()
+    }
+
+    fn undo_null_move(&mut self) -> bool {
+        todo!()
     }
 }
