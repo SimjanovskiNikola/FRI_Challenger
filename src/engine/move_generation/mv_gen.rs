@@ -99,15 +99,15 @@ fn eval_pos(pos: &PositionRev, game: &Game) -> isize {
         }
         Flag::KingCastle => 20,
         Flag::QueenCastle => 20,
-        Flag::Capture(cap) => cap.weight(0) - pos.piece as isize,
-        Flag::EP => PAWN.weight(0),
-        Flag::Promotion(promo, Some(cap)) => cap.weight(0) - pos.piece as isize + promo.weight(0),
-        Flag::Promotion(promo, None) => promo.weight(0),
+        Flag::Capture(cap) => cap.weight() - pos.piece as isize,
+        Flag::EP => PAWN.weight(),
+        Flag::Promotion(promo, Some(cap)) => cap.weight() - pos.piece as isize + promo.weight(),
+        Flag::Promotion(promo, None) => promo.weight(),
     }
 }
 
 #[inline(always)]
-fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
+pub fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
     match piece.kind() {
         PAWN => {
             get_pawn_mv(piece.color(), pos, own_occ, enemy_occ)
