@@ -11,6 +11,23 @@ pub enum Shift {
     DownLeft = -9,
 }
 
+pub trait Iterator {
+    type Item;
+    fn next(&mut self) -> Option<Self::Item>;
+}
+
+impl Iterator for Bitboard {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<usize> {
+        if *self > 0 {
+            Some(self.pop_lsb())
+        } else {
+            None
+        }
+    }
+}
+
 pub trait BitboardTrait {
     //NOTE: Creating Bitboard
     /// Create Bitboard from Square.
@@ -180,7 +197,7 @@ impl BitboardTrait for Bitboard {
 
     #[inline(always)]
     fn count(self) -> usize {
-        self.get_bits().len()
+        self.count_ones() as usize
     }
 
     #[inline(always)]

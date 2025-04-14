@@ -149,7 +149,7 @@ impl GameMoveTrait for Game {
         self.squares[to_sq] = Some(piece);
 
         self.bitboard[piece.idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
-        self.occupancy[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
+        self.bitboard[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
         self.key ^= PIECE_KEYS[to_sq][piece.idx()] | PIECE_KEYS[from_sq][piece.idx()];
     }
 
@@ -161,7 +161,7 @@ impl GameMoveTrait for Game {
         }
         self.squares[sq] = Some(piece);
         self.bitboard[piece.idx()].set_bit(sq);
-        self.occupancy[piece.color().idx()].set_bit(sq);
+        self.bitboard[piece.color().idx()].set_bit(sq);
         self.key ^= PIECE_KEYS[sq][piece.idx()];
     }
 
@@ -172,7 +172,7 @@ impl GameMoveTrait for Game {
             Some(piece) => {
                 self.squares[sq] = None;
                 self.bitboard[piece.idx()].clear_bit(sq);
-                self.occupancy[piece.color().idx()].clear_bit(sq);
+                self.bitboard[piece.color().idx()].clear_bit(sq);
                 self.key ^= PIECE_KEYS[sq][piece.idx()];
             }
         }
