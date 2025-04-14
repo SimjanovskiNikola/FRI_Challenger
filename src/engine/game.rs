@@ -13,7 +13,6 @@ use crate::engine::shared::structures::castling_struct::CastlingRights;
 pub struct Game {
     // Peace Occupancy (Bitboard Representation)
     pub squares: [Option<Piece>; 64],
-    pub occupancy: [Bitboard; 2],
     pub bitboard: [Bitboard; 14],
 
     // Position Vectors (Moves until now)
@@ -52,7 +51,6 @@ impl Game {
     pub fn create_board() -> Self {
         Self {
             squares: [None; 64],
-            occupancy: [0 as Bitboard; 2],
             bitboard: [0 as Bitboard; 14],
             color: WHITE,
             castling: CastlingRights::NONE,
@@ -73,7 +71,6 @@ impl Game {
 
     pub fn reset_board(&mut self) {
         self.squares = [None; 64];
-        self.occupancy = [0 as Bitboard; 2];
         self.bitboard = [0 as Bitboard; 14];
         self.color = WHITE;
         self.castling = CastlingRights::NONE;
@@ -84,6 +81,11 @@ impl Game {
         self.pos_irr = Vec::with_capacity(1024);
         self.tt = TTTable::init();
         self.info = SearchInfo::init();
+    }
+
+    #[inline(always)]
+    pub fn bitboard(&self, idx: u8) -> u64 {
+        self.bitboard[idx as usize]
     }
 }
 
@@ -98,7 +100,6 @@ mod tests {
 
         assert_eq!(game.squares, [None; 64]);
         assert_eq!(game.bitboard, [0; 14]);
-        assert_eq!(game.occupancy, [0; 2]);
         assert_eq!(game.color, WHITE);
         assert_eq!(game.castling, CastlingRights::NONE);
         assert_eq!(game.ep, None);

@@ -1,29 +1,21 @@
 use std::usize;
 
-use crate::engine::{
-    attacks::{
-        generated::pawn::{BLOCKED_PAWN_LOOKUP, ISOLATED_PAWN_LOOKUP, PASSED_PAWN_LOOKUP},
-        knight::get_knight_mv,
-    },
-    game::{self, Game},
-    move_generation::mv_gen::{get_all_moves, get_occupancy},
-    shared::{
-        helper_func::{bit_pos_utility::get_bit_file, bitboard::BitboardTrait},
-        structures::{
-            color::*,
-            piece::{self, *},
-        },
-    },
-};
+use crate::engine::attacks::generated::pawn::*;
+use crate::engine::game::Game;
+use crate::engine::move_generation::mv_gen::{get_all_moves, get_occupancy};
+use crate::engine::shared::helper_func::bit_pos_utility::get_bit_rank;
+use crate::engine::shared::helper_func::bitboard::{BitboardTrait, Iterator};
+use crate::engine::shared::structures::color::*;
+use crate::engine::shared::structures::piece::*;
 
-const DOUBLE_PAWN_WT: isize = -30;
-const BLOCKED_PAWN_WT: isize = -30;
-const ISOLATED_PAWN_WT: isize = -50;
+const DOUBLE_PAWN_WT: isize = -15;
+const BLOCKED_PAWN_WT: isize = -15;
+const ISOLATED_PAWN_WT: isize = -15;
 const MOBILITY_WT: isize = 1;
-const ROOK_OPEN_FILE_WT: isize = 30;
+const ROOK_OPEN_FILE_WT: isize = 5;
 const PASSED_PAWN_WT: [[isize; 8]; 2] =
     [[0, 5, 10, 20, 35, 60, 100, 0], [0, 100, 60, 35, 20, 10, 5, 0]];
-const BISHOP_PAIR_WT: isize = 30;
+const BISHOP_PAIR_WT: isize = 10;
 const GAME_PHASE_INCREMENT: [usize; 14] = [0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 4, 4];
 
 #[rustfmt::skip]
@@ -222,8 +214,7 @@ impl Evaluation for Game {
 
         for piece in &CLR_PIECES {
             let mut bb = self.bitboard[piece.idx()];
-            while bb != 0 {
-                let sq = bb.pop_lsb();
+            while let Some(sq) = bb.next() {
                 let mut temp_score = 0;
                 temp_score += piece.weight();
 
@@ -234,12 +225,12 @@ impl Evaluation for Game {
                 temp_score += self.piece_eval(piece, sq);
 
                 if piece.color().is_black() {
-                    temp_score += get_all_moves(*piece, sq, &self, black_occ, white_occ)
-                        .count_ones() as isize
+                    temp_score += get_all_moves(*piece, sq, &self, black_occ, white_occ).count()
+                        as isize
                         * MOBILITY_WT;
                 } else {
-                    temp_score += get_all_moves(*piece, sq, &self, white_occ, black_occ)
-                        .count_ones() as isize
+                    temp_score += get_all_moves(*piece, sq, &self, white_occ, black_occ).count()
+                        as isize
                         * MOBILITY_WT;
                 }
 
@@ -272,8 +263,8 @@ impl Evaluation for Game {
         );
 
         if PASSED_PAWN_LOOKUP[piece.color().idx()][sq] & enemy_pawns == 0 {
-            let file = get_bit_file(sq) as usize;
-            score += PASSED_PAWN_WT[piece.color().idx()][file] as isize;
+            let rank = get_bit_rank(sq) as usize;
+            score += PASSED_PAWN_WT[piece.color().idx()][rank] as isize;
         }
 
         if ISOLATED_PAWN_LOOKUP[sq] & own_pawns == 0 {
@@ -299,7 +290,7 @@ impl Evaluation for Game {
 
     #[inline(always)]
     fn bishop_eval(&self, piece: &Piece, _sq: usize) -> isize {
-        if self.bitboard[piece.idx()].count_ones() >= 2 {
+        if self.bitboard(*piece).count() >= 2 {
             BISHOP_PAIR_WT
         } else {
             0

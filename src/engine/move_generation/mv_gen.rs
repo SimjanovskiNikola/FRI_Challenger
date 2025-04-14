@@ -7,6 +7,7 @@ use crate::engine::attacks::rook::*;
 use crate::engine::game::Game;
 use crate::engine::shared::helper_func::bit_pos_utility::*;
 use crate::engine::shared::helper_func::bitboard::BitboardTrait;
+use crate::engine::shared::helper_func::bitboard::Iterator;
 use crate::engine::shared::helper_func::const_utility::*;
 use crate::engine::shared::structures::castling_struct::*;
 use crate::engine::shared::structures::color::*;
@@ -32,11 +33,10 @@ pub fn gen_moves(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>) {
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
     for piece in &PIECES {
-        let mut bb = game.bitboard[(piece + color) as usize];
-        while bb != 0 {
-            let pos = bb.pop_lsb();
-            let moves = get_all_moves(piece + color, pos, game, own_occ, enemy_occ);
-            get_positions_rev(moves, &(piece + color), pos, game, &mut positions_rev);
+        let mut bb = game.bitboard(piece + color);
+        while let Some(sq) = bb.next() {
+            let moves = get_all_moves(piece + color, sq, game, own_occ, enemy_occ);
+            get_positions_rev(moves, &(piece + color), sq, game, &mut positions_rev);
         }
     }
 
@@ -63,18 +63,17 @@ pub fn gen_captures(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>
 
     for piece in &PIECES {
         let mut bb = game.bitboard[(piece + color) as usize];
-        while bb != 0 {
-            let pos = bb.pop_lsb();
+        while let Some(sq) = bb.next() {
             let moves = match piece.kind() {
-                PAWN => get_pawn_att(color, pos, own_occ, enemy_occ, game.ep),
-                KNIGHT => get_knight_mv(pos, own_occ, enemy_occ) & enemy_occ,
-                BISHOP => get_bishop_mv(pos, own_occ, enemy_occ) & enemy_occ,
-                ROOK => get_rook_mv(pos, own_occ, enemy_occ) & enemy_occ,
-                QUEEN => get_queen_mv(pos, own_occ, enemy_occ) & enemy_occ,
-                KING => get_king_mv(pos, own_occ, enemy_occ) & enemy_occ,
+                PAWN => get_pawn_att(color, sq, own_occ, enemy_occ, game.ep),
+                KNIGHT => get_knight_mv(sq, own_occ, enemy_occ) & enemy_occ,
+                BISHOP => get_bishop_mv(sq, own_occ, enemy_occ) & enemy_occ,
+                ROOK => get_rook_mv(sq, own_occ, enemy_occ) & enemy_occ,
+                QUEEN => get_queen_mv(sq, own_occ, enemy_occ) & enemy_occ,
+                KING => get_king_mv(sq, own_occ, enemy_occ) & enemy_occ,
                 _ => panic!("Invalid Peace Type"),
             };
-            get_positions_rev(moves, &(piece + color), pos, game, &mut positions_rev);
+            get_positions_rev(moves, &(piece + color), sq, game, &mut positions_rev);
         }
     }
 
@@ -124,20 +123,18 @@ pub fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_
 
 #[inline(always)]
 pub fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
-    (game.occupancy[(WHITE + piece.color()).idx()], game.occupancy[(BLACK - piece.color()).idx()])
+    (game.bitboard(WHITE + piece.color()), game.bitboard(BLACK - piece.color()))
 }
 
 #[inline(always)]
 pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
-    let op_pawns = game.bitboard[(BLACK_PAWN - color) as usize];
-    let op_knights = game.bitboard[(BLACK_KNIGHT - color) as usize];
-    let op_rq = game.bitboard[(BLACK_QUEEN - color) as usize]
-        | game.bitboard[(BLACK_ROOK - color) as usize];
-    let op_bq = game.bitboard[(BLACK_QUEEN - color) as usize]
-        | game.bitboard[(BLACK_BISHOP - color) as usize];
-    let op_king = game.bitboard[(BLACK_KING - color) as usize];
+    let op_pawns = game.bitboard(BLACK_PAWN - color);
+    let op_knights = game.bitboard(BLACK_KNIGHT - color);
+    let op_rq = game.bitboard(BLACK_QUEEN - color) | game.bitboard(BLACK_ROOK - color);
+    let op_bq = game.bitboard(BLACK_QUEEN - color) | game.bitboard(BLACK_BISHOP - color);
+    let op_king = game.bitboard(BLACK_KING - color);
 
     (get_pawn_att(color, sq, own_occ, enemy_occ, None) & op_pawns)
         | (get_knight_mv(sq, own_occ, enemy_occ) & op_knights)

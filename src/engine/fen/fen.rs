@@ -159,7 +159,7 @@ mod tests {
             black_occupancy |= 1 << i;
         }
 
-        assert_eq!(game.occupancy[WHITE.idx()], white_occupancy);
-        assert_eq!(game.occupancy[BLACK.idx()], black_occupancy);
+        assert_eq!(game.bitboard(WHITE), white_occupancy);
+        assert_eq!(game.bitboard(BLACK), black_occupancy);
     }
 }
