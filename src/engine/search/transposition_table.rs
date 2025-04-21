@@ -1,39 +1,77 @@
 use crate::engine::{
-    game::Game,
+    game::{self, Game},
     move_generation::{make_move::GameMoveTrait, mv_gen::move_exists},
     shared::structures::internal_move::{PositionIrr, PositionRev},
 };
 
-const MAX_TT_ENTRIES: usize = 100000;
+const MAX_TT_ENTRIES: usize = 2440211;
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Bound {
+    Exact,
+    Alpha,
+    Beta,
+}
+
+// NOTE: 64 + 32 + 16 + 8 + 8 = 128 BITS = 16 Bytes
+// NOTE: 1Mb = 1000000 Bytes = 166,666 Entries
+// NOTE: Currently Around 15Mb
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TTEntry {
     pub key: u64,
     pub rev: PositionRev,
+    pub score: i16,
+    pub depth: u8,
+    pub category: Bound,
 }
 
 impl TTEntry {
-    pub fn init(key: u64, rev: PositionRev) -> Self {
-        Self { key, rev }
+    pub fn init(key: u64, rev: PositionRev, score: i16, depth: u8, category: Bound) -> Self {
+        Self { key, rev, score, depth, category }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TTTable {
     pub table: Vec<Option<TTEntry>>,
+    pub lookups: u64,
+    pub inserts: u64,
+    pub hits: u64,
+    pub collisions: u64,
 }
 
 impl TTTable {
     pub fn init() -> Self {
-        Self { table: vec![None; MAX_TT_ENTRIES] }
+        Self { table: vec![None; MAX_TT_ENTRIES], lookups: 0, inserts: 0, hits: 0, collisions: 0 }
     }
 
     pub fn idx(key: u64) -> usize {
         return (key % MAX_TT_ENTRIES as u64) as usize;
     }
 
-    pub fn set(&mut self, key: u64, rev: PositionRev) {
-        self.table.insert(Self::idx(key), Some(TTEntry::init(key, rev)));
+    pub fn set(&mut self, key: u64, rev: PositionRev, score: i16, depth: u8, category: Bound) {
+        self.table[Self::idx(key)] = Some(TTEntry::init(key, rev, score, depth, category));
+    }
+
+    pub fn probe(&self, key: u64, depth: u8, alpha: i16, beta: i16) -> Option<i16> {
+        let idx = Self::idx(key);
+        if let Some(entry) = self.table.get(idx) {
+            if let Some(e) = *entry {
+                if e.key == key {
+                    if e.depth >= depth {
+                        if matches!(e.category, Bound::Exact) {
+                            return Some(e.score);
+                        } else if matches!(e.category, Bound::Exact) && e.score <= alpha {
+                            return Some(alpha);
+                        } else if matches!(e.category, Bound::Exact) && e.score >= beta {
+                            return Some(beta);
+                        }
+                    }
+                }
+            }
+        }
+
+        return None;
     }
 
     pub fn get(&self, key: u64) -> Option<TTEntry> {
@@ -45,6 +83,7 @@ impl TTTable {
                 }
             }
         }
+
         return None;
     }
 
@@ -53,13 +92,10 @@ impl TTTable {
     }
 }
 
-pub fn get_line(game: &mut Game, pos_key: u64) -> Vec<PositionRev> {
+pub fn get_line(game: &mut Game, mut pos_key: u64) -> Vec<PositionRev> {
     let mut line: Vec<PositionRev> = Vec::with_capacity(64); // TODO: Max Depth Add as a constant
-    let mut optional_mv = TTTable::get(&game.tt, pos_key);
-    let mut idx = 0;
-    let mut irr: PositionIrr;
 
-    while let Some(mv) = &optional_mv {
+    while let Some(mv) = game.tt.get(pos_key) {
         if line.len() >= 64 {
             break;
         }
@@ -67,16 +103,14 @@ pub fn get_line(game: &mut Game, pos_key: u64) -> Vec<PositionRev> {
         line.push(mv.rev);
 
         if move_exists(game, &mv.rev) {
-            idx += 1;
-            irr = PositionIrr::init_with_game(game);
-            game.make_move(&mv.rev, &irr);
+            game.make_move(&mv.rev, &PositionIrr::init_with_game(game));
+            pos_key = game.key;
         } else {
             break;
         }
-        optional_mv = TTTable::get(&game.tt, game.key);
     }
 
-    for _ in 0..idx {
+    while game.ply > 0 {
         game.undo_move();
     }
 
