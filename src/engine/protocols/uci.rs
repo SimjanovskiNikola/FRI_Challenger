@@ -150,7 +150,7 @@ impl UCI {
     fn go(&mut self, args: &[&str]) {
         self.abort_search();
 
-        let mut depth: Option<usize> = None;
+        let mut depth: Option<u8> = None;
         let mut infinite = false;
         let mut time_limit: Option<Duration> = None;
 

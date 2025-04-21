@@ -19,15 +19,7 @@ use super::make_move::GameMoveTrait;
 
 #[inline(always)]
 pub fn gen_moves(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>) {
-    let position_irr = PositionIrr {
-        key: game.key,
-        color: game.color,
-        ep: game.ep,
-        castle: game.castling,
-        half_move: game.half_move,
-        full_move: game.full_move,
-        score: 0,
-    };
+    let position_irr = PositionIrr::init_with_game(game);
 
     let mut positions_rev: Vec<PositionRev> = Vec::with_capacity(256);
     let (own_occ, enemy_occ) = get_occupancy(&color, game);

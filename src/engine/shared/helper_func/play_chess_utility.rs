@@ -73,7 +73,6 @@ pub fn play_chess(game: &mut Game) {
                 while !game.make_move(&pos_rev[idx], &irr) {
                     idx = rand::rng().random_range(0..(pos_rev.len() - 1));
                 }
-                game.tt.set(irr.key, pos_rev[idx]);
                 println!("{:?}", irr.key);
                 print_chess(game);
                 pos_rev.clear();
@@ -88,7 +87,6 @@ pub fn play_chess(game: &mut Game) {
                     if str == move_notation(rev.from, rev.to, promotion).as_str() {
                         print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
                         game.make_move(rev, &irr);
-                        game.tt.set(irr.key, *rev);
 
                         print_chess(game);
                         if is_repetition(game) {
