@@ -127,6 +127,7 @@ fn alpha_beta(
     mut alpha: isize,
     mut beta: isize,
     depth: u8,
+    pv: &mut Vec<PositionRev>,
     game: &mut Game,
     take_null: bool,
 ) -> isize {
@@ -143,11 +144,12 @@ fn alpha_beta(
     }
 
     if let Some(score) = game.tt.probe(game.key, depth, alpha as i16, beta as i16) {
+        game.tt.hits += 1;
         return score as isize;
     }
 
     let mut best_mv = None;
-    let mut best_score = MIN_INF;
+    let mut best_score = alpha;
     let mut legal_mv_num = 0;
     let old_alpha: isize = alpha;
 
@@ -156,40 +158,35 @@ fn alpha_beta(
     for rev in &pos_rev {
         // Check Time every 2027 Nodes
         if (game.info.nodes & 2047) == 0 && time_over_or_stopped(game) {
-            break;
+            return 0;
         }
 
         if !game.make_move(rev, &irr) {
             continue;
         }
         legal_mv_num += 1;
-        let score = -alpha_beta(-beta, -alpha, depth - 1, game, true);
+        let mut node_pv: Vec<PositionRev> = Vec::new();
+        let score = -alpha_beta(-beta, -alpha, depth - 1, &mut node_pv, game, true);
         game.undo_move();
 
-        if score > best_score {
+        if score > alpha {
+            if score >= beta {
+                if !rev.flag.is_capture() {
+                    game.s_killers[game.ply][0] = game.s_killers[game.ply][1];
+                    game.s_killers[game.ply][1] = Some(*rev);
+                }
+                game.tt.set(game.key, *rev, score as i16, depth, Bound::Upper);
+
+                return score;
+            }
+
+            pv.clear();
+            pv.push(*rev);
+            pv.append(&mut node_pv);
+            alpha = score;
             best_score = score;
             best_mv = Some(rev);
-        }
 
-        if score >= beta {
-            if legal_mv_num == 1 {
-                game.info.fail_hard_first += 1;
-            }
-
-            if !rev.flag.is_capture() {
-                game.s_killers[game.ply][0] = game.s_killers[game.ply][1];
-                game.s_killers[game.ply][1] = Some(*rev);
-            }
-
-            game.tt.set(game.key, *rev, beta as i16, depth, Bound::Beta);
-
-            game.info.fail_hard += 1;
-            best_score = beta;
-            break;
-        }
-
-        if score > alpha {
-            alpha = score;
             if !rev.flag.is_capture() {
                 game.s_history[rev.piece.idx()][rev.to as usize] += (depth * depth) as u64;
             }
@@ -206,21 +203,11 @@ fn alpha_beta(
     }
 
     if let Some(mv) = best_mv {
-        if old_alpha != alpha {
-            game.tt.set(game.key, *mv, best_score as i16, depth, Bound::Exact);
-        } else {
-            game.tt.set(game.key, *mv, alpha as i16, depth, Bound::Alpha);
-        }
+        let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
+        game.tt.set(game.key, *mv, alpha as i16, depth, bound);
     }
 
-    // if old_alpha != alpha {
-    //     match best_mv {
-    //         Some(mv) => game.tt.set(game.key, *mv, best_score as i16, depth, Bound::Exact),
-    //         None => println!("{:?}", "Best Move Was None"),
-    //     }
-    // }
-
-    best_score
+    alpha
 }
 
 pub fn iterative_deepening(game: &mut Game) -> Option<PositionRev> {
@@ -229,26 +216,25 @@ pub fn iterative_deepening(game: &mut Game) -> Option<PositionRev> {
     let mut alpha = MIN_INF;
     let mut beta = MAX_INF;
     let mut best_mv = None;
+    let mut root_pv: Vec<PositionRev> = Vec::new();
 
-    for depth in 1..game.info.depth.unwrap_or(63) + 1 {
+    for depth in 1..game.info.depth.unwrap_or(9) + 1 {
+        set_curr_depth(game, depth);
+        let score = alpha_beta(alpha, beta, depth, &mut root_pv, game, true);
+
         if time_over_or_stopped(game) {
             break;
         }
-
-        set_curr_depth(game, depth);
-        let score = alpha_beta(alpha, beta, depth, game, true);
 
         // Adjust alpha and beta using aspiration window
         (alpha, beta) = aspiration_window(alpha, beta, score, depth);
 
         // Get Best Line from current position and print info
-        let line = get_line(game, game.key);
-        if line.len() > 0 {
-            best_mv = Some(line[0]);
+        if root_pv.len() > 0 {
+            best_mv = Some(root_pv[0]);
         }
 
-        print_info(game, score, get_move_list(&line));
-        // println!("Hits: {:?}", game.tt.hits);
+        print_info(game, score, get_move_list(&root_pv));
     }
 
     best_mv
@@ -259,6 +245,7 @@ fn aspiration_window(alpha: isize, beta: isize, score: isize, depth: u8) -> (isi
         true => (MIN_INF, MAX_INF),
         false => (score - 30, score + 30),
     }
+    // (MIN_INF, MAX_INF)
 }
 
 // FIXME: NOTE: Some useful small functions
