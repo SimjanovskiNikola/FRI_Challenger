@@ -8,9 +8,9 @@ const MAX_TT_ENTRIES: usize = 2440211;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Bound {
+    Lower,
     Exact,
-    Alpha,
-    Beta,
+    Upper,
 }
 
 // NOTE: 64 + 32 + 16 + 8 + 8 = 128 BITS = 16 Bytes
@@ -53,19 +53,18 @@ impl TTTable {
         self.table[Self::idx(key)] = Some(TTEntry::init(key, rev, score, depth, category));
     }
 
-    pub fn probe(&self, key: u64, depth: u8, alpha: i16, beta: i16) -> Option<i16> {
+    pub fn probe(&self, key: u64, depth: u8, mut alpha: i16, mut beta: i16) -> Option<i16> {
         let idx = Self::idx(key);
         if let Some(entry) = self.table.get(idx) {
             if let Some(e) = *entry {
-                if e.key == key {
-                    if e.depth >= depth {
-                        if matches!(e.category, Bound::Exact) {
-                            return Some(e.score);
-                        } else if matches!(e.category, Bound::Exact) && e.score <= alpha {
-                            return Some(alpha);
-                        } else if matches!(e.category, Bound::Exact) && e.score >= beta {
-                            return Some(beta);
-                        }
+                if e.key == key && e.depth >= depth {
+                    match e.category {
+                        Bound::Lower => alpha = alpha.max(e.score),
+                        Bound::Exact => return Some(e.score),
+                        Bound::Upper => beta = beta.min(e.score),
+                    }
+                    if alpha >= beta {
+                        return Some(e.score);
                     }
                 }
             }

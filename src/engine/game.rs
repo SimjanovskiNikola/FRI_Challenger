@@ -83,6 +83,35 @@ impl Game {
         self.info = SearchInfo::init();
     }
 
+    // pub fn mirror_board(&mut self){
+    //      pub squares: [Option<Piece>; 64],
+    // pub bitboard: [Bitboard; 14],
+
+    // // Fen Parameters
+    // self.color = self.color.opp();
+    // pub castling: CastlingRights,
+    // self.ep = match self.ep {
+    //     Some(pos) => ,
+    //     None => todo!(),
+    // }
+    // pub ep: Option<u8>,
+    // pub half_move: u8,
+    // pub full_move: u16,
+
+    // // Moves Played from the position that is on the board.
+    // pub ply: usize,
+
+    // // Transposition Table
+    // pub tt: TTTable,
+
+    // // Move Ordering Technics
+    // pub s_history: [[u64; 64]; 14],
+    // pub s_killers: [[Option<PositionRev>; 2]; 64],
+
+    // // Search Info and UCI commands FIXME: Split maybe in two structs
+    // pub info: SearchInfo,
+    // }
+
     #[inline(always)]
     pub fn bitboard(&self, idx: u8) -> u64 {
         self.bitboard[idx as usize]
