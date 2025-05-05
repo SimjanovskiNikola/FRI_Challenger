@@ -104,10 +104,11 @@ pub fn from_move_notation(notation: &str, game: &Game) -> (PositionIrr, Position
     let (irr, pos_rev) = gen_moves(game.color, game);
 
     for rev in &pos_rev {
-        let mv_notation = move_notation(rev.from, rev.to, rev.flag.get_promo_piece());
+        let mv_notation =
+            move_notation(rev.from, rev.to, rev.flag.get_promo_piece()).to_lowercase();
         if notation == mv_notation {
             return (irr, *rev);
         }
     }
-    panic!("Something is wrong with the move");
+    panic!("Something is wrong with the move: {:?}", notation);
 }

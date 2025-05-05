@@ -9,6 +9,7 @@ use crate::engine::fen::fen::FenTrait;
 use crate::engine::game::Game;
 use crate::engine::move_generation::make_move::GameMoveTrait;
 use crate::engine::search::searcher::iterative_deepening;
+use crate::engine::search::time::set_time_limit;
 use crate::engine::shared::helper_func::const_utility::FEN_START;
 use crate::engine::shared::helper_func::print_utility::{
     from_move_notation, move_notation, print_chess,
@@ -138,12 +139,14 @@ impl UCI {
             }
         }
 
+        self.game.info.moves_played = 0;
         self.game = Game::read_fen(&fen.join(" "));
 
         for s in moves {
             let (irr, rev) = from_move_notation(s, &self.game);
             self.game.make_move(&rev, &irr);
             self.game.ply = 0;
+            self.game.info.moves_played += 1;
         }
     }
 
@@ -201,12 +204,16 @@ impl UCI {
             game_clone.info.infinite = infinite;
 
             if !infinite && matches!(time_limit, None) && game_clone.color.is_white() {
-                game_clone.info.time_limit = Some(Duration::from_millis(
-                    ((wtime.unwrap_or(0) / moves_togo.unwrap_or(40)) + winc.unwrap_or(0)) as u64,
+                game_clone.info.time_limit = Some(set_time_limit(
+                    game_clone.info.moves_played,
+                    wtime.unwrap_or(0),
+                    winc.unwrap_or(0),
                 ));
             } else if !infinite && matches!(time_limit, None) && game_clone.color.is_black() {
-                game_clone.info.time_limit = Some(Duration::from_millis(
-                    ((btime.unwrap_or(0) / moves_togo.unwrap_or(40)) + binc.unwrap_or(0)) as u64,
+                game_clone.info.time_limit = Some(set_time_limit(
+                    game_clone.info.moves_played,
+                    btime.unwrap_or(0),
+                    binc.unwrap_or(0),
                 ));
             } else {
                 game_clone.info.time_limit = time_limit.or(Some(Duration::from_millis(u64::MAX)));
@@ -237,7 +244,6 @@ impl UCI {
         self.search_thread = Some(handle);
     }
 
-    // FIXME:
     fn start_search(&mut self) {
         self.game.info.stopped = false;
         let mv = iterative_deepening(&mut self.game);

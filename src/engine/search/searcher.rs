@@ -22,7 +22,10 @@ use std::{
     u64,
 };
 
-use super::transposition_table::Bound;
+use super::{
+    time::{safe_to_start_next_iter, time_over},
+    transposition_table::Bound,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SearchInfo {
@@ -31,6 +34,7 @@ pub struct SearchInfo {
 
     pub depth: Option<u8>,
 
+    pub moves_played: usize,
     pub moves_togo: usize,
     pub infinite: bool,
 
@@ -53,7 +57,10 @@ impl SearchInfo {
             depth: None,
 
             curr_depth: 0,
+            // DEPRECATE: It is not used
             curr_key: 0,
+
+            moves_played: 0,
 
             moves_togo: 0,
             infinite: false,
@@ -103,7 +110,7 @@ fn quiescence_search(mut alpha: isize, beta: isize, game: &mut Game) -> isize {
     let (irr, mut pos_rev) = gen_captures(game.color, game);
 
     for rev in &mut pos_rev {
-        if (game.info.nodes & 2047) == 0 && time_over_or_stopped(game) {
+        if (game.info.nodes & 2047) == 0 && time_over(game) {
             break;
         }
 
@@ -157,7 +164,7 @@ fn alpha_beta(
 
     for rev in &pos_rev {
         // Check Time every 2027 Nodes
-        if (game.info.nodes & 2047) == 0 && time_over_or_stopped(game) {
+        if (game.info.nodes & 2047) == 0 && time_over(game) {
             return 0;
         }
 
@@ -218,11 +225,15 @@ pub fn iterative_deepening(game: &mut Game) -> Option<PositionRev> {
     let mut best_mv = None;
     let mut root_pv: Vec<PositionRev> = Vec::new();
 
-    for depth in 1..game.info.depth.unwrap_or(9) + 1 {
+    for depth in 1..game.info.depth.unwrap_or(20) + 1 {
+        if !safe_to_start_next_iter(game) {
+            break;
+        }
+
         set_curr_depth(game, depth);
         let score = alpha_beta(alpha, beta, depth, &mut root_pv, game, true);
 
-        if time_over_or_stopped(game) {
+        if time_over(game) {
             break;
         }
 
@@ -273,12 +284,6 @@ fn print_ordering_info(game: &mut Game) {
         "Ordering: {:.4}",
         ((game.info.fail_hard_first) as f64 / (game.info.fail_hard + 1) as f64)
     );
-}
-
-fn time_over_or_stopped(game: &Game) -> bool {
-    game.info.start_time.elapsed()
-        >= game.info.time_limit.unwrap_or(Duration::from_millis(u64::MAX))
-        || game.info.stopped
 }
 
 const MIN_ASP_WINDOW_DEPTH: u8 = 6;
