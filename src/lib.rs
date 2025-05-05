@@ -29,6 +29,7 @@ pub mod engine {
     }
     pub mod search {
         pub mod searcher;
+        pub mod time;
         pub mod transposition_table;
     }
     pub mod shared {
