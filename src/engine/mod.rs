@@ -1,4 +1,5 @@
 pub mod attacks;
+pub mod engine_s;
 pub mod evaluation;
 pub mod fen;
 pub mod game;

@@ -101,6 +101,7 @@ pub fn sq_notation(square: u8) -> String {
 }
 
 pub fn from_move_notation(notation: &str, game: &Game) -> (PositionIrr, PositionRev) {
+    let notation = notation.to_lowercase();
     let (irr, pos_rev) = gen_moves(game.color, game);
 
     for rev in &pos_rev {
