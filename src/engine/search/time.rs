@@ -2,13 +2,14 @@ use std::time::Duration;
 
 use crate::engine::game::Game;
 
-pub fn set_time_limit(mv_played: usize, time: usize, inc: usize) -> Duration {
-    let nMoves = mv_played.min(10);
-    let factor = 2 - nMoves / 10;
-    let target = (time + inc) / (60 - mv_played);
-    let limit: u64 = (factor * target) as u64;
-    println!("{:?} {:?} {:?} {:?}", nMoves, factor, target, limit);
-    Duration::from_millis(limit)
+pub fn set_time_limit(movestogo: usize, time: usize, inc: usize) -> Duration {
+    let time_per_move = time as f64 / movestogo.max(1) as f64;
+
+    let safe_time = time_per_move + (inc as f64 * 0.8);
+    let max_allowed = time as f64 * 0.9;
+
+    let alloc = safe_time.min(max_allowed);
+    Duration::from_millis(alloc as u64)
 }
 
 pub fn safe_to_start_next_iter(game: &Game) -> bool {

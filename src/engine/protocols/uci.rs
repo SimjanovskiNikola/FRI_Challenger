@@ -205,13 +205,13 @@ impl UCI {
 
             if !infinite && matches!(time_limit, None) && game_clone.color.is_white() {
                 game_clone.info.time_limit = Some(set_time_limit(
-                    game_clone.info.moves_played,
+                    moves_togo.unwrap_or(30),
                     wtime.unwrap_or(0),
                     winc.unwrap_or(0),
                 ));
             } else if !infinite && matches!(time_limit, None) && game_clone.color.is_black() {
                 game_clone.info.time_limit = Some(set_time_limit(
-                    game_clone.info.moves_played,
+                    moves_togo.unwrap_or(30),
                     btime.unwrap_or(0),
                     binc.unwrap_or(0),
                 ));
