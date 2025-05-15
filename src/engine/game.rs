@@ -32,15 +32,13 @@ pub struct Game {
     // Moves Played from the position that is on the board.
     pub ply: usize,
 
-    // Transposition Table
-    pub tt: TTTable,
-
     // Move Ordering Technics
     pub s_history: [[u64; 64]; 14],
     pub s_killers: [[Option<PositionRev>; 2]; 64],
 
+    pub pv: Vec<PositionRev>,
     // Search Info and UCI commands FIXME: Split maybe in two structs
-    pub info: SearchInfo,
+    // pub info: SearchInfo,
 }
 
 impl Game {
@@ -61,11 +59,11 @@ impl Game {
 
             pos_rev: Vec::with_capacity(1024),
             pos_irr: Vec::with_capacity(1024),
-            tt: TTTable::init(),
             s_history: [[0u64; 64]; 14],
             s_killers: [[None; 2]; 64],
             ply: 0,
-            info: SearchInfo::init(),
+            pv: Vec::new(),
+            // info: SearchInfo::init(),
         }
     }
 
@@ -79,8 +77,7 @@ impl Game {
         self.full_move = 1;
         self.pos_rev = Vec::with_capacity(1024);
         self.pos_irr = Vec::with_capacity(1024);
-        self.tt = TTTable::init();
-        self.info = SearchInfo::init();
+        // self.info = SearchInfo::init();
     }
 
     // pub fn mirror_board(&mut self){

@@ -1,10 +1,14 @@
+use std::sync::{atomic::AtomicU64, Mutex};
+
+use crossbeam::queue::ArrayQueue;
+
 use crate::engine::{
     game::{self, Game},
     move_generation::{make_move::GameMoveTrait, mv_gen::move_exists},
     shared::structures::internal_move::{PositionIrr, PositionRev},
 };
 
-const MAX_TT_ENTRIES: usize = 2440211;
+const MAX_TT_ENTRIES: usize = 140211;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Bound {
@@ -31,9 +35,9 @@ impl TTEntry {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct TTTable {
-    pub table: Vec<Option<TTEntry>>,
+    pub table: Box<[Option<TTEntry>; MAX_TT_ENTRIES]>, //Vec<Option<TTEntry>>,
     pub lookups: u64,
     pub inserts: u64,
     pub hits: u64,
@@ -42,7 +46,13 @@ pub struct TTTable {
 
 impl TTTable {
     pub fn init() -> Self {
-        Self { table: vec![None; MAX_TT_ENTRIES], lookups: 0, inserts: 0, hits: 0, collisions: 0 }
+        Self {
+            table: Box::new([None; MAX_TT_ENTRIES]),
+            lookups: 0,
+            inserts: 0,
+            hits: 0,
+            collisions: 0,
+        }
     }
 
     pub fn idx(key: u64) -> usize {
@@ -50,22 +60,35 @@ impl TTTable {
     }
 
     pub fn set(&mut self, key: u64, rev: PositionRev, score: i16, depth: u8, category: Bound) {
+        self.inserts += 1;
+        if self.table[Self::idx(key)].is_some() {
+            self.collisions += 1;
+        }
         self.table[Self::idx(key)] = Some(TTEntry::init(key, rev, score, depth, category));
     }
 
-    pub fn probe(&self, key: u64, depth: u8, mut alpha: i16, mut beta: i16) -> Option<i16> {
+    pub fn probe(
+        &mut self,
+        key: u64,
+        depth: u8,
+        mut alpha: i16,
+        mut beta: i16,
+    ) -> Option<(i16, PositionRev)> {
+        self.lookups += 1;
         let idx = Self::idx(key);
-        if let Some(entry) = self.table.get(idx) {
-            if let Some(e) = *entry {
-                if e.key == key && e.depth >= depth {
-                    match e.category {
-                        Bound::Lower => alpha = alpha.max(e.score),
-                        Bound::Exact => return Some(e.score),
-                        Bound::Upper => beta = beta.min(e.score),
+        if let Some(e) = self.table[idx] {
+            if e.key == key && e.depth >= depth {
+                match e.category {
+                    Bound::Lower => alpha = alpha.max(e.score),
+                    Bound::Exact => {
+                        self.hits += 1;
+                        return Some((e.score, e.rev));
                     }
-                    if alpha >= beta {
-                        return Some(e.score);
-                    }
+                    Bound::Upper => beta = beta.min(e.score),
+                }
+                if alpha >= beta {
+                    self.hits += 1;
+                    return Some((e.score, e.rev));
                 }
             }
         }
@@ -86,32 +109,48 @@ impl TTTable {
         return None;
     }
 
+    pub fn print_stats(&self) {
+        println!(
+            "lookups: {}; inserts: {}; hits: {}; collisions: {};",
+            self.lookups, self.inserts, self.hits, self.collisions
+        );
+    }
+
     pub fn clear(&mut self) {
         self.table.fill(None);
     }
-}
 
-pub fn get_line(game: &mut Game, mut pos_key: u64) -> Vec<PositionRev> {
-    let mut line: Vec<PositionRev> = Vec::with_capacity(64); // TODO: Max Depth Add as a constant
-
-    while let Some(mv) = game.tt.get(pos_key) {
-        if line.len() >= 64 {
-            break;
-        }
-
-        line.push(mv.rev);
-
-        if move_exists(game, &mv.rev) {
-            game.make_move(&mv.rev, &PositionIrr::init_with_game(game));
-            pos_key = game.key;
-        } else {
-            break;
-        }
+    pub fn clear_stats(&mut self) {
+        self.hits = 0;
+        self.collisions = 0;
+        self.inserts = 0;
+        self.lookups = 0;
     }
 
-    while game.ply > 0 {
-        game.undo_move();
-    }
+    pub fn get_line(&self, game: &mut Game) -> Vec<PositionRev> {
+        let mut line: Vec<PositionRev> = Vec::with_capacity(64); // TODO: Max Depth Add as a constant
+        let mut moves_made = 0;
 
-    line
+        while let Some(mv) = self.get(game.key) {
+            if line.len() >= 64 {
+                break;
+            }
+
+            line.push(mv.rev);
+
+            if move_exists(game, &mv.rev) {
+                game.make_move(&mv.rev, &PositionIrr::init_with_game(game));
+                moves_made += 1;
+            } else {
+                break;
+            }
+        }
+
+        while moves_made > 0 {
+            game.undo_move();
+            moves_made -= 1;
+        }
+
+        line
+    }
 }

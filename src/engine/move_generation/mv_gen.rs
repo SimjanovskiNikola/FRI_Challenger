@@ -74,9 +74,10 @@ pub fn gen_captures(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>
 }
 
 fn eval_pos(pos: &PositionRev, game: &Game) -> isize {
-    if matches!(game.tt.get(game.key), Some(x) if x.rev == *pos) {
-        return 95000;
-    }
+    // FIXME: I will need to update this based on pv table that should be located inside the game
+    // if matches!(game.tt.get(game.key), Some(x) if x.rev == *pos) {
+    //     return 95000;
+    // }
 
     match pos.flag {
         Flag::Quiet => {
@@ -165,6 +166,12 @@ fn get_positions_rev(
 }
 
 pub fn is_repetition(game: &Game) -> bool {
+    assert!(
+        game.pos_irr.len() >= game.half_move as usize,
+        "It is Negative {:?} {:?}",
+        game.pos_irr.len(),
+        game.half_move
+    );
     for i in (game.pos_irr.len() - game.half_move as usize)..game.pos_irr.len() {
         if game.pos_irr[i].key == game.key {
             return true;
