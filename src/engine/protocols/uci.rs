@@ -1,6 +1,6 @@
 use std::io::BufRead;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use std::{io, thread, u64};
@@ -8,8 +8,9 @@ use std::{io, thread, u64};
 use crate::engine::fen::fen::FenTrait;
 use crate::engine::game::Game;
 use crate::engine::move_generation::make_move::GameMoveTrait;
-use crate::engine::search::searcher::iterative_deepening;
+use crate::engine::search::searcher::{iterative_deepening, Search};
 use crate::engine::search::time::set_time_limit;
+use crate::engine::search::transposition_table::TTTable;
 use crate::engine::shared::helper_func::const_utility::FEN_START;
 use crate::engine::shared::helper_func::print_utility::{
     from_move_notation, move_notation, print_chess,
@@ -18,21 +19,50 @@ use crate::engine::shared::structures::color::ColorTrait;
 use crate::engine::shared::structures::internal_move::{PositionIrr, PositionRev};
 use crate::engine::{fen, game};
 
+#[derive(Debug)]
+pub struct NewUCI {
+    pub start_time: Instant,
+    pub time_limit: Option<Duration>,
+    pub moves_togo: usize,
+    pub infinite: bool,
+    pub max_depth: u8,
+    pub moves_played: usize,
+    pub quit: bool,
+    pub stopped: bool,
+    pub is_searching: Arc<AtomicBool>, // FIXME: Maybe Here should be used stopped ???
+    pub search_thread: Option<JoinHandle<()>>,
+}
+
+impl NewUCI {
+    pub fn init() -> Self {
+        Self {
+            start_time: Instant::now(),
+            time_limit: None,
+            moves_togo: 0,
+            infinite: false,
+            max_depth: 64,
+            moves_played: 0,
+            quit: false,
+            stopped: false,
+            is_searching: Arc::new(AtomicBool::new(false)),
+            search_thread: None,
+        }
+    }
+}
+
 #[derive()]
 pub struct UCI {
     pub game: Game,
-    max_depth: usize,
-    is_searching: Arc<AtomicBool>,
-    search_thread: Option<JoinHandle<()>>,
+    pub uci: Arc<RwLock<NewUCI>>,
+    pub tt: Arc<Mutex<TTTable>>,
 }
 
 impl UCI {
     pub fn init() -> UCI {
         UCI {
             game: Game::initialize(),
-            max_depth: 64,
-            is_searching: Arc::new(AtomicBool::new(false)),
-            search_thread: None,
+            uci: Arc::new(RwLock::new(NewUCI::init())),
+            tt: Arc::new(Mutex::new(TTTable::init())),
         }
     }
 
@@ -115,7 +145,6 @@ impl UCI {
     fn ucinewgame(&mut self) {
         self.abort_search();
 
-        self.max_depth = 64;
         self.game.reset_board();
     }
 
@@ -139,14 +168,14 @@ impl UCI {
             }
         }
 
-        self.game.info.moves_played = 0;
+        self.uci.write().unwrap().moves_played = 0;
         self.game = Game::read_fen(&fen.join(" "));
 
         for s in moves {
             let (irr, rev) = from_move_notation(s, &self.game);
             self.game.make_move(&rev, &irr);
             self.game.ply = 0;
-            self.game.info.moves_played += 1;
+            self.uci.write().unwrap().moves_played += 1;
         }
     }
 
@@ -192,34 +221,39 @@ impl UCI {
             }
         }
 
-        self.is_searching.store(false, Ordering::Relaxed);
+        self.uci.write().unwrap().start_time = Instant::now();
+        self.uci.write().unwrap().infinite = infinite;
+        self.uci.write().unwrap().max_depth = depth.unwrap_or(64);
+
+        if !infinite && matches!(time_limit, None) && self.game.color.is_white() {
+            self.uci.write().unwrap().time_limit = Some(set_time_limit(
+                moves_togo.unwrap_or(30),
+                wtime.unwrap_or(0),
+                winc.unwrap_or(0),
+            ));
+        } else if !infinite && matches!(time_limit, None) && self.game.color.is_black() {
+            self.uci.write().unwrap().time_limit = Some(set_time_limit(
+                moves_togo.unwrap_or(30),
+                btime.unwrap_or(0),
+                binc.unwrap_or(0),
+            ));
+        } else {
+            self.uci.write().unwrap().time_limit =
+                time_limit.or(Some(Duration::from_millis(u64::MAX)));
+        }
+
+        self.uci.write().unwrap().is_searching.store(false, Ordering::Relaxed);
+
+        let stop_flag_clone = Arc::clone(&self.uci.read().unwrap().is_searching);
 
         let mut game_clone = self.game.clone();
-        let stop_flag_clone = Arc::clone(&self.is_searching);
+        let mut tt_clone = self.tt.clone();
+        let mut uci_clone = self.uci.clone();
+
+        let search = Search::init(game_clone, tt_clone, uci_clone);
 
         let handle = thread::spawn(move || {
-            game_clone.info.start_time = Instant::now();
-            game_clone.info.infinite = infinite;
-            game_clone.info.depth = depth.or(Some(30));
-            game_clone.info.infinite = infinite;
-
-            if !infinite && matches!(time_limit, None) && game_clone.color.is_white() {
-                game_clone.info.time_limit = Some(set_time_limit(
-                    moves_togo.unwrap_or(30),
-                    wtime.unwrap_or(0),
-                    winc.unwrap_or(0),
-                ));
-            } else if !infinite && matches!(time_limit, None) && game_clone.color.is_black() {
-                game_clone.info.time_limit = Some(set_time_limit(
-                    moves_togo.unwrap_or(30),
-                    btime.unwrap_or(0),
-                    binc.unwrap_or(0),
-                ));
-            } else {
-                game_clone.info.time_limit = time_limit.or(Some(Duration::from_millis(u64::MAX)));
-            }
-
-            let best_move: Option<PositionRev> = iterative_deepening(&mut game_clone);
+            let best_move: Option<PositionRev> = iterative_deepening(search);
 
             if !stop_flag_clone.load(Ordering::Relaxed) || best_move.is_some() {
                 if let Some(mv) = best_move {
@@ -241,32 +275,34 @@ impl UCI {
             }
         });
 
-        self.search_thread = Some(handle);
+        self.uci.write().unwrap().search_thread = Some(handle);
     }
 
-    fn start_search(&mut self) {
-        self.game.info.stopped = false;
-        let mv = iterative_deepening(&mut self.game);
-        println!("{:?}", mv);
-    }
+    // fn start_search(&mut self) {
+    //     self.uci.write().unwrap().stopped = false;
+    //     let mv = iterative_deepening(&mut self.game);
+    //     println!("{:?}", mv);
+    // }
 
     fn stop_search(&mut self) {
-        self.game.info.stopped = true;
+        self.uci.write().unwrap().stopped = true;
 
-        if self.search_thread.is_some() {
-            self.is_searching.store(true, Ordering::Relaxed);
+        if self.uci.read().unwrap().search_thread.is_some() {
+            self.uci.write().unwrap().is_searching.store(true, Ordering::Relaxed);
         }
     }
 
     fn abort_search(&mut self) {
         self.stop_search();
 
-        if let Some(handle) = self.search_thread.take() {
+        if let Some(handle) = self.uci.write().unwrap().search_thread.take() {
             eprintln!("info string Waiting for search thread to finish...");
             match handle.join() {
                 Ok(_) => eprintln!("info string Search thread joined successfully."),
                 Err(e) => eprintln!("info string Error joining search thread: {:?}", e),
             }
         }
+
+        self.uci.write().unwrap().stopped = false;
     }
 }
