@@ -11,7 +11,7 @@ pub fn get_king_mv(sq: usize, own: u64, _: u64) -> u64 {
 // TODO: TEST ME
 pub fn has_good_pawn_shield(own_pawns: u64, castling: Option<CastlingRights>) -> bool {
     if let Some(c) = castling {
-        (own_pawns & CASTLE_PAWN_SHIELD[castling.bits().count_ones()]).count_ones() == 3
+        (own_pawns & CASTLE_PAWN_SHIELD[c.bits().count_ones() as usize]).count_ones() == 3
     } else {
         false
     }

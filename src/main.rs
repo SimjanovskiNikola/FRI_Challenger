@@ -15,13 +15,9 @@ pub mod engine;
 fn main() {
     // FIXME: Needed to backtrace the call stack
     env::set_var("RUST_BACKTRACE", "1");
-    // let mut uci = UCI::init();
-    // uci.main();
+    let mut uci = UCI::init();
+    uci.main();
 
-    print_bitboard(bb_WKING, None);
-    print_bitboard(bb_WQUEEN, None);
-    print_bitboard(bb_BKING, None);
-    print_bitboard(bb_BQUEEN, None);
     // let mut game = Game::read_fen(FEN_MATE_IN_4);
     // let mut game = Game::initialize();
     // play_chess(&mut game);
