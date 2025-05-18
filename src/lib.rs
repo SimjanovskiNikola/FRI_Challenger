@@ -1,8 +1,7 @@
 pub mod engine {
-    pub mod engine_s;
     pub mod game;
 
-    pub mod attacks {
+    pub mod move_generator {
         pub mod bishop;
         pub mod generated;
         pub mod king;
@@ -22,7 +21,9 @@ pub mod engine {
         pub mod perft;
     }
     pub mod evaluation {
+        pub mod constants;
         pub mod evaluation;
+        pub mod new_evaluation;
     }
     pub mod protocols {
         pub mod time;

@@ -1,8 +1,26 @@
+use crate::engine::shared::structures::castling_struct::{CastlingRights, CASTLE_PAWN_SHIELD};
+
 use super::generated::king::KING_LOOKUP;
+use super::generated::pawn::ISOLATED_PAWN_LOOKUP;
 
 #[inline(always)]
 pub fn get_king_mv(sq: usize, own: u64, _: u64) -> u64 {
     KING_LOOKUP[sq] & !own
+}
+
+// TODO: TEST ME
+pub fn has_good_pawn_shield(own_pawns: u64, castling: Option<CastlingRights>) -> bool {
+    if let Some(c) = castling {
+        (own_pawns & CASTLE_PAWN_SHIELD[castling.bits().count_ones()]).count_ones() == 3
+    } else {
+        false
+    }
+}
+
+// TODO: TEST ME
+#[inline(always)]
+pub fn has_near_open_files(sq: usize, own_pawns: u64) -> bool {
+    ISOLATED_PAWN_LOOKUP[sq] & own_pawns == 0
 }
 
 #[cfg(test)]

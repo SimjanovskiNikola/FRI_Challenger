@@ -27,7 +27,7 @@ pub fn blocked_ray_att(dir: Dir, ray_family: &[u64; 64], ray: u64, own: u64, ene
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::attacks::generated::rays::RAYS_LOOKUP;
+    use crate::engine::move_generator::generated::rays::RAYS_LOOKUP;
     use crate::engine::shared::helper_func::bit_pos_utility::*;
     use crate::engine::shared::helper_func::bitboard::BitboardTrait;
     use crate::engine::shared::helper_func::print_utility::print_bitboard;
