@@ -1,10 +1,10 @@
-use crate::engine::attacks::bishop::*;
-use crate::engine::attacks::king::*;
-use crate::engine::attacks::knight::*;
-use crate::engine::attacks::pawn::*;
-use crate::engine::attacks::queen::*;
-use crate::engine::attacks::rook::*;
 use crate::engine::game::Game;
+use crate::engine::move_generator::bishop::*;
+use crate::engine::move_generator::king::*;
+use crate::engine::move_generator::knight::*;
+use crate::engine::move_generator::pawn::*;
+use crate::engine::move_generator::queen::*;
+use crate::engine::move_generator::rook::*;
 use crate::engine::shared::helper_func::bit_pos_utility::*;
 use crate::engine::shared::helper_func::bitboard::BitboardTrait;
 use crate::engine::shared::helper_func::bitboard::Iterator;

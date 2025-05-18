@@ -1,5 +1,5 @@
-use crate::engine::attacks::generated::zobrist_keys::*;
 use crate::engine::game::Game;
+use crate::engine::move_generator::generated::zobrist_keys::*;
 use crate::engine::shared::helper_func::bitboard::BitboardTrait;
 use crate::engine::shared::helper_func::print_utility::print_bitboard;
 use crate::engine::shared::helper_func::print_utility::print_chess;

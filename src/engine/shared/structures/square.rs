@@ -1,3 +1,5 @@
+use crate::engine::shared::helper_func::const_utility::{FILE_BITBOARD, RANK_BITBOARD};
+
 #[rustfmt::skip]
 pub enum SqPos {
     A1 = 0,  B1 = 1,  C1 = 2,  D1 = 3,  E1 = 4,  F1 = 5,  G1 = 6,  H1 = 7,
@@ -16,3 +18,21 @@ impl SqPos {
         self as usize
     }
 }
+
+pub fn get_file(sq: usize) -> usize {
+    assert!(sq >= 0 && sq <= 64);
+    sq % 8
+}
+
+pub fn get_rank(sq: usize) -> usize {
+    assert!(sq >= 0 && sq <= 64);
+    sq / 8
+}
+
+// pub fn get_rank_bb(sq: usize) {
+//     RANK_BITBOARD[get_rank(sq)]
+// }
+
+// pub fn get_file_bb(sq: usize) {
+//     FILE_BITBOARD[get_file(sq)]
+// }

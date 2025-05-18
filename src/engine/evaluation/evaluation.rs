@@ -1,8 +1,8 @@
 use std::usize;
 
-use crate::engine::attacks::generated::pawn::*;
 use crate::engine::game::Game;
 use crate::engine::move_generation::mv_gen::{get_all_moves, get_occupancy};
+use crate::engine::move_generator::generated::pawn::*;
 use crate::engine::shared::helper_func::bit_pos_utility::get_bit_rank;
 use crate::engine::shared::helper_func::bitboard::{BitboardTrait, Iterator};
 use crate::engine::shared::helper_func::const_utility::OPP_SQ;

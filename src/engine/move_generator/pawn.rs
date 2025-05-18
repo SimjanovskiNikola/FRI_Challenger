@@ -2,6 +2,7 @@ use crate::engine::shared::helper_func::bit_pos_utility::*;
 use crate::engine::shared::helper_func::bitboard::BitboardTrait;
 use crate::engine::shared::helper_func::const_utility::Rank;
 
+use crate::engine::shared::structures::castling_struct::CastlingRights;
 use crate::engine::shared::structures::color::*;
 use crate::engine::shared::structures::piece::*;
 
@@ -38,6 +39,21 @@ pub fn get_pawn_ep(color: Color, ep: u8) -> u64 {
     } else {
         0
     }
+}
+
+#[inline(always)]
+pub fn is_passed_pawn(color: Color, sq: usize, enemy_pawns: u64) -> bool {
+    PASSED_PAWN_LOOKUP[color.idx()][sq] & enemy_pawns == 0
+}
+
+#[inline(always)]
+pub fn is_isolated_pawn(sq: usize, own_pawns: u64) -> bool {
+    ISOLATED_PAWN_LOOKUP[sq] & own_pawns == 0
+}
+
+#[inline(always)]
+pub fn is_blocked_pawn(color: Color, sq: usize, own_pawns: u64) -> bool {
+    BLOCKED_PAWN_LOOKUP[color.idx()][sq] & own_pawns == 0
 }
 
 // FORWARD AND DIAGONAL MOVES
