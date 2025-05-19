@@ -1,10 +1,9 @@
-use std::sync::{atomic::AtomicU64, Mutex};
+use crate::engine::board::structures::board::Board;
+use crate::engine::board::structures::moves::Move;
+use crate::engine::board::{make_move::GameMoveTrait, mv_gen::move_exists};
 
 use crossbeam::queue::ArrayQueue;
-
-use crate::engine::{
-    board::board::Board, move_generation::{make_move::GameMoveTrait, mv_gen::move_exists}, shared::structures::internal_move::{Move}
-};
+use std::sync::{atomic::AtomicU64, Mutex};
 
 const MAX_TT_ENTRIES: usize = 140211;
 

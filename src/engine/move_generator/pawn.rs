@@ -1,12 +1,9 @@
-use crate::engine::shared::helper_func::bit_pos_utility::*;
-use crate::engine::shared::helper_func::bitboard::BitboardTrait;
-use crate::engine::shared::helper_func::const_utility::Rank;
-
-use crate::engine::shared::structures::castling_struct::CastlingRights;
-use crate::engine::shared::structures::color::*;
-use crate::engine::shared::structures::piece::*;
-
 use super::generated::pawn::*;
+use crate::engine::board::structures::color::*;
+use crate::engine::board::structures::piece::*;
+use crate::engine::misc::bit_pos_utility::*;
+use crate::engine::misc::bitboard::BitboardTrait;
+use crate::engine::misc::const_utility::Rank;
 
 // PAWN MOVE, ATTACK, EP
 #[inline(always)]

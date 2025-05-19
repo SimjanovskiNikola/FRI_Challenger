@@ -1,5 +1,5 @@
-use crate::engine::shared::structures::castling_struct::CastlingRights;
-use crate::engine::shared::structures::color::*;
+use super::castling::CastlingRights;
+use super::color::{Color, WHITE};
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

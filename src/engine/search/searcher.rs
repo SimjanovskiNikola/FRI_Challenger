@@ -1,27 +1,25 @@
-use crate::engine::{
-    board::board::Board, evaluation::evaluation::Evaluation, move_generation::{
-        make_move::GameMoveTrait,
-        mv_gen::{gen_captures, gen_moves, is_repetition, sq_attack},
-    }, protocols::uci::NewUCI, shared::{
-        helper_func::{
-            bitboard::BitboardTrait,
-            print_utility::{get_move_list, move_notation, print_chess, print_move_list},
-        },
-        structures::{
-            internal_move::Move, piece::{PieceTrait, KING}
-        },
-    }
-};
-use std::{
-    sync::{atomic::AtomicU64, Arc, Mutex, RwLock},
-    time::{Duration, Instant},
-    u64,
-};
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::RwLock;
 
-use super::{
-    time::{safe_to_start_next_iter, time_over},
-    transposition_table::{Bound, TTTable},
-};
+use crate::engine::board::make_move::GameMoveTrait;
+use crate::engine::board::mv_gen::gen_captures;
+use crate::engine::board::mv_gen::gen_moves;
+use crate::engine::board::mv_gen::is_repetition;
+use crate::engine::board::mv_gen::sq_attack;
+use crate::engine::board::structures::board::Board;
+use crate::engine::board::structures::moves::Move;
+use crate::engine::board::structures::piece::PieceTrait;
+use crate::engine::board::structures::piece::KING;
+use crate::engine::evaluation::evaluation::Evaluation;
+use crate::engine::misc::bitboard::BitboardTrait;
+use crate::engine::misc::print_utility::get_move_list;
+use crate::engine::protocols::time::safe_to_start_next_iter;
+use crate::engine::protocols::time::time_over;
+use crate::engine::protocols::uci::NewUCI;
+
+use super::transposition_table::Bound;
+use super::transposition_table::TTTable;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SearchInfo {
@@ -133,7 +131,9 @@ fn alpha_beta(
     }
 
     let mut tt_guard = search.tt.lock().unwrap();
-    if let Some((score, rev)) = tt_guard.probe(search.board.state.key, depth, alpha as i16, beta as i16) {
+    if let Some((score, rev)) =
+        tt_guard.probe(search.board.state.key, depth, alpha as i16, beta as i16)
+    {
         return score as isize;
     }
     drop(tt_guard);
@@ -276,7 +276,6 @@ const MIN_INF: isize = isize::MIN / 2;
 #[cfg(test)]
 mod tests {
     use std::fs::File;
-
 
     use super::*;
 

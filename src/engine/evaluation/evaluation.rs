@@ -1,13 +1,13 @@
 use std::usize;
 
-use crate::engine::board::board::Board;
-use crate::engine::move_generation::mv_gen::{get_all_moves, get_occupancy};
+use crate::engine::board::mv_gen::*;
+use crate::engine::board::structures::board::Board;
+use crate::engine::board::structures::color::*;
+use crate::engine::board::structures::piece::*;
+use crate::engine::misc::bit_pos_utility::get_bit_rank;
+use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
+use crate::engine::misc::const_utility::OPP_SQ;
 use crate::engine::move_generator::generated::pawn::*;
-use crate::engine::shared::helper_func::bit_pos_utility::get_bit_rank;
-use crate::engine::shared::helper_func::bitboard::{BitboardTrait, Iterator};
-use crate::engine::shared::helper_func::const_utility::OPP_SQ;
-use crate::engine::shared::structures::color::*;
-use crate::engine::shared::structures::piece::*;
 
 const DOUBLE_PAWN_WT: isize = -15;
 const BLOCKED_PAWN_WT: isize = -15;

@@ -1,5 +1,5 @@
-
-pub mod board;
 pub mod fen;
-pub mod state;
-
+pub mod make_move;
+pub mod mv_gen;
+pub mod perft;
+pub mod structures;

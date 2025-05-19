@@ -1,14 +1,5 @@
-use std::env;
-
-use engine::board::board::Board;
-use engine::board::fen::FenTrait;
-// use ::engine::engine::engine_s::Engine;
 use ::engine::engine::protocols::uci::UCI;
-use engine::search::searcher::SearchInfo;
-use engine::search::transposition_table::TTTable;
-use engine::shared::helper_func::const_utility::{FEN_MATE_IN_3, FEN_MATE_IN_4, FEN_MATE_IN_5};
-use engine::shared::helper_func::print_utility::print_bitboard;
-// use engine::shared::helper_func::play_chess_utility::play_chess;
+use std::env;
 
 pub mod engine;
 

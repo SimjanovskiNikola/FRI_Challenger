@@ -1,9 +1,11 @@
 pub mod engine {
 
     pub mod board {
-        pub mod board;
         pub mod fen;
-        pub mod state;
+        pub mod make_move;
+        pub mod mv_gen;
+        pub mod perft;
+        pub mod structures;
     }
     pub mod move_generator {
         pub mod bishop;
@@ -16,41 +18,28 @@ pub mod engine {
         pub mod rook;
         pub mod utility;
     }
-    pub mod move_generation {
-        pub mod make_move;
-        pub mod mv_gen;
-        pub mod perft;
-    }
-    pub mod evaluation {
-        pub mod constants;
-        pub mod evaluation;
-        pub mod new_evaluation;
-    }
     pub mod protocols {
         pub mod time;
         pub mod uci;
     }
+
     pub mod search {
         pub mod searcher;
-        pub mod time;
         pub mod transposition_table;
     }
-    pub mod shared {
-        pub mod helper_func {
-            pub mod bit_pos_utility;
-            pub mod bitboard;
-            pub mod const_utility;
-            pub mod generate_key_utility;
-            pub mod play_chess_utility;
-            pub mod print_utility;
-        }
-        pub mod structures {
-            pub mod castling_struct;
-            pub mod color;
-            pub mod directions;
-            pub mod internal_move;
-            pub mod piece;
-            pub mod square;
-        }
+
+    pub mod evaluation {
+        pub mod defs;
+        pub mod evaluation;
+        pub mod new_evaluation;
+    }
+    pub mod misc {
+        pub mod bit_pos_utility;
+        pub mod bitboard;
+        pub mod const_utility;
+        pub mod directions;
+        pub mod generate_key_utility;
+        pub mod play_chess_utility;
+        pub mod print_utility;
     }
 }

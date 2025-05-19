@@ -1,17 +1,11 @@
+use crate::engine::board::mv_gen::gen_moves;
+use crate::engine::board::structures::board::Board;
+use crate::engine::board::structures::moves::*;
+use crate::engine::board::structures::piece::*;
+use crate::engine::misc::bit_pos_utility::*;
+use crate::engine::misc::const_utility::*;
 use core::panic;
 use std::array;
-
-use iai_callgrind::Direction;
-
-use crate::engine::board::board::Board;
-use crate::engine::move_generation::mv_gen::gen_moves;
-use crate::engine::move_generation::mv_gen::move_exists;
-use crate::engine::shared::helper_func::bit_pos_utility::*;
-use crate::engine::shared::helper_func::bitboard::Bitboard;
-use crate::engine::shared::helper_func::const_utility::*;
-use crate::engine::shared::structures::internal_move::*;
-use crate::engine::shared::structures::piece::*;
-use crate::engine::shared::structures::square::*;
 
 pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
     let chess_board: [String; 64] = array::from_fn(|idx| {

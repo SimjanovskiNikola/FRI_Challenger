@@ -1,5 +1,3 @@
-use super::castling_struct::*;
-use super::color::*;
 use super::piece::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

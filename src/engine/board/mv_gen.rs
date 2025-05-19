@@ -1,19 +1,19 @@
-use crate::engine::board::board::Board;
+use super::structures::board::Board;
+use super::structures::castling::*;
+use super::structures::color::*;
+use super::structures::moves::*;
+use super::structures::piece::*;
+use super::structures::square::SqPos::*;
+use crate::engine::misc::bit_pos_utility::*;
+use crate::engine::misc::bitboard::BitboardTrait;
+use crate::engine::misc::bitboard::Iterator;
+use crate::engine::misc::const_utility::*;
 use crate::engine::move_generator::bishop::*;
 use crate::engine::move_generator::king::*;
 use crate::engine::move_generator::knight::*;
 use crate::engine::move_generator::pawn::*;
 use crate::engine::move_generator::queen::*;
 use crate::engine::move_generator::rook::*;
-use crate::engine::shared::helper_func::bit_pos_utility::*;
-use crate::engine::shared::helper_func::bitboard::BitboardTrait;
-use crate::engine::shared::helper_func::bitboard::Iterator;
-use crate::engine::shared::helper_func::const_utility::*;
-use crate::engine::shared::structures::castling_struct::*;
-use crate::engine::shared::structures::color::*;
-use crate::engine::shared::structures::internal_move::*;
-use crate::engine::shared::structures::piece::*;
-use crate::engine::shared::structures::square::SqPos::*;
 
 use super::make_move::GameMoveTrait;
 
@@ -38,7 +38,6 @@ pub fn gen_moves(color: Color, board: &Board) -> Vec<Move> {
 
 #[inline(always)]
 pub fn gen_captures(color: Color, board: &Board) -> Vec<Move> {
-
     let mut positions_rev: Vec<Move> = Vec::with_capacity(256);
     let (own_occ, enemy_occ) = get_occupancy(&color, board);
 
@@ -235,19 +234,12 @@ pub fn add_promotion_move(mv: &Move, board: &Board, moves: &mut Vec<Move>) {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::board::fen::FenTrait;
+    use crate::engine::misc::print_utility::print_bitboard;
+    use crate::engine::misc::print_utility::print_chess;
+    use crate::engine::misc::print_utility::print_move_list;
+
     use super::*;
-    use crate::engine::{
-        board::fen::FenTrait, shared::{
-            helper_func::{
-                bit_pos_utility::*,
-                const_utility::{FEN_CASTLE_TWO, FEN_PAWNS_BLACK, FEN_PAWNS_WHITE},
-                print_utility::{print_bitboard, print_chess, print_move_list},
-            },
-            structures::piece::{
-                BLACK_QUEEN, WHITE_BISHOP, WHITE_KING, WHITE_KNIGHT, WHITE_QUEEN, WHITE_ROOK,
-            },
-        }
-    };
 
     fn test_mov_att(fen: &str, piece: Piece, idx: usize) -> Vec<usize> {
         let board = Board::read_fen(&fen);
@@ -277,7 +269,7 @@ mod tests {
     #[test]
     fn test_mv_gen() {
         let board = Board::read_fen(&FEN_CASTLE_TWO);
-        let  moves = gen_moves(WHITE, &board);
+        let moves = gen_moves(WHITE, &board);
         print_chess(&board);
         print_move_list(&moves);
         assert_eq!(48, moves.len());
