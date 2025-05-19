@@ -1,16 +1,13 @@
-use crate::engine::board::board::Board;
-use crate::engine::move_generator::generated::zobrist_keys::*;
-use crate::engine::shared::helper_func::bitboard::BitboardTrait;
-use crate::engine::shared::helper_func::print_utility::print_bitboard;
-use crate::engine::shared::helper_func::print_utility::print_chess;
-use crate::engine::shared::structures::castling_struct::CASTLE_DATA;
-use crate::engine::shared::structures::castling_struct::ROOK_SQ;
-use crate::engine::shared::structures::color::ColorTrait;
-use crate::engine::shared::structures::internal_move::*;
-use crate::engine::shared::structures::piece::*;
-use core::panic;
-
 use super::mv_gen::sq_attack;
+use super::structures::board::Board;
+use super::structures::castling::*;
+use super::structures::color::ColorTrait;
+use super::structures::moves::*;
+use super::structures::piece::*;
+use crate::engine::misc::bitboard::BitboardTrait;
+use crate::engine::misc::print_utility::print_chess;
+use crate::engine::move_generator::generated::zobrist_keys::*;
+use core::panic;
 
 pub trait GameMoveTrait {
     fn make_move(&mut self, mv: &Move) -> bool;
@@ -48,10 +45,9 @@ impl GameMoveTrait for Board {
                 self.quiet_mv(sq.0, sq.1, ROOK + mv.piece.color());
             }
         }
-        
+
         self.history.push(self.state);
         self.moves.push(*mv);
-
 
         self.state.color.change_color();
 
@@ -82,9 +78,7 @@ impl GameMoveTrait for Board {
             self.state.full_move += 1;
         }
 
-
         self.generate_pos_key();
-
 
         let king_sq = self.bitboard[(KING + mv.piece.color()) as usize].get_lsb();
 
@@ -193,7 +187,8 @@ impl GameMoveTrait for Board {
 
     #[inline(always)]
     fn generate_pos_key(&mut self) {
-        self.state.key ^= (SIDE_KEY * self.state.color as u64) | CASTLE_KEYS[self.state.castling.idx()];
+        self.state.key ^=
+            (SIDE_KEY * self.state.color as u64) | CASTLE_KEYS[self.state.castling.idx()];
 
         if let Some(idx) = self.state.ep {
             self.state.key ^= EP_KEYS[idx as usize]

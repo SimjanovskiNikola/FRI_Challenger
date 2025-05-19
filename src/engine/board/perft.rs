@@ -1,8 +1,8 @@
 use super::make_move::GameMoveTrait;
-use crate::engine::board::board::Board;
+use super::mv_gen::gen_moves;
+use super::structures::board::Board;
+use super::structures::moves::{Flag, Move};
 use crate::engine::board::fen::FenTrait;
-use crate::engine::move_generation::mv_gen::gen_moves;
-use crate::engine::shared::structures::internal_move::*;
 use std::fs::File;
 use std::time::Instant;
 
@@ -147,7 +147,7 @@ pub fn init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
 #[cfg(test)]
 mod tests {
 
-    use crate::engine::shared::helper_func::const_utility::{
+    use crate::engine::misc::const_utility::{
         FEN_BUG_2SQ_PAWN, FEN_POS_FIVE, FEN_POS_FOUR, FEN_POS_SIX, FEN_POS_THREE, FEN_POS_TWO,
         FEN_START,
     };

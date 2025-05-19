@@ -1,13 +1,10 @@
-
-
-use crate::engine::shared::helper_func::bitboard::Bitboard;
-use crate::engine::shared::helper_func::const_utility::FEN_START;
-use crate::engine::shared::structures::internal_move::Move;
-use crate::engine::shared::structures::piece::Piece;
-use super::fen::FenTrait;
+use super::moves::Move;
+use super::piece::Piece;
 use super::state::BoardState;
-
-
+use crate::engine::{
+    board::fen::FenTrait,
+    misc::{bitboard::Bitboard, const_utility::FEN_START},
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Board {
@@ -34,7 +31,7 @@ impl Board {
         Self {
             squares: [None; 64],
             bitboard: [0 as Bitboard; 14],
-         
+
             moves: Vec::with_capacity(1024),
             history: Vec::with_capacity(1024),
             state: BoardState::init(),
@@ -50,10 +47,10 @@ impl Board {
         self.bitboard = [0 as Bitboard; 14];
         self.moves = Vec::with_capacity(1024);
         self.history = Vec::with_capacity(1024);
-        self.state =  BoardState::init();
+        self.state = BoardState::init();
     }
 
-    pub fn ply(&self) -> usize{
+    pub fn ply(&self) -> usize {
         self.moves.len()
     }
 
@@ -95,10 +92,9 @@ impl Board {
 #[cfg(test)]
 mod tests {
 
-    use crate::engine::shared::structures::castling_struct::CastlingRights;
-    use crate::engine::shared::structures::color::WHITE;
-
     use super::*;
+    use crate::engine::board::structures::castling::CastlingRights;
+    use crate::engine::board::structures::color::WHITE;
 
     #[test]
     fn test_reset_board() {

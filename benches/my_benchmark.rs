@@ -1,9 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-use engine::engine::{
-    move_generation::perft::init_test_func,
-    shared::helper_func::const_utility::{FEN_POS_FIVE, FEN_POS_SIX, FEN_START},
-};
+use engine::engine::board::perft::init_test_func;
+use engine::engine::misc::const_utility::FEN_POS_FIVE;
+use engine::engine::misc::const_utility::FEN_POS_SIX;
+use engine::engine::misc::const_utility::FEN_START;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("FEN_START -> DEPTH: 1", |b| {

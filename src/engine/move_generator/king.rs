@@ -1,7 +1,6 @@
-use crate::engine::shared::structures::castling_struct::{CastlingRights, CASTLE_PAWN_SHIELD};
-
 use super::generated::king::KING_LOOKUP;
 use super::generated::pawn::ISOLATED_PAWN_LOOKUP;
+use crate::engine::board::structures::castling::*;
 
 #[inline(always)]
 pub fn get_king_mv(sq: usize, own: u64, _: u64) -> u64 {
@@ -26,8 +25,9 @@ pub fn has_near_open_files(sq: usize, own_pawns: u64) -> bool {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::misc::bit_pos_utility::extract_all_bits;
+
     use super::*;
-    use crate::engine::shared::helper_func::bit_pos_utility::extract_all_bits;
 
     #[rustfmt::skip]
     const ALL_KING_MOVES: [usize; 64] = [

@@ -5,18 +5,17 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use std::{io, thread, u64};
 
-use crate::engine::board::board::Board;
 use crate::engine::board::fen::FenTrait;
-use crate::engine::move_generation::make_move::GameMoveTrait;
+use crate::engine::board::make_move::GameMoveTrait;
+use crate::engine::board::structures::board::Board;
+use crate::engine::board::structures::color::ColorTrait;
+use crate::engine::board::structures::moves::Move;
+use crate::engine::misc::const_utility::FEN_START;
+use crate::engine::misc::print_utility::{from_move_notation, move_notation};
 use crate::engine::search::searcher::{iterative_deepening, Search};
-use crate::engine::search::time::set_time_limit;
 use crate::engine::search::transposition_table::TTTable;
-use crate::engine::shared::helper_func::const_utility::FEN_START;
-use crate::engine::shared::helper_func::print_utility::{
-    from_move_notation, move_notation, print_chess,
-};
-use crate::engine::shared::structures::color::ColorTrait;
-use crate::engine::shared::structures::internal_move::Move;
+
+use super::time::set_time_limit;
 
 #[derive(Debug)]
 pub struct NewUCI {

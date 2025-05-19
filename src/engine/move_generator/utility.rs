@@ -1,4 +1,5 @@
-use std::arch::x86_64::{_pdep_u64, _pext_u64};
+use std::arch::x86_64::_pdep_u64;
+use std::arch::x86_64::_pext_u64;
 
 #[inline(always)]
 pub fn insert_bits(mask: u64, occupancy: u64) -> u64 {

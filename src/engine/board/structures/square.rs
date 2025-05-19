@@ -1,4 +1,4 @@
-use crate::engine::shared::helper_func::const_utility::{FILE_BITBOARD, RANK_BITBOARD};
+use crate::engine::misc::const_utility::RANK_BITBOARD;
 
 #[rustfmt::skip]
 pub enum SqPos {

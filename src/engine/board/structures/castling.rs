@@ -1,10 +1,9 @@
 use bitflags::bitflags;
 
 use super::color::*;
-use super::square::SqPos;
-use crate::engine::board::board::Board;
-use crate::engine::move_generation::mv_gen::*;
-use crate::engine::shared::structures::square::SqPos::*;
+use super::square::SqPos::*;
+use crate::engine::board::mv_gen::sq_attack;
+use crate::engine::board::structures::board::Board;
 
 pub const CASTLE_DATA: [(usize, usize, CastlingRights, Color); 4] = [
     (H1 as usize, E1 as usize, CastlingRights::WKINGSIDE, WHITE),
@@ -14,8 +13,8 @@ pub const CASTLE_DATA: [(usize, usize, CastlingRights, Color); 4] = [
 ];
 
 pub const ROOK_SQ: [[(usize, usize); 2]; 2] = [
-    [(SqPos::H1 as usize, SqPos::F1 as usize), (SqPos::A1 as usize, SqPos::D1 as usize)],
-    [(SqPos::H8 as usize, SqPos::F8 as usize), (SqPos::A8 as usize, SqPos::D8 as usize)],
+    [(H1 as usize, F1 as usize), (A1 as usize, D1 as usize)],
+    [(H8 as usize, F8 as usize), (A8 as usize, D8 as usize)],
 ];
 
 pub const CASTLE_PAWN_SHIELD: [u64; 4] = [

@@ -1,6 +1,5 @@
-use crate::engine::shared::helper_func::bit_pos_utility::get_bit_file;
-use crate::engine::shared::helper_func::const_utility::FILE_BITBOARD;
-use crate::engine::shared::structures::square::get_file;
+use crate::engine::board::structures::square::get_file;
+use crate::engine::misc::const_utility::FILE_BITBOARD;
 
 use super::generated::rook::{ROOK_BASE, ROOK_LOOKUP, ROOK_MASKS};
 use super::utility::pext;
