@@ -1,6 +1,6 @@
 use std::usize;
 
-use crate::engine::game::Game;
+use crate::engine::board::board::Board;
 use crate::engine::move_generation::mv_gen::{get_all_moves, get_occupancy};
 use crate::engine::move_generator::generated::pawn::*;
 use crate::engine::shared::helper_func::bit_pos_utility::get_bit_rank;
@@ -179,7 +179,7 @@ pub trait Evaluation {
     fn queen_eval(&self, piece: &Piece, sq: usize) -> isize;
 }
 
-impl Evaluation for Game {
+impl Evaluation for Board {
     #[inline(always)]
     fn evaluate_pos(&self) -> isize {
         let mut score: isize = 0;
@@ -215,7 +215,7 @@ impl Evaluation for Game {
             }
         }
 
-        return score * self.color.sign();
+        return score * self.state.color.sign();
     }
 
     #[inline(always)]

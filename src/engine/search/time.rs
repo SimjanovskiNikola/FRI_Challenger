@@ -1,7 +1,4 @@
 use std::time::Duration;
-
-use crate::engine::game::Game;
-
 use super::searcher::Search;
 
 pub fn set_time_limit(movestogo: usize, time: usize, inc: usize) -> Duration {

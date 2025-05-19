@@ -1,4 +1,4 @@
-use crate::engine::game::Game;
+use crate::engine::board::board::Board;
 use crate::engine::move_generator::bishop::*;
 use crate::engine::move_generator::king::*;
 use crate::engine::move_generator::knight::*;
@@ -18,46 +18,35 @@ use crate::engine::shared::structures::square::SqPos::*;
 use super::make_move::GameMoveTrait;
 
 #[inline(always)]
-pub fn gen_moves(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>) {
-    let position_irr = PositionIrr::init_with_game(game);
-
-    let mut positions_rev: Vec<PositionRev> = Vec::with_capacity(256);
-    let (own_occ, enemy_occ) = get_occupancy(&color, game);
+pub fn gen_moves(color: Color, board: &Board) -> Vec<Move> {
+    let mut positions_rev: Vec<Move> = Vec::with_capacity(256);
+    let (own_occ, enemy_occ) = get_occupancy(&color, board);
 
     for piece in &PIECES {
-        let mut bb = game.bitboard(piece + color);
+        let mut bb = board.bitboard(piece + color);
         while let Some(sq) = bb.next() {
-            let moves = get_all_moves(piece + color, sq, game, own_occ, enemy_occ);
-            get_positions_rev(moves, &(piece + color), sq, game, &mut positions_rev);
+            let moves = get_all_moves(piece + color, sq, board, own_occ, enemy_occ);
+            get_positions_rev(moves, &(piece + color), sq, board, &mut positions_rev);
         }
     }
 
-    add_castling_moves(&(KING + color), game, &mut positions_rev);
+    add_castling_moves(&(KING + color), board, &mut positions_rev);
 
-    positions_rev.sort_unstable_by(|a, b| eval_pos(b, &game).cmp(&eval_pos(a, &game)));
-    (position_irr, positions_rev)
+    positions_rev.sort_unstable_by(|a, b| eval_pos(b, &board).cmp(&eval_pos(a, &board)));
+    positions_rev
 }
 
 #[inline(always)]
-pub fn gen_captures(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>) {
-    let position_irr = PositionIrr {
-        key: game.key,
-        color: game.color,
-        ep: game.ep,
-        castle: game.castling,
-        half_move: game.half_move,
-        full_move: game.full_move,
-        score: 0,
-    };
+pub fn gen_captures(color: Color, board: &Board) -> Vec<Move> {
 
-    let mut positions_rev: Vec<PositionRev> = Vec::with_capacity(256);
-    let (own_occ, enemy_occ) = get_occupancy(&color, game);
+    let mut positions_rev: Vec<Move> = Vec::with_capacity(256);
+    let (own_occ, enemy_occ) = get_occupancy(&color, board);
 
     for piece in &PIECES {
-        let mut bb = game.bitboard[(piece + color) as usize];
+        let mut bb = board.bitboard[(piece + color) as usize];
         while let Some(sq) = bb.next() {
             let moves = match piece.kind() {
-                PAWN => get_pawn_att(color, sq, own_occ, enemy_occ, game.ep),
+                PAWN => get_pawn_att(color, sq, own_occ, enemy_occ, board.state.ep),
                 KNIGHT => get_knight_mv(sq, own_occ, enemy_occ) & enemy_occ,
                 BISHOP => get_bishop_mv(sq, own_occ, enemy_occ) & enemy_occ,
                 ROOK => get_rook_mv(sq, own_occ, enemy_occ) & enemy_occ,
@@ -65,45 +54,45 @@ pub fn gen_captures(color: Color, game: &Game) -> (PositionIrr, Vec<PositionRev>
                 KING => get_king_mv(sq, own_occ, enemy_occ) & enemy_occ,
                 _ => panic!("Invalid Peace Type"),
             };
-            get_positions_rev(moves, &(piece + color), sq, game, &mut positions_rev);
+            get_positions_rev(moves, &(piece + color), sq, board, &mut positions_rev);
         }
     }
 
-    positions_rev.sort_unstable_by(|a, b| eval_pos(b, &game).cmp(&eval_pos(a, &game)));
-    (position_irr, positions_rev)
+    positions_rev.sort_unstable_by(|a, b| eval_pos(b, &board).cmp(&eval_pos(a, &board)));
+    positions_rev
 }
 
-fn eval_pos(pos: &PositionRev, game: &Game) -> isize {
+fn eval_pos(mv: &Move, board: &Board) -> isize {
     // FIXME: I will need to update this based on pv table that should be located inside the game
     // if matches!(game.tt.get(game.key), Some(x) if x.rev == *pos) {
     //     return 95000;
     // }
 
-    match pos.flag {
+    match mv.flag {
         Flag::Quiet => {
-            if matches!(game.s_killers[game.ply][0], Some(x) if x == *pos) {
+            if matches!(board.s_killers[board.ply()][0], Some(x) if x == *mv) {
                 90000
-            } else if matches!(game.s_killers[game.ply][1], Some(x) if x == *pos) {
+            } else if matches!(board.s_killers[board.ply()][1], Some(x) if x == *mv) {
                 80000
             } else {
-                game.s_history[pos.piece.idx()][pos.to as usize] as isize
+                board.s_history[mv.piece.idx()][mv.to as usize] as isize
             }
         }
         Flag::KingCastle => 20,
         Flag::QueenCastle => 20,
-        Flag::Capture(cap) => cap.weight() - pos.piece as isize,
+        Flag::Capture(cap) => cap.weight() - mv.piece as isize,
         Flag::EP => PAWN.weight(),
-        Flag::Promotion(promo, Some(cap)) => cap.weight() - pos.piece as isize + promo.weight(),
+        Flag::Promotion(promo, Some(cap)) => cap.weight() - mv.piece as isize + promo.weight(),
         Flag::Promotion(promo, None) => promo.weight(),
     }
 }
 
 #[inline(always)]
-pub fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_occ: u64) -> u64 {
+pub fn get_all_moves(piece: Piece, pos: usize, board: &Board, own_occ: u64, enemy_occ: u64) -> u64 {
     match piece.kind() {
         PAWN => {
             get_pawn_mv(piece.color(), pos, own_occ, enemy_occ)
-                | get_pawn_att(piece.color(), pos, own_occ, enemy_occ, game.ep)
+                | get_pawn_att(piece.color(), pos, own_occ, enemy_occ, board.state.ep)
         }
         KNIGHT => get_knight_mv(pos, own_occ, enemy_occ),
         BISHOP => get_bishop_mv(pos, own_occ, enemy_occ),
@@ -115,12 +104,12 @@ pub fn get_all_moves(piece: Piece, pos: usize, game: &Game, own_occ: u64, enemy_
 }
 
 #[inline(always)]
-pub fn get_occupancy(piece: &Piece, game: &Game) -> (u64, u64) {
-    (game.bitboard(WHITE + piece.color()), game.bitboard(BLACK - piece.color()))
+pub fn get_occupancy(piece: &Piece, board: &Board) -> (u64, u64) {
+    (board.bitboard(WHITE + piece.color()), board.bitboard(BLACK - piece.color()))
 }
 
 #[inline(always)]
-pub fn sq_attack(game: &Game, sq: usize, color: Color) -> u64 {
+pub fn sq_attack(game: &Board, sq: usize, color: Color) -> u64 {
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
     let op_pawns = game.bitboard(BLACK_PAWN - color);
@@ -141,39 +130,39 @@ fn get_positions_rev(
     mut attacks: u64,
     piece: &Piece,
     from_sq: usize,
-    game: &Game,
-    new_positions: &mut Vec<PositionRev>,
+    board: &Board,
+    new_positions: &mut Vec<Move>,
 ) {
     while attacks != 0 {
         let to_sq = attacks.pop_lsb();
-        let mut new_move = PositionRev {
+        let mut new_move = Move {
             from: from_sq as u8,
             to: to_sq as u8,
             piece: *piece,
-            flag: match game.squares[to_sq] {
+            flag: match board.squares[to_sq] {
                 None => Flag::Quiet,
                 Some(piece) => Flag::Capture(piece),
             },
         };
 
         if new_move.piece.is_pawn() {
-            add_ep_move(&mut new_move, game);
-            add_promotion_move(&new_move, game, new_positions);
+            add_ep_move(&mut new_move, board);
+            add_promotion_move(&new_move, board, new_positions);
         } else {
             new_positions.push(new_move)
         }
     }
 }
 
-pub fn is_repetition(game: &Game) -> bool {
+pub fn is_repetition(board: &Board) -> bool {
     assert!(
-        game.pos_irr.len() >= game.half_move as usize,
+        board.history.len() >= board.state.half_move as usize,
         "It is Negative {:?} {:?}",
-        game.pos_irr.len(),
-        game.half_move
+        board.history.len(),
+        board.state.half_move
     );
-    for i in (game.pos_irr.len() - game.half_move as usize)..game.pos_irr.len() {
-        if game.pos_irr[i].key == game.key {
+    for i in (board.history.len() - board.state.half_move as usize)..board.history.len() {
+        if board.history[i].key == board.state.key {
             return true;
         }
     }
@@ -181,13 +170,13 @@ pub fn is_repetition(game: &Game) -> bool {
     false
 }
 
-pub fn move_exists(game: &mut Game, rev: &PositionRev) -> bool {
-    let (irr, mut pos_rev) = gen_moves(game.color, game);
+pub fn move_exists(board: &mut Board, mv: &Move) -> bool {
+    let mut moves = gen_moves(board.state.color, board);
 
-    for temp_rev in &mut pos_rev {
-        if rev == temp_rev {
-            if game.make_move(rev, &irr) {
-                game.undo_move();
+    for temp_mv in &mut moves {
+        if mv == temp_mv {
+            if board.make_move(mv) {
+                board.undo_move();
                 return true;
             }
         }
@@ -196,23 +185,23 @@ pub fn move_exists(game: &mut Game, rev: &PositionRev) -> bool {
 }
 
 #[inline(always)]
-pub fn add_castling_moves(piece: &Piece, game: &Game, positions: &mut Vec<PositionRev>) {
-    let (own, enemy) = get_occupancy(piece, game);
+pub fn add_castling_moves(piece: &Piece, board: &Board, positions: &mut Vec<Move>) {
+    let (own, enemy) = get_occupancy(piece, board);
     match piece.color() {
         WHITE => {
-            if game.castling.valid(CastlingRights::WKINGSIDE, game, own, enemy) {
-                positions.push(PositionRev::init(E1 as u8, G1 as u8, *piece, Flag::KingCastle));
+            if board.state.castling.valid(CastlingRights::WKINGSIDE, board, own, enemy) {
+                positions.push(Move::init(E1 as u8, G1 as u8, *piece, Flag::KingCastle));
             }
-            if game.castling.valid(CastlingRights::WQUEENSIDE, game, own, enemy) {
-                positions.push(PositionRev::init(E1 as u8, C1 as u8, *piece, Flag::QueenCastle));
+            if board.state.castling.valid(CastlingRights::WQUEENSIDE, board, own, enemy) {
+                positions.push(Move::init(E1 as u8, C1 as u8, *piece, Flag::QueenCastle));
             }
         }
         BLACK => {
-            if game.castling.valid(CastlingRights::BKINGSIDE, game, own, enemy) {
-                positions.push(PositionRev::init(E8 as u8, G8 as u8, *piece, Flag::KingCastle));
+            if board.state.castling.valid(CastlingRights::BKINGSIDE, board, own, enemy) {
+                positions.push(Move::init(E8 as u8, G8 as u8, *piece, Flag::KingCastle));
             }
-            if game.castling.valid(CastlingRights::BQUEENSIDE, game, own, enemy) {
-                positions.push(PositionRev::init(E8 as u8, C8 as u8, *piece, Flag::QueenCastle));
+            if board.state.castling.valid(CastlingRights::BQUEENSIDE, board, own, enemy) {
+                positions.push(Move::init(E8 as u8, C8 as u8, *piece, Flag::QueenCastle));
             }
         }
         _ => panic!("Invalid Castling"),
@@ -220,26 +209,26 @@ pub fn add_castling_moves(piece: &Piece, game: &Game, positions: &mut Vec<Positi
 }
 
 #[inline(always)]
-pub fn add_ep_move(mv: &mut PositionRev, game: &Game) {
-    if Some(mv.to) == game.ep {
+pub fn add_ep_move(mv: &mut Move, board: &Board) {
+    if Some(mv.to) == board.state.ep {
         mv.flag = Flag::EP;
     }
 }
 
 #[inline(always)]
-pub fn add_promotion_move(mv: &PositionRev, game: &Game, positions_rev: &mut Vec<PositionRev>) {
+pub fn add_promotion_move(mv: &Move, board: &Board, moves: &mut Vec<Move>) {
     if (mv.piece.is_white() && get_bit_rank(mv.to as usize) == Rank::Eight)
         || (mv.piece.is_black() && get_bit_rank(mv.to as usize) == Rank::One)
     {
         let color = mv.piece.color();
-        let cap_piece: Option<Piece> = game.squares[mv.to as usize];
+        let cap_piece: Option<Piece> = board.squares[mv.to as usize];
 
-        positions_rev.push(PositionRev { flag: Flag::Promotion(QUEEN + color, cap_piece), ..*mv });
-        positions_rev.push(PositionRev { flag: Flag::Promotion(ROOK + color, cap_piece), ..*mv });
-        positions_rev.push(PositionRev { flag: Flag::Promotion(BISHOP + color, cap_piece), ..*mv });
-        positions_rev.push(PositionRev { flag: Flag::Promotion(KNIGHT + color, cap_piece), ..*mv });
+        moves.push(Move { flag: Flag::Promotion(QUEEN + color, cap_piece), ..*mv });
+        moves.push(Move { flag: Flag::Promotion(ROOK + color, cap_piece), ..*mv });
+        moves.push(Move { flag: Flag::Promotion(BISHOP + color, cap_piece), ..*mv });
+        moves.push(Move { flag: Flag::Promotion(KNIGHT + color, cap_piece), ..*mv });
     } else {
-        positions_rev.push(*mv);
+        moves.push(*mv);
     }
 }
 
@@ -248,8 +237,7 @@ mod tests {
 
     use super::*;
     use crate::engine::{
-        fen::fen::FenTrait,
-        shared::{
+        board::fen::FenTrait, shared::{
             helper_func::{
                 bit_pos_utility::*,
                 const_utility::{FEN_CASTLE_TWO, FEN_PAWNS_BLACK, FEN_PAWNS_WHITE},
@@ -258,60 +246,60 @@ mod tests {
             structures::piece::{
                 BLACK_QUEEN, WHITE_BISHOP, WHITE_KING, WHITE_KNIGHT, WHITE_QUEEN, WHITE_ROOK,
             },
-        },
+        }
     };
 
     fn test_mov_att(fen: &str, piece: Piece, idx: usize) -> Vec<usize> {
-        let game = Game::read_fen(&fen);
+        let board = Board::read_fen(&fen);
         // println!("{}", game.to_string());
-        let (own_occ, enemy_occ) = get_occupancy(&piece, &game);
-        let all_pieces = extract_all_bits(game.bitboard[piece.idx()]);
-        let piece = match game.squares[all_pieces[idx]] {
+        let (own_occ, enemy_occ) = get_occupancy(&piece, &board);
+        let all_pieces = extract_all_bits(board.bitboard[piece.idx()]);
+        let piece = match board.squares[all_pieces[idx]] {
             None => panic!("The Piece Must exist"),
             Some(piece) => piece,
         };
-        return extract_all_bits(get_all_moves(piece, all_pieces[idx], &game, own_occ, enemy_occ));
+        return extract_all_bits(get_all_moves(piece, all_pieces[idx], &board, own_occ, enemy_occ));
 
         // print_bitboard(
-        //     generate_knight_moves(&piece, &game),
+        //     generate_knight_moves(&piece, &board),
         //     Some(bit_scan_lsb(piece.position) as i8),
         // );
     }
 
     #[test]
     fn test_white_pawns_mv_gen() {
-        let game = Game::read_fen(&FEN_PAWNS_WHITE);
-        let (_, positions) = gen_moves(WHITE, &game);
-        assert_eq!(42, positions.len());
-        print_move_list(&positions);
+        let board = Board::read_fen(&FEN_PAWNS_WHITE);
+        let moves = gen_moves(WHITE, &board);
+        assert_eq!(42, moves.len());
+        print_move_list(&moves);
     }
 
     #[test]
     fn test_mv_gen() {
-        let game = Game::read_fen(&FEN_CASTLE_TWO);
-        let (_, positions) = gen_moves(WHITE, &game);
-        print_chess(&game);
-        print_move_list(&positions);
-        assert_eq!(48, positions.len());
+        let board = Board::read_fen(&FEN_CASTLE_TWO);
+        let  moves = gen_moves(WHITE, &board);
+        print_chess(&board);
+        print_move_list(&moves);
+        assert_eq!(48, moves.len());
     }
 
     #[test]
     fn test_white_black_mv_gen() {
-        let game = Game::read_fen(&FEN_PAWNS_BLACK);
-        let (_, positions) = gen_moves(BLACK, &game);
-        assert_eq!(42, positions.len());
-        print_move_list(&positions);
+        let board = Board::read_fen(&FEN_PAWNS_BLACK);
+        let moves = gen_moves(BLACK, &board);
+        assert_eq!(42, moves.len());
+        print_move_list(&moves);
     }
 
     #[test]
     fn test_attacks() {
         let fen = "8/8/2q5/3Q4/8/8/8/8 w - - 0 1";
-        let game = Game::read_fen(&fen);
+        let board = Board::read_fen(&fen);
         print_bitboard(
-            sq_attack(&game, game.bitboard[BLACK_QUEEN.idx()].get_lsb(), BLACK),
-            Some(game.bitboard[BLACK_QUEEN.idx()].get_msb() as i8),
+            sq_attack(&board, board.bitboard[BLACK_QUEEN.idx()].get_lsb(), BLACK),
+            Some(board.bitboard[BLACK_QUEEN.idx()].get_msb() as i8),
         );
-        print_bitboard(sq_attack(&game, game.bitboard[WHITE_QUEEN.idx()].get_msb(), WHITE), None);
+        print_bitboard(sq_attack(&board, board.bitboard[WHITE_QUEEN.idx()].get_msb(), WHITE), None);
     }
 
     // KNIGHT

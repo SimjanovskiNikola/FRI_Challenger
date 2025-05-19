@@ -1,21 +1,16 @@
 use crate::engine::{
-    evaluation::evaluation::Evaluation,
-    game::{self, Game},
-    move_generation::{
+    board::board::Board, evaluation::evaluation::Evaluation, move_generation::{
         make_move::GameMoveTrait,
         mv_gen::{gen_captures, gen_moves, is_repetition, sq_attack},
-    },
-    protocols::uci::NewUCI,
-    shared::{
+    }, protocols::uci::NewUCI, shared::{
         helper_func::{
             bitboard::BitboardTrait,
             print_utility::{get_move_list, move_notation, print_chess, print_move_list},
         },
         structures::{
-            internal_move::{PositionIrr, PositionRev},
-            piece::{PieceTrait, KING},
+            internal_move::Move, piece::{PieceTrait, KING}
         },
-    },
+    }
 };
 use std::{
     sync::{atomic::AtomicU64, Arc, Mutex, RwLock},
@@ -53,15 +48,15 @@ impl SearchInfo {
 
 #[derive(Debug)]
 pub struct Search {
-    pub game: Game,
+    pub board: Board,
     pub tt: Arc<Mutex<TTTable>>,
     pub uci: Arc<RwLock<NewUCI>>,
     pub info: SearchInfo,
 }
 
 impl Search {
-    pub fn init(game: Game, tt: Arc<Mutex<TTTable>>, uci: Arc<RwLock<NewUCI>>) -> Self {
-        Self { game, tt, uci, info: SearchInfo::init() }
+    pub fn init(board: Board, tt: Arc<Mutex<TTTable>>, uci: Arc<RwLock<NewUCI>>) -> Self {
+        Self { board, tt, uci, info: SearchInfo::init() }
     }
 }
 
@@ -70,13 +65,12 @@ pub fn check_time_up() {
 }
 
 pub fn clear_search(search: &mut Search) {
-    search.game.s_killers.iter_mut().for_each(|arr| arr.fill(None));
-    search.game.s_history.iter_mut().for_each(|arr| arr.fill(0));
-    search.game.ply = 0;
+    search.board.s_killers.iter_mut().for_each(|arr| arr.fill(None));
+    search.board.s_history.iter_mut().for_each(|arr| arr.fill(0));
     // game.info.start_time = Instant::now();
     // game.info.stopped = false;
     search.info.nodes = 0;
-    search.info.curr_key = search.game.key;
+    search.info.curr_key = search.board.state.key;
     search.info.curr_depth = 0;
 
     search.tt.lock().unwrap().clear();
@@ -84,7 +78,7 @@ pub fn clear_search(search: &mut Search) {
 }
 
 fn quiescence_search(mut alpha: isize, beta: isize, search: &mut Search) -> isize {
-    let eval = search.game.evaluate_pos();
+    let eval = search.board.evaluate_pos();
     if eval >= beta {
         return beta;
     }
@@ -93,19 +87,19 @@ fn quiescence_search(mut alpha: isize, beta: isize, search: &mut Search) -> isiz
 
     alpha = alpha.max(eval);
 
-    let game = &search.game;
-    let (irr, mut pos_rev) = gen_captures(game.color, game);
+    let board = &search.board;
+    let mut pos_rev = gen_captures(board.state.color, board);
 
     for rev in &mut pos_rev {
         if (search.info.nodes & 2047) == 0 && time_over(&search) {
             break;
         }
 
-        if !search.game.make_move(rev, &irr) {
+        if !search.board.make_move(rev) {
             continue;
         }
         let score = -quiescence_search(-beta, -alpha, search);
-        search.game.undo_move();
+        search.board.undo_move();
 
         if score >= beta {
             return beta;
@@ -121,7 +115,7 @@ fn alpha_beta(
     mut alpha: isize,
     mut beta: isize,
     depth: u8,
-    pv: &mut Vec<PositionRev>,
+    pv: &mut Vec<Move>,
     search: &mut Search,
     take_null: bool,
 ) -> isize {
@@ -134,12 +128,12 @@ fn alpha_beta(
 
     // Check if the position happened before or is draw
     // TODO: There is some bug regarding repetition
-    if search.game.half_move >= 100 || is_repetition(&search.game) {
+    if search.board.state.half_move >= 100 || is_repetition(&search.board) {
         return 0;
     }
 
     let mut tt_guard = search.tt.lock().unwrap();
-    if let Some((score, rev)) = tt_guard.probe(search.game.key, depth, alpha as i16, beta as i16) {
+    if let Some((score, rev)) = tt_guard.probe(search.board.state.key, depth, alpha as i16, beta as i16) {
         return score as isize;
     }
     drop(tt_guard);
@@ -149,32 +143,32 @@ fn alpha_beta(
     let mut legal_mv_num = 0;
     let old_alpha: isize = alpha;
 
-    let (irr, pos_rev) = gen_moves(search.game.color, &search.game);
+    let moves = gen_moves(search.board.state.color, &search.board);
 
-    for rev in &pos_rev {
+    for mv in &moves {
         // Check Time every 2027 Nodes
         if (search.info.nodes & 2047) == 0 && time_over(&search) {
             return 0;
         }
 
-        if !search.game.make_move(rev, &irr) {
+        if !search.board.make_move(mv) {
             continue;
         }
         legal_mv_num += 1;
-        let mut node_pv: Vec<PositionRev> = Vec::new();
+        let mut node_pv: Vec<Move> = Vec::new();
         let score = -alpha_beta(-beta, -alpha, depth - 1, &mut node_pv, search, true);
-        search.game.undo_move();
+        search.board.undo_move();
 
         if score > alpha {
             if score >= beta {
-                if !rev.flag.is_capture() {
-                    search.game.s_killers[search.game.ply][0] =
-                        search.game.s_killers[search.game.ply][1];
-                    search.game.s_killers[search.game.ply][1] = Some(*rev);
+                if !mv.flag.is_capture() {
+                    search.board.s_killers[search.board.ply()][0] =
+                        search.board.s_killers[search.board.ply()][1];
+                    search.board.s_killers[search.board.ply()][1] = Some(*mv);
                 }
                 search.tt.lock().unwrap().set(
-                    search.game.key,
-                    *rev,
+                    search.board.state.key,
+                    *mv,
                     score as i16,
                     depth,
                     Bound::Upper,
@@ -184,43 +178,43 @@ fn alpha_beta(
             }
 
             pv.clear();
-            pv.push(*rev);
+            pv.push(*mv);
             pv.append(&mut node_pv);
             alpha = score;
             best_score = score;
-            best_mv = Some(*rev);
+            best_mv = Some(*mv);
 
-            if !rev.flag.is_capture() {
-                search.game.s_history[rev.piece.idx()][rev.to as usize] += (depth * depth) as u64;
+            if !mv.flag.is_capture() {
+                search.board.s_history[mv.piece.idx()][mv.to as usize] += (depth * depth) as u64;
             }
         }
     }
 
     // Checking for if the position is draw or checkmate
     if legal_mv_num == 0 {
-        let king_sq = search.game.bitboard[(KING + search.game.color) as usize].get_lsb();
-        return match sq_attack(&search.game, king_sq, search.game.color) != 0 {
-            true => -1000000 + (search.game.ply as isize),
+        let king_sq = search.board.bitboard[(KING + search.board.state.color) as usize].get_lsb();
+        return match sq_attack(&search.board, king_sq, search.board.state.color) != 0 {
+            true => -1000000 + (search.board.ply() as isize),
             false => 0,
         };
     }
 
     if let Some(mv) = best_mv {
         let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
-        search.tt.lock().unwrap().set(search.game.key, mv, alpha as i16, depth, bound);
+        search.tt.lock().unwrap().set(search.board.state.key, mv, alpha as i16, depth, bound);
     }
 
     alpha
 }
 
-pub fn iterative_deepening(mut search: Search) -> Option<PositionRev> {
+pub fn iterative_deepening(mut search: Search) -> Option<Move> {
     clear_search(&mut search);
 
     let max_depth = search.uci.read().unwrap().max_depth;
     let mut alpha = MIN_INF;
     let mut beta = MAX_INF;
     let mut best_mv = None;
-    let mut root_pv: Vec<PositionRev> = Vec::new();
+    let mut root_pv: Vec<Move> = Vec::new();
 
     for depth in 1..max_depth + 1 {
         if !safe_to_start_next_iter(&search) {
@@ -283,14 +277,13 @@ const MIN_INF: isize = isize::MIN / 2;
 mod tests {
     use std::fs::File;
 
-    use crate::engine::game::Game;
 
     use super::*;
 
     // NOTE: Uncomment In Cargo.toml the pprof to see the performance.
     //     #[test]
     //     fn test_fen_bug_2_sq_pawn_dept_1() {
-    //         let mut game = Game::initialize();
+    //         let mut board = Game::initialize();
     //         let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
 
     //         game.info.depth = Some(7);

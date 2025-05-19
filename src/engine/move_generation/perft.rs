@@ -1,6 +1,6 @@
 use super::make_move::GameMoveTrait;
-use crate::engine::fen::fen::FenTrait;
-use crate::engine::game::Game;
+use crate::engine::board::board::Board;
+use crate::engine::board::fen::FenTrait;
 use crate::engine::move_generation::mv_gen::gen_moves;
 use crate::engine::shared::structures::internal_move::*;
 use std::fs::File;
@@ -84,7 +84,7 @@ impl Stats {
     }
 }
 
-pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
+pub fn perft(depth: usize, board: &mut Board, stats: &mut Stats) -> u64 {
     let mut leaf_nodes: u64 = 0;
     stats.add_all_node();
 
@@ -92,14 +92,14 @@ pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
         return 1;
     }
 
-    let (irr, mut pos_rev) = gen_moves(game.color, game);
-    for rev in &mut pos_rev {
-        if !game.make_move(rev, &irr) {
+    let mut moves = gen_moves(board.state.color, board);
+    for mv in &mut moves {
+        if !board.make_move(mv) {
             continue;
         }
 
         if depth == 1 {
-            match rev.flag {
+            match mv.flag {
                 Flag::Quiet => stats.add_node(),
                 Flag::Capture(_) => stats.add_capture(),
                 Flag::EP => stats.add_ep(),
@@ -108,18 +108,18 @@ pub fn perft(depth: usize, game: &mut Game, stats: &mut Stats) -> u64 {
             }
         }
 
-        leaf_nodes += perft(depth - 1, game, stats);
-        game.undo_move();
+        leaf_nodes += perft(depth - 1, board, stats);
+        board.undo_move();
     }
 
     leaf_nodes
 }
 
 pub fn init_test_func(fen: &str, depth: usize, dispaly_stats: bool) -> Stats {
-    let mut game = Game::read_fen(fen);
+    let mut board = Board::read_fen(fen);
     let mut stats = Stats::init();
     let now = Instant::now();
-    let nodes = perft(depth, &mut game, &mut stats);
+    let nodes = perft(depth, &mut board, &mut stats);
     if dispaly_stats {
         println!("----------*Stats*-----------");
         println!("Time for {} nodes: {} ms", nodes, now.elapsed().as_millis());

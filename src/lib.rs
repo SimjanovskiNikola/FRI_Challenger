@@ -1,6 +1,10 @@
 pub mod engine {
-    pub mod game;
 
+    pub mod board {
+        pub mod board;
+        pub mod fen;
+        pub mod state;
+    }
     pub mod move_generator {
         pub mod bishop;
         pub mod generated;
@@ -11,9 +15,6 @@ pub mod engine {
         pub mod rays;
         pub mod rook;
         pub mod utility;
-    }
-    pub mod fen {
-        pub mod fen;
     }
     pub mod move_generation {
         pub mod make_move;
