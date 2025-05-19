@@ -3,7 +3,7 @@ use std::array;
 
 use iai_callgrind::Direction;
 
-use crate::engine::game::*;
+use crate::engine::board::board::Board;
 use crate::engine::move_generation::mv_gen::gen_moves;
 use crate::engine::move_generation::mv_gen::move_exists;
 use crate::engine::shared::helper_func::bit_pos_utility::*;
@@ -28,8 +28,8 @@ pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
     print_board(&chess_board);
 }
 
-pub fn print_chess(game: &Game) {
-    let chess_board: [String; 64] = array::from_fn(|idx| match game.squares[idx] {
+pub fn print_chess(board: &Board) {
+    let chess_board: [String; 64] = array::from_fn(|idx| match board.squares[idx] {
         None => " ".to_string(),
         Some(piece) => piece.to_figure(),
     });
@@ -60,7 +60,7 @@ pub fn print_board(chess_board: &[String; 64]) {
     println!();
 }
 
-pub fn print_move_list(moves: &[PositionRev]) {
+pub fn print_move_list(moves: &[Move]) {
     for (idx, mv) in moves.iter().enumerate() {
         let promotion = match mv.flag {
             Flag::Promotion(piece, _) => Some(piece),
@@ -71,7 +71,7 @@ pub fn print_move_list(moves: &[PositionRev]) {
     }
 }
 
-pub fn get_move_list(moves: &[PositionRev]) -> String {
+pub fn get_move_list(moves: &[Move]) -> String {
     let mut move_list_resp: String = String::new();
     for mv in moves {
         let promotion = match mv.flag {
@@ -100,15 +100,15 @@ pub fn sq_notation(square: u8) -> String {
     format!("{}{}", FILE_LETTERS[file], rank + 1)
 }
 
-pub fn from_move_notation(notation: &str, game: &Game) -> (PositionIrr, PositionRev) {
+pub fn from_move_notation(notation: &str, board: &Board) -> Move {
     let notation = notation.to_lowercase();
-    let (irr, pos_rev) = gen_moves(game.color, game);
+    let pos_rev = gen_moves(board.state.color, board);
 
     for rev in &pos_rev {
         let mv_notation =
             move_notation(rev.from, rev.to, rev.flag.get_promo_piece()).to_lowercase();
         if notation == mv_notation {
-            return (irr, *rev);
+            return *rev;
         }
     }
     panic!("Something is wrong with the move: {:?}", notation);

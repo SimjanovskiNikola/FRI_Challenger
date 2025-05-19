@@ -5,8 +5,8 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use std::{io, thread, u64};
 
-use crate::engine::fen::fen::FenTrait;
-use crate::engine::game::Game;
+use crate::engine::board::board::Board;
+use crate::engine::board::fen::FenTrait;
 use crate::engine::move_generation::make_move::GameMoveTrait;
 use crate::engine::search::searcher::{iterative_deepening, Search};
 use crate::engine::search::time::set_time_limit;
@@ -16,8 +16,7 @@ use crate::engine::shared::helper_func::print_utility::{
     from_move_notation, move_notation, print_chess,
 };
 use crate::engine::shared::structures::color::ColorTrait;
-use crate::engine::shared::structures::internal_move::{PositionIrr, PositionRev};
-use crate::engine::{fen, game};
+use crate::engine::shared::structures::internal_move::Move;
 
 #[derive(Debug)]
 pub struct NewUCI {
@@ -52,7 +51,7 @@ impl NewUCI {
 
 #[derive()]
 pub struct UCI {
-    pub game: Game,
+    pub board: Board,
     pub uci: Arc<RwLock<NewUCI>>,
     pub tt: Arc<Mutex<TTTable>>,
 }
@@ -60,7 +59,7 @@ pub struct UCI {
 impl UCI {
     pub fn init() -> UCI {
         UCI {
-            game: Game::initialize(),
+            board: Board::initialize(),
             uci: Arc::new(RwLock::new(NewUCI::init())),
             tt: Arc::new(Mutex::new(TTTable::init())),
         }
@@ -145,7 +144,7 @@ impl UCI {
     fn ucinewgame(&mut self) {
         self.abort_search();
 
-        self.game.reset_board();
+        self.board.reset_board();
     }
 
     fn position(&mut self, args: &[&str]) {
@@ -169,14 +168,14 @@ impl UCI {
         }
 
         self.uci.write().unwrap().moves_played = 0;
-        self.game = Game::read_fen(&fen.join(" "));
+        self.board = Board::read_fen(&fen.join(" "));
 
-        for s in moves {
-            let (irr, rev) = from_move_notation(s, &self.game);
-            self.game.make_move(&rev, &irr);
-            self.game.ply = 0;
+        for str_mv in moves {
+            let mv = from_move_notation(str_mv, &self.board);
+            self.board.make_move(&mv);
             self.uci.write().unwrap().moves_played += 1;
         }
+        self.board.moves.clear();
     }
 
     fn go(&mut self, args: &[&str]) {
@@ -225,13 +224,13 @@ impl UCI {
         self.uci.write().unwrap().infinite = infinite;
         self.uci.write().unwrap().max_depth = depth.unwrap_or(64);
 
-        if !infinite && matches!(time_limit, None) && self.game.color.is_white() {
+        if !infinite && matches!(time_limit, None) && self.board.state.color.is_white() {
             self.uci.write().unwrap().time_limit = Some(set_time_limit(
                 moves_togo.unwrap_or(30),
                 wtime.unwrap_or(0),
                 winc.unwrap_or(0),
             ));
-        } else if !infinite && matches!(time_limit, None) && self.game.color.is_black() {
+        } else if !infinite && matches!(time_limit, None) && self.board.state.color.is_black() {
             self.uci.write().unwrap().time_limit = Some(set_time_limit(
                 moves_togo.unwrap_or(30),
                 btime.unwrap_or(0),
@@ -246,14 +245,14 @@ impl UCI {
 
         let stop_flag_clone = Arc::clone(&self.uci.read().unwrap().is_searching);
 
-        let mut game_clone = self.game.clone();
+        let mut board_clone = self.board.clone();
         let mut tt_clone = self.tt.clone();
         let mut uci_clone = self.uci.clone();
 
-        let search = Search::init(game_clone, tt_clone, uci_clone);
+        let search = Search::init(board_clone, tt_clone, uci_clone);
 
         let handle = thread::spawn(move || {
-            let best_move: Option<PositionRev> = iterative_deepening(search);
+            let best_move: Option<Move> = iterative_deepening(search);
 
             if !stop_flag_clone.load(Ordering::Relaxed) || best_move.is_some() {
                 if let Some(mv) = best_move {

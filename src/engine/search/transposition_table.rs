@@ -3,9 +3,7 @@ use std::sync::{atomic::AtomicU64, Mutex};
 use crossbeam::queue::ArrayQueue;
 
 use crate::engine::{
-    game::{self, Game},
-    move_generation::{make_move::GameMoveTrait, mv_gen::move_exists},
-    shared::structures::internal_move::{PositionIrr, PositionRev},
+    board::board::Board, move_generation::{make_move::GameMoveTrait, mv_gen::move_exists}, shared::structures::internal_move::{Move}
 };
 
 const MAX_TT_ENTRIES: usize = 140211;
@@ -23,15 +21,15 @@ pub enum Bound {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TTEntry {
     pub key: u64,
-    pub rev: PositionRev,
+    pub mv: Move,
     pub score: i16,
     pub depth: u8,
     pub category: Bound,
 }
 
 impl TTEntry {
-    pub fn init(key: u64, rev: PositionRev, score: i16, depth: u8, category: Bound) -> Self {
-        Self { key, rev, score, depth, category }
+    pub fn init(key: u64, mv: Move, score: i16, depth: u8, category: Bound) -> Self {
+        Self { key, mv, score, depth, category }
     }
 }
 
@@ -59,12 +57,12 @@ impl TTTable {
         return (key % MAX_TT_ENTRIES as u64) as usize;
     }
 
-    pub fn set(&mut self, key: u64, rev: PositionRev, score: i16, depth: u8, category: Bound) {
+    pub fn set(&mut self, key: u64, mv: Move, score: i16, depth: u8, category: Bound) {
         self.inserts += 1;
         if self.table[Self::idx(key)].is_some() {
             self.collisions += 1;
         }
-        self.table[Self::idx(key)] = Some(TTEntry::init(key, rev, score, depth, category));
+        self.table[Self::idx(key)] = Some(TTEntry::init(key, mv, score, depth, category));
     }
 
     pub fn probe(
@@ -73,7 +71,7 @@ impl TTTable {
         depth: u8,
         mut alpha: i16,
         mut beta: i16,
-    ) -> Option<(i16, PositionRev)> {
+    ) -> Option<(i16, Move)> {
         self.lookups += 1;
         let idx = Self::idx(key);
         if let Some(e) = self.table[idx] {
@@ -82,13 +80,13 @@ impl TTTable {
                     Bound::Lower => alpha = alpha.max(e.score),
                     Bound::Exact => {
                         self.hits += 1;
-                        return Some((e.score, e.rev));
+                        return Some((e.score, e.mv));
                     }
                     Bound::Upper => beta = beta.min(e.score),
                 }
                 if alpha >= beta {
                     self.hits += 1;
-                    return Some((e.score, e.rev));
+                    return Some((e.score, e.mv));
                 }
             }
         }
@@ -127,19 +125,19 @@ impl TTTable {
         self.lookups = 0;
     }
 
-    pub fn get_line(&self, game: &mut Game) -> Vec<PositionRev> {
-        let mut line: Vec<PositionRev> = Vec::with_capacity(64); // TODO: Max Depth Add as a constant
+    pub fn get_line(&self, board: &mut Board) -> Vec<Move> {
+        let mut line: Vec<Move> = Vec::with_capacity(64); // TODO: Max Depth Add as a constant
         let mut moves_made = 0;
 
-        while let Some(mv) = self.get(game.key) {
+        while let Some(entry) = self.get(board.state.key) {
             if line.len() >= 64 {
                 break;
             }
 
-            line.push(mv.rev);
+            line.push(entry.mv);
 
-            if move_exists(game, &mv.rev) {
-                game.make_move(&mv.rev, &PositionIrr::init_with_game(game));
+            if move_exists(board, &entry.mv) {
+                board.make_move(&entry.mv);
                 moves_made += 1;
             } else {
                 break;
@@ -147,7 +145,7 @@ impl TTTable {
         }
 
         while moves_made > 0 {
-            game.undo_move();
+            board.undo_move();
             moves_made -= 1;
         }
 

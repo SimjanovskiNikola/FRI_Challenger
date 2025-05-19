@@ -2,7 +2,7 @@ use bitflags::bitflags;
 
 use super::color::*;
 use super::square::SqPos;
-use crate::engine::game::Game;
+use crate::engine::board::board::Board;
 use crate::engine::move_generation::mv_gen::*;
 use crate::engine::shared::structures::square::SqPos::*;
 
@@ -87,27 +87,27 @@ impl CastlingRights {
     }
 
     #[inline(always)]
-    pub fn sq_att(&self, castle: CastlingRights, game: &Game, _own: u64, _enemy: u64) -> bool {
+    pub fn sq_att(&self, castle: CastlingRights, board: &Board, _own: u64, _enemy: u64) -> bool {
         let resp = match castle {
             CastlingRights::WKINGSIDE => {
-                sq_attack(game, E1.idx(), WHITE)
-                    | sq_attack(game, F1.idx(), WHITE)
-                    | sq_attack(game, G1.idx(), WHITE)
+                sq_attack(board, E1.idx(), WHITE)
+                    | sq_attack(board, F1.idx(), WHITE)
+                    | sq_attack(board, G1.idx(), WHITE)
             }
             CastlingRights::WQUEENSIDE => {
-                sq_attack(game, E1.idx(), WHITE)
-                    | sq_attack(game, D1.idx(), WHITE)
-                    | sq_attack(game, C1.idx(), WHITE)
+                sq_attack(board, E1.idx(), WHITE)
+                    | sq_attack(board, D1.idx(), WHITE)
+                    | sq_attack(board, C1.idx(), WHITE)
             }
             CastlingRights::BKINGSIDE => {
-                sq_attack(game, E8.idx(), BLACK)
-                    | sq_attack(game, F8.idx(), BLACK)
-                    | sq_attack(game, G8.idx(), BLACK)
+                sq_attack(board, E8.idx(), BLACK)
+                    | sq_attack(board, F8.idx(), BLACK)
+                    | sq_attack(board, G8.idx(), BLACK)
             }
             CastlingRights::BQUEENSIDE => {
-                sq_attack(game, E8.idx(), BLACK)
-                    | sq_attack(game, D8.idx(), BLACK)
-                    | sq_attack(game, C8.idx(), BLACK)
+                sq_attack(board, E8.idx(), BLACK)
+                    | sq_attack(board, D8.idx(), BLACK)
+                    | sq_attack(board, C8.idx(), BLACK)
             }
             _ => panic!("Invalid Castling Rights"),
         };
@@ -116,9 +116,9 @@ impl CastlingRights {
     }
 
     #[inline(always)]
-    pub fn valid(&self, castle: CastlingRights, game: &Game, own: u64, enemy: u64) -> bool {
+    pub fn valid(&self, castle: CastlingRights, board: &Board, own: u64, enemy: u64) -> bool {
         self.is_set(castle)
             && self.sq_empty(castle, own, enemy)
-            && !self.sq_att(castle, game, own, enemy)
+            && !self.sq_att(castle, board, own, enemy)
     }
 }

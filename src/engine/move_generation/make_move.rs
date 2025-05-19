@@ -1,4 +1,4 @@
-use crate::engine::game::Game;
+use crate::engine::board::board::Board;
 use crate::engine::move_generator::generated::zobrist_keys::*;
 use crate::engine::shared::helper_func::bitboard::BitboardTrait;
 use crate::engine::shared::helper_func::print_utility::print_bitboard;
@@ -13,7 +13,7 @@ use core::panic;
 use super::mv_gen::sq_attack;
 
 pub trait GameMoveTrait {
-    fn make_move(&mut self, rev: &PositionRev, irr: &PositionIrr) -> bool;
+    fn make_move(&mut self, mv: &Move) -> bool;
     fn undo_move(&mut self);
     fn make_null_move(&mut self) -> bool;
     fn undo_null_move(&mut self) -> bool;
@@ -24,70 +24,71 @@ pub trait GameMoveTrait {
     fn quiet_mv(&mut self, from_sq: usize, to_sq: usize, piece: Piece);
 }
 
-impl GameMoveTrait for Game {
-    fn make_move(&mut self, rev: &PositionRev, irr: &PositionIrr) -> bool {
-        match rev.flag {
-            Flag::Quiet => self.quiet_mv(rev.from as usize, rev.to as usize, rev.piece),
-            Flag::Capture(_) => self.replace_piece(rev.from as usize, rev.to as usize),
+impl GameMoveTrait for Board {
+    fn make_move(&mut self, mv: &Move) -> bool {
+        match mv.flag {
+            Flag::Quiet => self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece),
+            Flag::Capture(_) => self.replace_piece(mv.from as usize, mv.to as usize),
             Flag::EP => {
-                self.replace_piece(rev.from as usize, rev.to as usize);
-                self.clear_piece((rev.to + 16 * rev.piece.color() - 8) as usize);
+                self.replace_piece(mv.from as usize, mv.to as usize);
+                self.clear_piece((mv.to + 16 * mv.piece.color() - 8) as usize);
             }
             Flag::Promotion(piece, _) => {
-                self.clear_piece(rev.from as usize);
-                self.add_piece(rev.to as usize, piece);
+                self.clear_piece(mv.from as usize);
+                self.add_piece(mv.to as usize, piece);
             }
             Flag::KingCastle => {
-                let sq = &ROOK_SQ[rev.piece.color().idx()][0];
-                self.quiet_mv(rev.from as usize, rev.to as usize, rev.piece);
-                self.quiet_mv(sq.0, sq.1, ROOK + rev.piece.color());
+                let sq = &ROOK_SQ[mv.piece.color().idx()][0];
+                self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece);
+                self.quiet_mv(sq.0, sq.1, ROOK + mv.piece.color());
             }
             Flag::QueenCastle => {
-                let sq = &ROOK_SQ[rev.piece.color().idx()][1];
-                self.quiet_mv(rev.from as usize, rev.to as usize, rev.piece);
-                self.quiet_mv(sq.0, sq.1, ROOK + rev.piece.color());
+                let sq = &ROOK_SQ[mv.piece.color().idx()][1];
+                self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece);
+                self.quiet_mv(sq.0, sq.1, ROOK + mv.piece.color());
             }
         }
+        
+        self.history.push(self.state);
+        self.moves.push(*mv);
 
-        self.color.change_color();
+
+        self.state.color.change_color();
 
         //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
 
         for c in &CASTLE_DATA {
-            if !self.castling.is_set(c.2)
+            if !self.state.castling.is_set(c.2)
                 || !self.bitboard[(ROOK + c.3) as usize].is_set(c.0)
                 || !self.bitboard[(KING + c.3) as usize].is_set(c.1)
             {
-                self.castling.clear(c.2);
+                self.state.castling.clear(c.2);
             }
         }
 
-        if rev.piece.is_pawn() && rev.from.abs_diff(rev.to) == 16 {
-            self.ep = Some(rev.to + 16 * rev.piece.color() - 8);
+        if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {
+            self.state.ep = Some(mv.to + 16 * mv.piece.color() - 8);
         } else {
-            self.ep = None
+            self.state.ep = None
         }
 
-        if rev.piece.is_pawn() || matches!(rev.flag, Flag::Capture(_)) {
-            self.half_move = 0
+        if mv.piece.is_pawn() || matches!(mv.flag, Flag::Capture(_)) {
+            self.state.half_move = 0
         } else {
-            self.half_move += 1;
+            self.state.half_move += 1;
         }
 
-        if self.pos_rev.len() % 2 == 0 {
-            self.full_move += 1;
+        if self.moves.len() % 2 == 0 {
+            self.state.full_move += 1;
         }
 
-        self.ply += 1;
 
         self.generate_pos_key();
 
-        self.pos_irr.push(*irr);
-        self.pos_rev.push(*rev);
 
-        let king_sq = self.bitboard[(KING + rev.piece.color()) as usize].get_lsb();
+        let king_sq = self.bitboard[(KING + mv.piece.color()) as usize].get_lsb();
 
-        if sq_attack(self, king_sq, rev.piece.color()) != 0 {
+        if sq_attack(self, king_sq, mv.piece.color()) != 0 {
             self.undo_move();
             return false;
         }
@@ -96,49 +97,44 @@ impl GameMoveTrait for Game {
     }
 
     fn undo_move(&mut self) {
-        let (rev, irr) = match (self.pos_rev.pop(), self.pos_irr.pop()) {
-            (Some(rev), Some(irr)) => (rev, irr),
+        let (mv, st) = match (self.moves.pop(), self.history.pop()) {
+            (Some(m), Some(s)) => (m, s),
             (None, None) => return,
             (_, _) => panic!("There is something wrong"),
         };
 
         self.generate_pos_key();
-        self.ply -= 1;
-        self.full_move = irr.full_move;
-        self.half_move = irr.half_move;
-        self.ep = irr.ep;
-        self.castling = irr.castle;
-        self.color.change_color();
+        self.state = st;
 
-        match rev.flag {
-            Flag::Quiet => self.quiet_mv(rev.to as usize, rev.from as usize, rev.piece),
+        match mv.flag {
+            Flag::Quiet => self.quiet_mv(mv.to as usize, mv.from as usize, mv.piece),
             Flag::Capture(piece) => {
-                self.replace_piece(rev.to as usize, rev.from as usize);
-                self.add_piece(rev.to as usize, piece);
+                self.replace_piece(mv.to as usize, mv.from as usize);
+                self.add_piece(mv.to as usize, piece);
             }
             Flag::EP => {
-                self.replace_piece(rev.to as usize, rev.from as usize);
+                self.replace_piece(mv.to as usize, mv.from as usize);
                 self.add_piece(
-                    (rev.to + 16 * rev.piece.color() - 8) as usize,
-                    PAWN + rev.piece.color().opp(),
+                    (mv.to + 16 * mv.piece.color() - 8) as usize,
+                    PAWN + mv.piece.color().opp(),
                 );
             }
             Flag::Promotion(_, cap_piece) => {
-                self.clear_piece(rev.to as usize);
+                self.clear_piece(mv.to as usize);
                 if let Some(piece) = cap_piece {
-                    self.add_piece(rev.to as usize, piece)
+                    self.add_piece(mv.to as usize, piece)
                 }
-                self.add_piece(rev.from as usize, rev.piece);
+                self.add_piece(mv.from as usize, mv.piece);
             }
             Flag::KingCastle => {
-                let sq = &ROOK_SQ[rev.piece.color().idx()][0];
-                self.quiet_mv(rev.to as usize, rev.from as usize, rev.piece);
-                self.quiet_mv(sq.1, sq.0, ROOK + rev.piece.color());
+                let sq = &ROOK_SQ[mv.piece.color().idx()][0];
+                self.quiet_mv(mv.to as usize, mv.from as usize, mv.piece);
+                self.quiet_mv(sq.1, sq.0, ROOK + mv.piece.color());
             }
             Flag::QueenCastle => {
-                let sq = &ROOK_SQ[rev.piece.color().idx()][1];
-                self.quiet_mv(rev.to as usize, rev.from as usize, rev.piece);
-                self.quiet_mv(sq.1, sq.0, ROOK + rev.piece.color());
+                let sq = &ROOK_SQ[mv.piece.color().idx()][1];
+                self.quiet_mv(mv.to as usize, mv.from as usize, mv.piece);
+                self.quiet_mv(sq.1, sq.0, ROOK + mv.piece.color());
             }
         }
     }
@@ -150,7 +146,7 @@ impl GameMoveTrait for Game {
 
         self.bitboard[piece.idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
         self.bitboard[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
-        self.key ^= PIECE_KEYS[to_sq][piece.idx()] | PIECE_KEYS[from_sq][piece.idx()];
+        self.state.key ^= PIECE_KEYS[to_sq][piece.idx()] | PIECE_KEYS[from_sq][piece.idx()];
     }
 
     #[inline(always)]
@@ -162,7 +158,7 @@ impl GameMoveTrait for Game {
         self.squares[sq] = Some(piece);
         self.bitboard[piece.idx()].set_bit(sq);
         self.bitboard[piece.color().idx()].set_bit(sq);
-        self.key ^= PIECE_KEYS[sq][piece.idx()];
+        self.state.key ^= PIECE_KEYS[sq][piece.idx()];
     }
 
     #[inline(always)]
@@ -173,7 +169,7 @@ impl GameMoveTrait for Game {
                 self.squares[sq] = None;
                 self.bitboard[piece.idx()].clear_bit(sq);
                 self.bitboard[piece.color().idx()].clear_bit(sq);
-                self.key ^= PIECE_KEYS[sq][piece.idx()];
+                self.state.key ^= PIECE_KEYS[sq][piece.idx()];
             }
         }
     }
@@ -197,10 +193,10 @@ impl GameMoveTrait for Game {
 
     #[inline(always)]
     fn generate_pos_key(&mut self) {
-        self.key ^= (SIDE_KEY * self.color as u64) | CASTLE_KEYS[self.castling.idx()];
+        self.state.key ^= (SIDE_KEY * self.state.color as u64) | CASTLE_KEYS[self.state.castling.idx()];
 
-        if let Some(idx) = self.ep {
-            self.key ^= EP_KEYS[idx as usize]
+        if let Some(idx) = self.state.ep {
+            self.state.key ^= EP_KEYS[idx as usize]
         }
     }
 

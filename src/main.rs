@@ -1,9 +1,9 @@
 use std::env;
 
+use engine::board::board::Board;
+use engine::board::fen::FenTrait;
 // use ::engine::engine::engine_s::Engine;
 use ::engine::engine::protocols::uci::UCI;
-use engine::fen::fen::FenTrait;
-use engine::game::Game;
 use engine::search::searcher::SearchInfo;
 use engine::search::transposition_table::TTTable;
 use engine::shared::helper_func::const_utility::{FEN_MATE_IN_3, FEN_MATE_IN_4, FEN_MATE_IN_5};
@@ -18,7 +18,7 @@ fn main() {
     let mut uci = UCI::init();
     uci.main();
 
-    // let mut game = Game::read_fen(FEN_MATE_IN_4);
-    // let mut game = Game::initialize();
-    // play_chess(&mut game);
+    // let mut board = Board::read_fen(FEN_MATE_IN_4);
+    // let mut board = Board::initialize();
+    // play_chess(&mut board);
 }
