@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::RwLock;
 
-use crate::engine::board::make_move::GameMoveTrait;
+use crate::engine::board::make_move::BoardMoveTrait;
 use crate::engine::board::mv_gen::gen_captures;
 use crate::engine::board::mv_gen::gen_moves;
 use crate::engine::board::mv_gen::is_repetition;

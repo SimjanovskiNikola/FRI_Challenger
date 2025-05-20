@@ -9,11 +9,14 @@ use crate::engine::misc::print_utility::print_chess;
 use crate::engine::move_generator::generated::zobrist_keys::*;
 use core::panic;
 
-pub trait GameMoveTrait {
+pub trait BoardMoveTrait {
     fn make_move(&mut self, mv: &Move) -> bool;
     fn undo_move(&mut self);
     fn make_null_move(&mut self) -> bool;
-    fn undo_null_move(&mut self) -> bool;
+    fn undo_null_move(&mut self);
+    fn make_state(&mut self, mv: &Move);
+    fn undo_state(&mut self);
+
     fn generate_pos_key(&mut self);
     fn add_piece(&mut self, sq: usize, piece: Piece);
     fn clear_piece(&mut self, sq: usize);
@@ -21,7 +24,7 @@ pub trait GameMoveTrait {
     fn quiet_mv(&mut self, from_sq: usize, to_sq: usize, piece: Piece);
 }
 
-impl GameMoveTrait for Board {
+impl BoardMoveTrait for Board {
     fn make_move(&mut self, mv: &Move) -> bool {
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece),
@@ -49,44 +52,12 @@ impl GameMoveTrait for Board {
         self.history.push(self.state);
         self.moves.push(*mv);
 
-        self.state.color.change_color();
+        self.make_state(mv);
 
-        //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
-
-        for c in &CASTLE_DATA {
-            if !self.state.castling.is_set(c.2)
-                || !self.bitboard[(ROOK + c.3) as usize].is_set(c.0)
-                || !self.bitboard[(KING + c.3) as usize].is_set(c.1)
-            {
-                self.state.castling.clear(c.2);
-            }
-        }
-
-        if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {
-            self.state.ep = Some(mv.to + 16 * mv.piece.color() - 8);
-        } else {
-            self.state.ep = None
-        }
-
-        if mv.piece.is_pawn() || matches!(mv.flag, Flag::Capture(_)) {
-            self.state.half_move = 0
-        } else {
-            self.state.half_move += 1;
-        }
-
-        if self.moves.len() % 2 == 0 {
-            self.state.full_move += 1;
-        }
-
-        self.generate_pos_key();
-
-        let king_sq = self.bitboard[(KING + mv.piece.color()) as usize].get_lsb();
-
-        if sq_attack(self, king_sq, mv.piece.color()) != 0 {
+        if sq_attack(self, self.king_sq(self.color().opp()), mv.piece.color()) != 0 {
             self.undo_move();
             return false;
         }
-
         true
     }
 
@@ -199,7 +170,48 @@ impl GameMoveTrait for Board {
         todo!()
     }
 
-    fn undo_null_move(&mut self) -> bool {
+    fn undo_null_move(&mut self) {
         todo!()
+    }
+
+    fn make_state(&mut self, mv: &Move) {
+        // Switch the color
+        self.state.color.change_color();
+
+        //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
+        for c in &CASTLE_DATA {
+            if !self.state.castling.is_set(c.2)
+                || !self.bitboard[(ROOK + c.3) as usize].is_set(c.0)
+                || !self.bitboard[(KING + c.3) as usize].is_set(c.1)
+            {
+                self.state.castling.clear(c.2);
+            }
+        }
+
+        // Setting the En passant
+        if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {
+            self.state.ep = Some(mv.to + 16 * mv.piece.color() - 8);
+        } else {
+            self.state.ep = None
+        }
+
+        // If the move is pawn or if there is a capture, reset the halfmove
+        if mv.piece.is_pawn() || matches!(mv.flag, Flag::Capture(_)) {
+            self.state.half_move = 0
+        } else {
+            self.state.half_move += 1;
+        }
+
+        // Full Move should be half of the moves
+        if self.history.len() % 2 == 0 {
+            self.state.full_move += 1;
+        }
+
+        self.generate_pos_key();
+    }
+
+    fn undo_state(&mut self) {
+        assert!(self.history.len() > 0, "Can't Pop states from empty history");
+        self.history.pop();
     }
 }

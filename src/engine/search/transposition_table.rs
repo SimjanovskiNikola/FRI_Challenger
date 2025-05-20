@@ -1,8 +1,7 @@
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::moves::Move;
-use crate::engine::board::{make_move::GameMoveTrait, mv_gen::move_exists};
+use crate::engine::board::{make_move::BoardMoveTrait, mv_gen::move_exists};
 
-use crossbeam::queue::ArrayQueue;
 use std::sync::{atomic::AtomicU64, Mutex};
 
 const MAX_TT_ENTRIES: usize = 140211;

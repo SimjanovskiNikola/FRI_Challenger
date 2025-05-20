@@ -58,31 +58,31 @@ pub trait BitboardTrait {
     // TODO: fn rotate(self, rotate: Rotate);
 
     //NOTE: Operations with bits
-    /** Checks if Bitboard is Empty.*/
+    /** Get least significant bit from bitboard */
     fn get_lsb(self) -> usize;
 
-    /** Checks if Bitboard is Empty.*/
+    /** Get most significant bit from bitboard */
     fn get_msb(self) -> usize;
 
-    /** Checks if Bitboard is Empty.*/
+    /** Get all bits from bitboard */
     fn get_bits(self) -> Vec<usize>;
 
-    /** Checks if Bitboard is Empty.*/
+    /** Get least significant bit from bitboard */
     fn pop_lsb(&mut self) -> usize;
 
-    /** Checks if Bitboard is Empty.*/
+    /** Set bit on a bitboard */
     fn set_bit(&mut self, sq: usize);
 
-    /** Checks if Bitboard is Empty.*/
+    /** Clear bit from a bitboard*/
     fn clear_bit(&mut self, sq: usize);
 
-    /** Checks if Bitboard is Empty.*/
+    /** Count the number of ones inside the bitboard */
     fn count(self) -> usize;
 
     /** Checks if Bitboard is Empty.*/
     fn is_set(&self, sq: usize) -> bool;
 
-    /** Checks if Bitboard is Empty.*/
+    /** Prints bitboard */
     fn print(self, mark: Option<usize>);
 }
 
