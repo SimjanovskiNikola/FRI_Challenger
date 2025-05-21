@@ -159,6 +159,14 @@ impl Board {
     }
 
     #[inline(always)]
+    pub fn cap_piece(&self, sq: usize) -> Piece {
+        match self.squares[sq] {
+            Some(piece) => piece,
+            None => unreachable!("There is no piece to be captured at this location"),
+        }
+    }
+
+    #[inline(always)]
     pub fn is_repetition(board: &Board) -> bool {
         let his_len = board.history.len();
         let half_move = board.half_move() as usize;
