@@ -24,6 +24,7 @@ pub struct Board {
     pub s_history: [[u64; 64]; 14],
     pub s_killers: [[Option<Move>; 2]; 64],
     pub pv: Vec<Move>,
+    pub gen_moves: Vec<(Move, isize)>,
 }
 
 impl Board {
@@ -43,6 +44,7 @@ impl Board {
             s_history: [[0u64; 64]; 14],
             s_killers: [[None; 2]; 64],
             pv: Vec::new(),
+            gen_moves: Vec::with_capacity(256),
             // info: SearchInfo::init(),
         }
     }
@@ -56,6 +58,7 @@ impl Board {
         self.state = BoardState::init();
         self.s_history = [[0u64; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
+        self.gen_moves.clear();
     }
 
     #[inline(always)]

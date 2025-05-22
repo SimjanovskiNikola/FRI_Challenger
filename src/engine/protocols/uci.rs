@@ -170,7 +170,7 @@ impl UCI {
         self.board = Board::read_fen(&fen.join(" "));
 
         for str_mv in moves {
-            let mv = from_move_notation(str_mv, &self.board);
+            let mv = from_move_notation(str_mv, &mut self.board);
             self.board.make_move(&mv);
             self.uci.write().unwrap().moves_played += 1;
         }

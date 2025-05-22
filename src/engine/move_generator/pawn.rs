@@ -7,7 +7,7 @@ use crate::engine::misc::const_utility::Rank;
 
 // PAWN MOVE, ATTACK, EP
 #[inline(always)]
-pub fn get_pawn_mv(color: Color, sq: usize, own: u64, enemy: u64) -> u64 {
+pub fn get_pawn_mv(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
     let moves = PAWN_MOVE_LOOKUP[color.idx()][sq] & !(own | enemy);
 
     let bit = match color {
@@ -20,7 +20,7 @@ pub fn get_pawn_mv(color: Color, sq: usize, own: u64, enemy: u64) -> u64 {
 }
 
 #[inline(always)]
-pub fn get_pawn_att(color: Color, sq: usize, own: u64, enemy: u64, ep: Option<u8>) -> u64 {
+pub fn get_pawn_att(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
     let attacks = PAWN_ATTACK_LOOKUP[color.idx()][sq] & !own;
     attacks & enemy
     // match ep {

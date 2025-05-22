@@ -143,7 +143,7 @@ fn alpha_beta(
     let mut legal_mv_num = 0;
     let old_alpha: isize = alpha;
 
-    let moves = gen_moves(search.board.state.color, &search.board);
+    let moves = gen_moves(search.board.state.color, &mut search.board);
 
     for mv in &moves {
         // Check Time every 2027 Nodes
