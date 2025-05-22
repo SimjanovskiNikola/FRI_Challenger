@@ -267,7 +267,7 @@ impl Evaluation for Board {
 
     #[inline(always)]
     fn bishop_eval(&self, piece: &Piece, _sq: usize) -> isize {
-        if self.bitboard(*piece).count() >= 2 {
+        if self.bb(*piece).count() >= 2 {
             BISHOP_PAIR_WT
         } else {
             0

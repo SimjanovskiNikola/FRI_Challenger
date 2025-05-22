@@ -1,3 +1,5 @@
+use crate::engine::board::structures::color::Color;
+
 use super::generated::bishop::{BISHOP_BASE, BISHOP_LOOKUP, BISHOP_MASKS};
 use super::utility::pext;
 
@@ -6,7 +8,7 @@ const WHITE_SQUARES: u64 = 0b101010101010101010101010101010101010101010101010101
 const BLACK_SQUARES: u64 = 0b0101010101010101010101010101010101010101010101010101010101010101;
 
 #[inline(always)]
-pub fn get_bishop_mv(sq: usize, own: u64, enemy: u64) -> u64 {
+pub fn get_bishop_mv(sq: usize, own: u64, enemy: u64, _: Color) -> u64 {
     let occupancy = own | enemy;
     let key = pext(occupancy, BISHOP_MASKS[sq]) as usize;
 

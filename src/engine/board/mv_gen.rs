@@ -1,39 +1,416 @@
+use super::make_move::BoardMoveTrait;
+use super::structures::board;
 use super::structures::board::Board;
 use super::structures::castling::*;
+use super::structures::color;
 use super::structures::color::*;
 use super::structures::moves::*;
 use super::structures::piece::*;
+use super::structures::square::get_rank;
 use super::structures::square::SqPos::*;
 use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::bitboard::Iterator;
+use crate::engine::misc::bitboard::Shift;
 use crate::engine::misc::const_utility::*;
 use crate::engine::move_generator::bishop::*;
+use crate::engine::move_generator::generated::knight;
 use crate::engine::move_generator::king::*;
 use crate::engine::move_generator::knight::*;
 use crate::engine::move_generator::pawn::*;
 use crate::engine::move_generator::queen::*;
 use crate::engine::move_generator::rook::*;
 
-use super::make_move::GameMoveTrait;
+pub trait BoardGenMoveTrait {
+    fn gen_moves(&mut self) -> Vec<Move>;
+    fn gen_captures(&self) -> Vec<Move>;
 
-#[inline(always)]
-pub fn gen_moves(color: Color, board: &Board) -> Vec<Move> {
-    let mut positions_rev: Vec<Move> = Vec::with_capacity(256);
-    let (own_occ, enemy_occ) = get_occupancy(&color, board);
+    fn add_quiet_moves(&mut self, bb: u64, piece: Piece, sq: usize);
+    fn add_capture_moves(&mut self, bb: u64, piece: Piece, sq: usize);
+    fn add_castling_moves(&mut self);
+    fn add_ep_moves(&mut self);
+    fn add_capture_promo_moves(&mut self);
+    fn add_quiet_promo_moves(&mut self);
 
-    for piece in &PIECES {
-        let mut bb = board.bitboard(piece + color);
+    fn pawn_moves(&mut self);
+    fn pawn_quiet_moves(&mut self);
+    fn pawn_capture_moves(&mut self);
+
+    fn knight_moves(&mut self);
+    fn king_moves(&mut self);
+    fn bishop_moves(&mut self);
+    fn rook_moves(&mut self);
+    fn queen_moves(&mut self);
+
+    fn add_piece_captures(&self, moves: &mut Vec<Move>, piece: Piece);
+
+    fn get_piece_mv_bb(&self, piece: Piece, pos: usize) -> u64;
+
+    // fn add_basic_move?s(&self, moves: &mut Vec<Move>, bb: u64, piece: Piece, from_sq: usize);
+}
+
+const GET_MV: [fn(sq: usize, own_occ: u64, enemy_occ: u64, color: Color) -> u64; 6] =
+    [get_pawn_att, get_knight_mv, get_bishop_mv, get_rook_mv, get_queen_mv, get_king_mv];
+
+impl BoardGenMoveTrait for Board {
+    #[inline(always)]
+    fn gen_moves(&mut self) -> Vec<Move> {
+        self.pawn_moves();
+        self.knight_moves();
+        self.king_moves();
+        self.bishop_moves();
+        self.rook_moves();
+        self.queen_moves();
+
+        self.add_castling_moves();
+        self.add_ep_moves();
+
+        self.gen_moves.sort_unstable_by_key(|&(_, score)| score);
+        self.gen_moves.drain(..).map(|(mv, _)| mv).collect()
+    }
+
+    fn gen_captures(&self) -> Vec<Move> {
+        todo!()
+    }
+
+    fn knight_moves(&mut self) {
+        let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
+        let mut bb = self.knight_bb(self.color());
         while let Some(sq) = bb.next() {
-            let moves = get_all_moves(piece + color, sq, board, own_occ, enemy_occ);
-            get_positions_rev(moves, &(piece + color), sq, board, &mut positions_rev);
+            let moves = GET_MV[KNIGHT.kind().idx()](sq, own_occ, enemy_occ, self.color());
+            let quiet_moves = moves & !enemy_occ;
+            let capture_moves = moves & enemy_occ;
+            self.add_quiet_moves(quiet_moves, KNIGHT + self.color(), sq);
+            self.add_capture_moves(capture_moves, KNIGHT + self.color(), sq);
         }
     }
 
-    add_castling_moves(&(KING + color), board, &mut positions_rev);
+    fn king_moves(&mut self) {
+        let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
+        let mut bb = self.king_bb(self.color());
+        while let Some(sq) = bb.next() {
+            let moves = get_king_mv(sq, own_occ, enemy_occ);
+            let quiet_moves = moves & !enemy_occ;
+            let capture_moves = moves & enemy_occ;
+            self.add_quiet_moves(quiet_moves, KING + self.color(), sq);
+            self.add_capture_moves(capture_moves, KING + self.color(), sq);
+        }
+    }
 
-    positions_rev.sort_unstable_by(|a, b| eval_pos(b, &board).cmp(&eval_pos(a, &board)));
-    positions_rev
+    fn bishop_moves(&mut self) {
+        let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
+        let mut bb = self.bishop_bb(self.color());
+        while let Some(sq) = bb.next() {
+            let moves = get_bishop_mv(sq, own_occ, enemy_occ);
+            let quiet_moves = moves & !enemy_occ;
+            let capture_moves = moves & enemy_occ;
+            self.add_quiet_moves(quiet_moves, BISHOP + self.color(), sq);
+            self.add_capture_moves(capture_moves, BISHOP + self.color(), sq);
+        }
+    }
+
+    fn rook_moves(&mut self) {
+        let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
+        let mut bb = self.rook_bb(self.color());
+        while let Some(sq) = bb.next() {
+            let moves = get_rook_mv(sq, own_occ, enemy_occ);
+            let quiet_moves = moves & !enemy_occ;
+            let capture_moves = moves & enemy_occ;
+            self.add_quiet_moves(quiet_moves, ROOK + self.color(), sq);
+            self.add_capture_moves(capture_moves, ROOK + self.color(), sq);
+        }
+    }
+
+    fn queen_moves(&mut self) {
+        let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
+        let mut bb = self.queen_bb(self.color());
+        while let Some(sq) = bb.next() {
+            let moves = get_queen_mv(sq, own_occ, enemy_occ);
+            let quiet_moves = moves & !enemy_occ;
+            let capture_moves = moves & enemy_occ;
+            self.add_quiet_moves(quiet_moves, QUEEN + self.color(), sq);
+            self.add_capture_moves(capture_moves, QUEEN + self.color(), sq);
+        }
+    }
+
+    fn pawn_moves(&mut self) {
+        // PAWN + self.color(), self.color()
+        self.pawn_capture_moves();
+        self.pawn_quiet_moves();
+    }
+
+    fn pawn_quiet_moves(&mut self) {
+        let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
+        let both_occ = own_occ | enemy_occ;
+        let piece = PAWN + self.color();
+        if self.color().is_white() {
+            let mv = (self.pawn_bb(self.color()) << 8) & !both_occ;
+            let mut one_mv = mv & !RANK_BITBOARD[7];
+            let mut one_promo = mv & RANK_BITBOARD[7];
+            let mut two_mv = ((one_mv & RANK_BITBOARD[2]) << 8) & !both_occ;
+
+            while let Some(to_sq) = one_mv.next() {
+                self.gen_moves
+                    .push((Move::init((to_sq - 8) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+            }
+
+            while let Some(to_sq) = one_promo.next() {
+                self.add_promo_moves((to_sq - 8) as u8, to_sq as u8, piece, board);
+            }
+
+            while let Some(to_sq) = two_mv.next() {
+                self.gen_moves
+                    .push((Move::init((to_sq - 16) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+            }
+        } else {
+            let mv = (self.pawn_bb(self.color()) >> 8) & !both_occ;
+            let mut one_mv = mv & !RANK_BITBOARD[0];
+            let mut one_promo = mv & RANK_BITBOARD[0];
+            let mut two_mv = ((one_mv & RANK_BITBOARD[5]) >> 8) & !both_occ;
+
+            while let Some(to_sq) = one_mv.next() {
+                self.gen_moves
+                    .push((Move::init((to_sq + 8) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+            }
+
+            while let Some(to_sq) = one_promo.next() {
+                self.add_promo_moves((to_sq + 8) as u8, to_sq as u8, piece);
+            }
+
+            while let Some(to_sq) = two_mv.next() {
+                self.gen_moves
+                    .push((Move::init((to_sq + 16) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+            }
+        }
+    }
+
+    fn add_piece_captures(&self) {
+        todo!()
+    }
+
+    fn get_piece_mv_bb(&self, piece: Piece, pos: usize) -> u64 {
+        todo!()
+    }
+
+    fn add_basic_moves(&self, moves: &mut Vec<Move>, bb: u64, piece: Piece, from_sq: usize) {
+        todo!()
+    }
+
+    fn add_ep_moves() {
+        todo!()
+    }
+
+    fn add_promo_moves() {
+        todo!()
+    }
+
+    fn add_castling_moves() {
+        todo!()
+    }
+}
+
+// const PIECES_WITHOUT_PAWN: [u8; 5] = [KING, KNIGHT, BISHOP, ROOK, QUEEN];
+
+// fn add_pawn_quiet_moves(piece: Piece, color: Color, board: &mut Board) {
+//     let (own_occ, enemy_occ) = get_occupancy(&color, board);
+//     let both_occ = own_occ | enemy_occ;
+//     if piece.color().is_white() {
+//         let mv = (board.bb(piece) << 8) & !both_occ;
+//         let mut one_mv = mv & !RANK_BITBOARD[7];
+//         let mut one_promo = mv & RANK_BITBOARD[7];
+//         let mut two_mv = ((one_mv & RANK_BITBOARD[2]) << 8) & !both_occ;
+
+//         while let Some(to_sq) = one_mv.next() {
+//             board
+//                 .gen_moves
+//                 .push((Move::init((to_sq - 8) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+//         }
+
+//         while let Some(to_sq) = one_promo.next() {
+//             add_promo((to_sq - 8) as u8, to_sq as u8, piece, board);
+//         }
+
+//         while let Some(to_sq) = two_mv.next() {
+//             board
+//                 .gen_moves
+//                 .push((Move::init((to_sq - 16) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+//         }
+//     } else {
+//         let mv = (board.bb(piece) >> 8) & !both_occ;
+//         let mut one_mv = mv & !RANK_BITBOARD[0];
+//         let mut one_promo = mv & RANK_BITBOARD[0];
+//         let mut two_mv = ((one_mv & RANK_BITBOARD[5]) >> 8) & !both_occ;
+
+//         while let Some(to_sq) = one_mv.next() {
+//             board
+//                 .gen_moves
+//                 .push((Move::init((to_sq + 8) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+//         }
+
+//         while let Some(to_sq) = one_promo.next() {
+//             add_promo((to_sq + 8) as u8, to_sq as u8, piece, board);
+//         }
+
+//         while let Some(to_sq) = two_mv.next() {
+//             board
+//                 .gen_moves
+//                 .push((Move::init((to_sq + 16) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+//         }
+//     }
+// }
+
+fn add_pawn_cap_moves(piece: Piece, color: Color, board: &mut Board) {
+    let (own_occ, enemy_occ) = get_occupancy(&color, board);
+
+    if piece.color().is_white() {
+        let left = ((board.bb(piece) << 9) & !FILE_BITBOARD[0]) & enemy_occ;
+        let mut left_att = left & !RANK_BITBOARD[7];
+        let mut left_promo = left & RANK_BITBOARD[7];
+
+        while let Some(to_sq) = left_att.next() {
+            board.gen_moves.push((
+                Move::init(
+                    (to_sq - 9) as u8,
+                    to_sq as u8,
+                    piece,
+                    Flag::Capture(board.cap_piece(to_sq)),
+                ),
+                0,
+            ));
+        }
+
+        while let Some(to_sq) = left_promo.next() {
+            add_promo((to_sq - 9) as u8, to_sq as u8, piece, board);
+        }
+
+        let right = ((board.bb(piece) << 7) & !FILE_BITBOARD[7]) & enemy_occ;
+        let mut right_att = right & !RANK_BITBOARD[7];
+        let mut right_promo = right & RANK_BITBOARD[7];
+
+        while let Some(to_sq) = right_att.next() {
+            board.gen_moves.push((
+                Move::init(
+                    (to_sq - 7) as u8,
+                    to_sq as u8,
+                    piece,
+                    Flag::Capture(board.cap_piece(to_sq)),
+                ),
+                0,
+            ));
+        }
+
+        while let Some(to_sq) = right_promo.next() {
+            add_promo((to_sq - 9) as u8, to_sq as u8, piece, board);
+        }
+    } else {
+        let left = ((board.bb(piece) >> 9) & !FILE_BITBOARD[7]) & enemy_occ;
+        let mut left_att = left & !RANK_BITBOARD[0];
+        let mut left_promo = left & RANK_BITBOARD[0];
+
+        while let Some(to_sq) = left_att.next() {
+            board.gen_moves.push((
+                Move::init(
+                    (to_sq + 9) as u8,
+                    to_sq as u8,
+                    piece,
+                    Flag::Capture(board.cap_piece(to_sq)),
+                ),
+                0,
+            ));
+        }
+
+        while let Some(to_sq) = left_promo.next() {
+            add_promo((to_sq + 9) as u8, to_sq as u8, piece, board);
+        }
+
+        let right = ((board.bb(piece) >> 7) & !FILE_BITBOARD[0]) & enemy_occ;
+        let mut right_att = right & !RANK_BITBOARD[0];
+        let mut right_promo = right & RANK_BITBOARD[0];
+
+        while let Some(to_sq) = right_att.next() {
+            board.gen_moves.push((
+                Move::init(
+                    (to_sq + 7) as u8,
+                    to_sq as u8,
+                    piece,
+                    Flag::Capture(board.cap_piece(to_sq)),
+                ),
+                0,
+            ));
+        }
+
+        while let Some(to_sq) = right_promo.next() {
+            add_promo((to_sq + 7) as u8, to_sq as u8, piece, board);
+        }
+    }
+}
+
+fn add_promo(from_sq: u8, to_sq: u8, piece: Piece, board: &mut Board) {
+    board.gen_moves.push((
+        Move::init(
+            from_sq,
+            to_sq,
+            piece,
+            Flag::Promotion(QUEEN + piece.color(), board.squares[to_sq as usize]),
+        ),
+        0,
+    ));
+    board.gen_moves.push((
+        Move::init(
+            from_sq,
+            to_sq,
+            piece,
+            Flag::Promotion(ROOK + piece.color(), board.squares[to_sq as usize]),
+        ),
+        0,
+    ));
+    board.gen_moves.push((
+        Move::init(
+            from_sq,
+            to_sq,
+            piece,
+            Flag::Promotion(BISHOP + piece.color(), board.squares[to_sq as usize]),
+        ),
+        0,
+    ));
+    board.gen_moves.push((
+        Move::init(
+            from_sq,
+            to_sq,
+            piece,
+            Flag::Promotion(KNIGHT + piece.color(), board.squares[to_sq as usize]),
+        ),
+        0,
+    ));
+}
+
+fn get_cap_piece(sq: usize, board: &Board) -> Piece {
+    match board.squares[sq] {
+        Some(piece) => piece,
+        None => unreachable!("There is no piece to be captured at this location"),
+    }
+}
+
+#[inline(always)]
+fn add_capture_moves(mut bb: u64, piece: Piece, from_sq: usize, board: &mut Board) {
+    while let Some(to_sq) = bb.next() {
+        let flag = match board.squares[to_sq] {
+            Some(piece) => Flag::Capture(piece),
+            None => unreachable!("There is no piece to be captured at this location"),
+        };
+        let mv = Move::init(from_sq as u8, to_sq as u8, piece, flag);
+        let eval = cap_eval(&mv, board); //eval_cap_move()
+        board.gen_moves.push((mv, eval));
+    }
+}
+
+#[inline(always)]
+fn add_quiet_moves(mut bb: u64, piece: Piece, from_sq: usize, board: &mut Board) {
+    while let Some(to_sq) = bb.next() {
+        let mv = Move::init(from_sq as u8, to_sq as u8, piece, Flag::Quiet);
+        let eval = quiet_eval(&mv, board); //eval_quiet_move()
+        board.gen_moves.push((mv, eval));
+    }
 }
 
 #[inline(always)]
@@ -45,7 +422,7 @@ pub fn gen_captures(color: Color, board: &Board) -> Vec<Move> {
         let mut bb = board.bitboard[(piece + color) as usize];
         while let Some(sq) = bb.next() {
             let moves = match piece.kind() {
-                PAWN => get_pawn_att(color, sq, own_occ, enemy_occ, board.state.ep),
+                PAWN => get_pawn_att(color, sq, own_occ, enemy_occ, None),
                 KNIGHT => get_knight_mv(sq, own_occ, enemy_occ) & enemy_occ,
                 BISHOP => get_bishop_mv(sq, own_occ, enemy_occ) & enemy_occ,
                 ROOK => get_rook_mv(sq, own_occ, enemy_occ) & enemy_occ,
@@ -86,12 +463,29 @@ fn eval_pos(mv: &Move, board: &Board) -> isize {
     }
 }
 
+fn quiet_eval(mv: &Move, board: &Board) -> isize {
+    if matches!(board.s_killers[board.ply()][0], Some(x) if x == *mv) {
+        90000
+    } else if matches!(board.s_killers[board.ply()][1], Some(x) if x == *mv) {
+        80000
+    } else {
+        board.s_history[mv.piece.idx()][mv.to as usize] as isize
+    }
+}
+
+fn cap_eval(mv: &Move, board: &Board) -> isize {
+    match mv.flag {
+        Flag::Capture(cap) => cap.weight() - mv.piece as isize,
+        _ => panic!("There is no flag capture"),
+    }
+}
+
 #[inline(always)]
 pub fn get_all_moves(piece: Piece, pos: usize, board: &Board, own_occ: u64, enemy_occ: u64) -> u64 {
     match piece.kind() {
         PAWN => {
             get_pawn_mv(piece.color(), pos, own_occ, enemy_occ)
-                | get_pawn_att(piece.color(), pos, own_occ, enemy_occ, board.state.ep)
+                | get_pawn_att(piece.color(), pos, own_occ, enemy_occ, None)
         }
         KNIGHT => get_knight_mv(pos, own_occ, enemy_occ),
         BISHOP => get_bishop_mv(pos, own_occ, enemy_occ),
@@ -104,18 +498,19 @@ pub fn get_all_moves(piece: Piece, pos: usize, board: &Board, own_occ: u64, enem
 
 #[inline(always)]
 pub fn get_occupancy(piece: &Piece, board: &Board) -> (u64, u64) {
-    (board.bitboard(WHITE + piece.color()), board.bitboard(BLACK - piece.color()))
+    (board.bb(WHITE + piece.color()), board.bb(BLACK - piece.color()))
+    // board.both_occ_bb(color);
 }
 
 #[inline(always)]
 pub fn sq_attack(game: &Board, sq: usize, color: Color) -> u64 {
     let (own_occ, enemy_occ) = get_occupancy(&color, game);
 
-    let op_pawns = game.bitboard(BLACK_PAWN - color);
-    let op_knights = game.bitboard(BLACK_KNIGHT - color);
-    let op_rq = game.bitboard(BLACK_QUEEN - color) | game.bitboard(BLACK_ROOK - color);
-    let op_bq = game.bitboard(BLACK_QUEEN - color) | game.bitboard(BLACK_BISHOP - color);
-    let op_king = game.bitboard(BLACK_KING - color);
+    let op_pawns = game.bb(BLACK_PAWN - color);
+    let op_knights = game.bb(BLACK_KNIGHT - color);
+    let op_rq = game.bb(BLACK_QUEEN - color) | game.bb(BLACK_ROOK - color);
+    let op_bq = game.bb(BLACK_QUEEN - color) | game.bb(BLACK_BISHOP - color);
+    let op_king = game.bb(BLACK_KING - color);
 
     (get_pawn_att(color, sq, own_occ, enemy_occ, None) & op_pawns)
         | (get_knight_mv(sq, own_occ, enemy_occ) & op_knights)
@@ -184,26 +579,45 @@ pub fn move_exists(board: &mut Board, mv: &Move) -> bool {
 }
 
 #[inline(always)]
-pub fn add_castling_moves(piece: &Piece, board: &Board, positions: &mut Vec<Move>) {
+pub fn add_castling_moves(piece: &Piece, board: &mut Board) {
     let (own, enemy) = get_occupancy(piece, board);
     match piece.color() {
         WHITE => {
             if board.state.castling.valid(CastlingRights::WKINGSIDE, board, own, enemy) {
-                positions.push(Move::init(E1 as u8, G1 as u8, *piece, Flag::KingCastle));
+                board.gen_moves.push((Move::init(E1 as u8, G1 as u8, *piece, Flag::KingCastle), 0));
             }
             if board.state.castling.valid(CastlingRights::WQUEENSIDE, board, own, enemy) {
-                positions.push(Move::init(E1 as u8, C1 as u8, *piece, Flag::QueenCastle));
+                board
+                    .gen_moves
+                    .push((Move::init(E1 as u8, C1 as u8, *piece, Flag::QueenCastle), 0));
             }
         }
         BLACK => {
             if board.state.castling.valid(CastlingRights::BKINGSIDE, board, own, enemy) {
-                positions.push(Move::init(E8 as u8, G8 as u8, *piece, Flag::KingCastle));
+                board.gen_moves.push((Move::init(E8 as u8, G8 as u8, *piece, Flag::KingCastle), 0));
             }
             if board.state.castling.valid(CastlingRights::BQUEENSIDE, board, own, enemy) {
-                positions.push(Move::init(E8 as u8, C8 as u8, *piece, Flag::QueenCastle));
+                board
+                    .gen_moves
+                    .push((Move::init(E8 as u8, C8 as u8, *piece, Flag::QueenCastle), 0));
             }
         }
         _ => panic!("Invalid Castling"),
+    }
+}
+
+#[inline(always)]
+pub fn add_new_ep_move(board: &mut Board) {
+    if let Some(mv) = board.state.ep {
+        let color = board.color().opp();
+        let (own_occ, enemy_occ) = get_occupancy(&color, board);
+
+        let mut attack =
+            get_pawn_att(color, mv as usize, own_occ, enemy_occ, None) & board.pawn_bb(color.opp());
+
+        while let Some(sq) = attack.next() {
+            board.gen_moves.push((Move::init(sq as u8, mv, PAWN + color.opp(), Flag::EP), 100));
+        }
     }
 }
 
@@ -260,16 +674,16 @@ mod tests {
 
     #[test]
     fn test_white_pawns_mv_gen() {
-        let board = Board::read_fen(&FEN_PAWNS_WHITE);
-        let moves = gen_moves(WHITE, &board);
+        let mut board = Board::read_fen(&FEN_PAWNS_WHITE);
+        let moves = gen_moves(WHITE, &mut board);
         assert_eq!(42, moves.len());
         print_move_list(&moves);
     }
 
     #[test]
     fn test_mv_gen() {
-        let board = Board::read_fen(&FEN_CASTLE_TWO);
-        let moves = gen_moves(WHITE, &board);
+        let mut board = Board::read_fen(&FEN_CASTLE_TWO);
+        let moves = gen_moves(WHITE, &mut board);
         print_chess(&board);
         print_move_list(&moves);
         assert_eq!(48, moves.len());
@@ -277,8 +691,8 @@ mod tests {
 
     #[test]
     fn test_white_black_mv_gen() {
-        let board = Board::read_fen(&FEN_PAWNS_BLACK);
-        let moves = gen_moves(BLACK, &board);
+        let mut board = Board::read_fen(&FEN_PAWNS_BLACK);
+        let moves = gen_moves(BLACK, &mut board);
         assert_eq!(42, moves.len());
         print_move_list(&moves);
     }

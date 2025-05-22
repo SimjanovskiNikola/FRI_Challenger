@@ -1,4 +1,4 @@
-use super::make_move::GameMoveTrait;
+use super::make_move::BoardMoveTrait;
 use super::mv_gen::gen_moves;
 use super::structures::board::Board;
 use super::structures::moves::{Flag, Move};

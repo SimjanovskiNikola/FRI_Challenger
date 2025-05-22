@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use std::{io, thread, u64};
 
 use crate::engine::board::fen::FenTrait;
-use crate::engine::board::make_move::GameMoveTrait;
+use crate::engine::board::make_move::BoardMoveTrait;
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::color::ColorTrait;
 use crate::engine::board::structures::moves::Move;
@@ -143,7 +143,7 @@ impl UCI {
     fn ucinewgame(&mut self) {
         self.abort_search();
 
-        self.board.reset_board();
+        self.board.reset();
     }
 
     fn position(&mut self, args: &[&str]) {
@@ -170,7 +170,7 @@ impl UCI {
         self.board = Board::read_fen(&fen.join(" "));
 
         for str_mv in moves {
-            let mv = from_move_notation(str_mv, &self.board);
+            let mv = from_move_notation(str_mv, &mut self.board);
             self.board.make_move(&mv);
             self.uci.write().unwrap().moves_played += 1;
         }

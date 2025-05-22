@@ -1,4 +1,4 @@
-use super::make_move::GameMoveTrait;
+use super::make_move::BoardMoveTrait;
 use super::structures::board::Board;
 use super::structures::castling::CastlingRights;
 use super::structures::color::*;
@@ -20,7 +20,7 @@ pub trait FenTrait {
 
 impl FenTrait for Board {
     fn read_fen(fen: &str) -> Self {
-        let mut board: Board = Board::create_board();
+        let mut board: Board = Board::create();
         let data: Vec<&str> = fen.split(" ").collect();
 
         if data.len() != 6 {
@@ -159,7 +159,7 @@ mod tests {
             black_occupancy |= 1 << i;
         }
 
-        assert_eq!(board.bitboard(WHITE), white_occupancy);
-        assert_eq!(board.bitboard(BLACK), black_occupancy);
+        assert_eq!(board.bb(WHITE), white_occupancy);
+        assert_eq!(board.bb(BLACK), black_occupancy);
     }
 }

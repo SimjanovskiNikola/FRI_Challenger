@@ -94,7 +94,7 @@ pub fn sq_notation(square: u8) -> String {
     format!("{}{}", FILE_LETTERS[file], rank + 1)
 }
 
-pub fn from_move_notation(notation: &str, board: &Board) -> Move {
+pub fn from_move_notation(notation: &str, board: &mut Board) -> Move {
     let notation = notation.to_lowercase();
     let pos_rev = gen_moves(board.state.color, board);
 
