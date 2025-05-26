@@ -184,7 +184,7 @@ impl Evaluation for Board {
     fn evaluate_pos(&self) -> isize {
         let mut score: isize = 0;
 
-        let (white_occ, black_occ) = get_occupancy(&WHITE, &self);
+        let (white_occ, black_occ) = self.both_occ_bb(WHITE); //get_occupancy(&WHITE, &self);
         let phase = self.determine_phase();
         let mg_phase = phase.min(24) as isize;
         let eg_phase = (24 - mg_phase) as isize;
@@ -202,11 +202,11 @@ impl Evaluation for Board {
                 temp_score += self.piece_eval(piece, sq);
 
                 if piece.color().is_black() {
-                    temp_score += get_all_moves(*piece, sq, &self, black_occ, white_occ).count()
+                    temp_score += Board::get_mv_bb(*piece, sq, black_occ, white_occ).count()
                         as isize
                         * MOBILITY_WT;
                 } else {
-                    temp_score += get_all_moves(*piece, sq, &self, white_occ, black_occ).count()
+                    temp_score += Board::get_mv_bb(*piece, sq, white_occ, black_occ).count()
                         as isize
                         * MOBILITY_WT;
                 }

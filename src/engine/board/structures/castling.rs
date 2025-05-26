@@ -2,7 +2,7 @@ use bitflags::bitflags;
 
 use super::color::*;
 use super::square::SqPos::*;
-use crate::engine::board::mv_gen::sq_attack;
+use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::board::Board;
 
 pub const CASTLE_DATA: [(usize, usize, CastlingRights, Color); 4] = [
@@ -89,24 +89,24 @@ impl CastlingRights {
     pub fn sq_att(&self, castle: CastlingRights, board: &Board, _own: u64, _enemy: u64) -> bool {
         let resp = match castle {
             CastlingRights::WKINGSIDE => {
-                sq_attack(board, E1.idx(), WHITE)
-                    | sq_attack(board, F1.idx(), WHITE)
-                    | sq_attack(board, G1.idx(), WHITE)
+                board.sq_attack(E1.idx(), WHITE)
+                    | board.sq_attack(F1.idx(), WHITE)
+                    | board.sq_attack(G1.idx(), WHITE)
             }
             CastlingRights::WQUEENSIDE => {
-                sq_attack(board, E1.idx(), WHITE)
-                    | sq_attack(board, D1.idx(), WHITE)
-                    | sq_attack(board, C1.idx(), WHITE)
+                board.sq_attack(E1.idx(), WHITE)
+                    | board.sq_attack(D1.idx(), WHITE)
+                    | board.sq_attack(C1.idx(), WHITE)
             }
             CastlingRights::BKINGSIDE => {
-                sq_attack(board, E8.idx(), BLACK)
-                    | sq_attack(board, F8.idx(), BLACK)
-                    | sq_attack(board, G8.idx(), BLACK)
+                board.sq_attack(E8.idx(), BLACK)
+                    | board.sq_attack(F8.idx(), BLACK)
+                    | board.sq_attack(G8.idx(), BLACK)
             }
             CastlingRights::BQUEENSIDE => {
-                sq_attack(board, E8.idx(), BLACK)
-                    | sq_attack(board, D8.idx(), BLACK)
-                    | sq_attack(board, C8.idx(), BLACK)
+                board.sq_attack(E8.idx(), BLACK)
+                    | board.sq_attack(D8.idx(), BLACK)
+                    | board.sq_attack(C8.idx(), BLACK)
             }
             _ => panic!("Invalid Castling Rights"),
         };

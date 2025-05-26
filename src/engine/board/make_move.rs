@@ -1,4 +1,4 @@
-use super::mv_gen::sq_attack;
+use super::mv_gen::BoardGenMoveTrait;
 use super::structures::board::Board;
 use super::structures::castling::*;
 use super::structures::color::ColorTrait;
@@ -6,6 +6,8 @@ use super::structures::moves::*;
 use super::structures::piece::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::print_utility::print_chess;
+use crate::engine::misc::print_utility::print_move_list;
+use crate::engine::misc::print_utility::sq_notation;
 use crate::engine::move_generator::generated::zobrist_keys::*;
 use core::panic;
 
@@ -54,7 +56,7 @@ impl BoardMoveTrait for Board {
 
         self.make_state(mv);
 
-        if sq_attack(self, self.king_sq(self.color().opp()), mv.piece.color()) != 0 {
+        if self.sq_attack(self.king_sq(self.color().opp()), mv.piece.color()) != 0 {
             self.undo_move();
             return false;
         }
@@ -129,7 +131,15 @@ impl BoardMoveTrait for Board {
     #[inline(always)]
     fn clear_piece(&mut self, sq: usize) {
         match self.squares[sq] {
-            None => panic!("Clearing a Peace that does not exist"),
+            None => {
+                println!("Square to remove peace: {:?}", sq_notation(sq as u8));
+                print_chess(&self);
+                print_move_list(&self.gen_moves());
+                self.undo_move();
+                print_chess(&self);
+                print_move_list(&self.gen_moves());
+                panic!("Clearing a Peace that does not exist")
+            }
             Some(piece) => {
                 self.squares[sq] = None;
                 self.bitboard[piece.idx()].clear_bit(sq);

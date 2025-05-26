@@ -1,6 +1,7 @@
+use crate::engine::board::make_move::BoardMoveTrait;
+use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::moves::Move;
-use crate::engine::board::{make_move::BoardMoveTrait, mv_gen::move_exists};
 
 use std::sync::{atomic::AtomicU64, Mutex};
 
@@ -134,7 +135,7 @@ impl TTTable {
 
             line.push(entry.mv);
 
-            if move_exists(board, &entry.mv) {
+            if board.move_exists(&entry.mv) {
                 board.make_move(&entry.mv);
                 moves_made += 1;
             } else {

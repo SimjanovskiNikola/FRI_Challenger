@@ -23,6 +23,8 @@ pub const BLACK_ROOK: Piece = BLACK | ROOK;
 pub const BLACK_QUEEN: Piece = BLACK | QUEEN;
 pub const BLACK_KING: Piece = BLACK | KING;
 
+pub const PIECES_WITHOUT_PAWN: [Piece; 5] = [KNIGHT, BISHOP, ROOK, QUEEN, KING];
+pub const PROMO_PIECES: [Piece; 4] = [KNIGHT, BISHOP, ROOK, QUEEN];
 pub const PIECES: [Piece; 6] = [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING];
 pub const CLR_PIECES: [Piece; 12] = [
     WHITE_PAWN,

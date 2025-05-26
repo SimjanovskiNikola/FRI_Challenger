@@ -3,10 +3,7 @@ use std::sync::Mutex;
 use std::sync::RwLock;
 
 use crate::engine::board::make_move::BoardMoveTrait;
-use crate::engine::board::mv_gen::gen_captures;
-use crate::engine::board::mv_gen::gen_moves;
-use crate::engine::board::mv_gen::is_repetition;
-use crate::engine::board::mv_gen::sq_attack;
+use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::moves::Move;
 use crate::engine::board::structures::piece::PieceTrait;
@@ -85,8 +82,7 @@ fn quiescence_search(mut alpha: isize, beta: isize, search: &mut Search) -> isiz
 
     alpha = alpha.max(eval);
 
-    let board = &search.board;
-    let mut pos_rev = gen_captures(board.state.color, board);
+    let mut pos_rev = search.board.gen_captures();
 
     for rev in &mut pos_rev {
         if (search.info.nodes & 2047) == 0 && time_over(&search) {
@@ -126,7 +122,7 @@ fn alpha_beta(
 
     // Check if the position happened before or is draw
     // TODO: There is some bug regarding repetition
-    if search.board.state.half_move >= 100 || is_repetition(&search.board) {
+    if search.board.state.half_move >= 100 || search.board.is_repetition() {
         return 0;
     }
 
@@ -143,7 +139,7 @@ fn alpha_beta(
     let mut legal_mv_num = 0;
     let old_alpha: isize = alpha;
 
-    let moves = gen_moves(search.board.state.color, &mut search.board);
+    let moves = search.board.gen_moves();
 
     for mv in &moves {
         // Check Time every 2027 Nodes
@@ -193,7 +189,7 @@ fn alpha_beta(
     // Checking for if the position is draw or checkmate
     if legal_mv_num == 0 {
         let king_sq = search.board.bitboard[(KING + search.board.state.color) as usize].get_lsb();
-        return match sq_attack(&search.board, king_sq, search.board.state.color) != 0 {
+        return match search.board.sq_attack(king_sq, search.board.state.color) != 0 {
             true => -1000000 + (search.board.ply() as isize),
             false => 0,
         };
