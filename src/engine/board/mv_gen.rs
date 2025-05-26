@@ -65,7 +65,7 @@ impl BoardGenMoveTrait for Board {
     fn gen_moves(&mut self) -> Vec<Move> {
         self.pawn_moves();
 
-        for piece in PIECES_WITHOUT_PAWN {
+        for piece in &PIECES_WITHOUT_PAWN {
             self.piece_all_moves(piece + self.color());
         }
 
@@ -80,7 +80,7 @@ impl BoardGenMoveTrait for Board {
     fn gen_captures(&mut self) -> Vec<Move> {
         self.pawn_capture_moves();
 
-        for piece in PIECES_WITHOUT_PAWN {
+        for piece in &PIECES_WITHOUT_PAWN {
             self.piece_cap_moves(piece + self.color());
         }
 
