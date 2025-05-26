@@ -1,5 +1,5 @@
-use super::make_move::GameMoveTrait;
-use super::mv_gen::gen_moves;
+use super::make_move::BoardMoveTrait;
+use super::mv_gen::BoardGenMoveTrait;
 use super::structures::board::Board;
 use super::structures::moves::{Flag, Move};
 use crate::engine::board::fen::FenTrait;
@@ -92,7 +92,7 @@ pub fn perft(depth: usize, board: &mut Board, stats: &mut Stats) -> u64 {
         return 1;
     }
 
-    let mut moves = gen_moves(board.state.color, board);
+    let mut moves = board.gen_moves();
     for mv in &mut moves {
         if !board.make_move(mv) {
             continue;
@@ -339,8 +339,8 @@ mod tests {
 
     // #[test]
     // fn test_perft_pos_four_depth_6() {
-    //     let game = Game::read_fen(&FEN_POS_FOUR);
-    //     assert_eq!(perft(6).nodes, 706045033);
+    //     let stats = init_test_func(&FEN_POS_FOUR, 6, true);
+    //     assert_eq!(stats.nodes, 706045033);
     // }
 
     // **** START: POSITION 5 ****
@@ -417,8 +417,8 @@ mod tests {
     // FIXME: Time Needed: ??? ms; Correct: ???;
     // #[test]
     // fn test_perft_pos_six_depth_6() {
-    //     let game = Game::read_fen(&FEN_POS_SIX);
-    //     assert_eq!(perft(6).nodes, 6923051137)
+    //     let stats = init_test_func(&FEN_POS_SIX, 6, true);
+    //     assert_eq!(stats.nodes, 6923051137);
     // }
 
     // FIXME: Time Needed: ??? ms; Correct: ???;

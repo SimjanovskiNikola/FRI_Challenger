@@ -1,4 +1,4 @@
-use crate::engine::board::mv_gen::gen_moves;
+use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::moves::*;
 use crate::engine::board::structures::piece::*;
@@ -94,11 +94,11 @@ pub fn sq_notation(square: u8) -> String {
     format!("{}{}", FILE_LETTERS[file], rank + 1)
 }
 
-pub fn from_move_notation(notation: &str, board: &Board) -> Move {
+pub fn from_move_notation(notation: &str, board: &mut Board) -> Move {
     let notation = notation.to_lowercase();
-    let pos_rev = gen_moves(board.state.color, board);
+    let moves = board.gen_moves();
 
-    for rev in &pos_rev {
+    for rev in &moves {
         let mv_notation =
             move_notation(rev.from, rev.to, rev.flag.get_promo_piece()).to_lowercase();
         if notation == mv_notation {

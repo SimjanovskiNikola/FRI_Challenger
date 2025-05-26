@@ -1,9 +1,10 @@
 use super::generated::king::KING_LOOKUP;
 use super::generated::pawn::ISOLATED_PAWN_LOOKUP;
 use crate::engine::board::structures::castling::*;
+use crate::engine::board::structures::color::Color;
 
 #[inline(always)]
-pub fn get_king_mv(sq: usize, own: u64, _: u64) -> u64 {
+pub fn get_king_mv(sq: usize, own: u64, _: u64, _: Color) -> u64 {
     KING_LOOKUP[sq] & !own
 }
 

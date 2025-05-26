@@ -15,6 +15,7 @@ iai-callgrind = "0.14.0"
 # const_for = "0.1.5" 
 clippy = "0.0.302"
 crossbeam = "0.8.4"
+indexmap = "2.9.0"
 
 [[bin]]
 name = "chess-engine"
