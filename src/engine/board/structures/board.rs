@@ -193,15 +193,22 @@ impl Board {
     #[inline(always)]
     pub fn mirror(&mut self) {
         for idx in 0..(self.squares.len() / 2) {
-            let sq = self.squares[idx];
-            self.squares[idx] = self.squares[63 - idx];
-            self.squares[63 - idx] = sq;
+            let first_piece = match self.squares[idx] {
+                Some(p) => Some(p.opp()),
+                None => None,
+            };
+            let second_piece = match self.squares[OPP_SQ[idx]] {
+                Some(p) => Some(p.opp()),
+                None => None,
+            };
+            self.squares[idx] = second_piece;
+            self.squares[OPP_SQ[idx]] = first_piece;
         }
 
-        for idx in 0..(self.bitboard.len() / 2) {
+        for idx in (0..self.bitboard.len()).step_by(2) {
             let bb = self.bitboard[idx];
-            self.bitboard[idx] = self.bitboard[13 - idx];
-            self.bitboard[13 - idx] = bb;
+            self.bitboard[idx] = self.bitboard[idx + 1].swap_bytes();
+            self.bitboard[idx + 1] = bb.swap_bytes();
         }
 
         self.state.color = self.state.color.opp();
@@ -209,8 +216,9 @@ impl Board {
             Some(sq) => Some(OPP_SQ[sq as usize] as u8),
             None => None,
         };
+
         // self.state.castling = 0; TODO:
-        // self.state.key = self.generate_pos_key(); // TODO:
+        // self.state.key = self.generate_pos_key(); // TODO: Update Zobrist key Structure
     }
 }
 
@@ -220,6 +228,10 @@ mod tests {
     use super::*;
     use crate::engine::board::structures::castling::CastlingRights;
     use crate::engine::board::structures::color::WHITE;
+    use crate::engine::evaluation::evaluation::Evaluation;
+    use crate::engine::misc::const_utility::{
+        FEN_CASTLE_ONE, FEN_MATE_IN_5, FEN_POS_FIVE, FEN_POS_FOUR, FEN_POS_THREE,
+    };
 
     #[test]
     fn test_reset_board() {
@@ -235,5 +247,45 @@ mod tests {
         assert_eq!(board.state.full_move, 1);
         assert_eq!(board.moves.len(), 0);
         assert_eq!(board.history.len(), 0);
+    }
+
+    fn test_mirror_framework(fen: &str) {
+        let mut board = Board::read_fen(fen);
+        let eval = board.evaluate_pos();
+        // print_chess(&board);
+        board.mirror();
+        // print_chess(&board);
+        let mirror_eval = board.evaluate_pos();
+        assert_eq!(eval, mirror_eval)
+    }
+
+    #[test]
+    fn test_mirror_start() {
+        test_mirror_framework(FEN_START);
+    }
+
+    #[test]
+    fn test_mirror_mate_in_5() {
+        test_mirror_framework(FEN_MATE_IN_5);
+    }
+
+    #[test]
+    fn test_mirror_pos_4() {
+        test_mirror_framework(FEN_POS_FOUR);
+    }
+
+    #[test]
+    fn test_mirror_pos_5() {
+        test_mirror_framework(FEN_POS_FIVE);
+    }
+
+    #[test]
+    fn test_mirror_pos_3() {
+        test_mirror_framework(FEN_POS_THREE);
+    }
+
+    #[test]
+    fn test_mirror_castle_one() {
+        test_mirror_framework(FEN_CASTLE_ONE);
     }
 }

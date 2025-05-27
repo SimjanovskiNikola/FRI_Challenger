@@ -34,7 +34,7 @@ impl TTEntry {
 
 #[derive(Debug)]
 pub struct TTTable {
-    pub table: Box<[Option<TTEntry>; MAX_TT_ENTRIES]>, //Vec<Option<TTEntry>>,
+    pub table: Box<[Option<TTEntry>]>, //Vec<Option<TTEntry>>,
     pub lookups: u64,
     pub inserts: u64,
     pub hits: u64,
@@ -44,7 +44,7 @@ pub struct TTTable {
 impl TTTable {
     pub fn init() -> Self {
         Self {
-            table: Box::new([None; MAX_TT_ENTRIES]),
+            table: vec![None; MAX_TT_ENTRIES].into_boxed_slice(), //Box::new([None; MAX_TT_ENTRIES]),
             lookups: 0,
             inserts: 0,
             hits: 0,

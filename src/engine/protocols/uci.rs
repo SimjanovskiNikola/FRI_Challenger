@@ -173,8 +173,8 @@ impl UCI {
             let mv = from_move_notation(str_mv, &mut self.board);
             self.board.make_move(&mv);
             self.uci.write().unwrap().moves_played += 1;
+            self.board.moves.pop();
         }
-        self.board.moves.clear();
     }
 
     fn go(&mut self, args: &[&str]) {
