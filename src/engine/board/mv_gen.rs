@@ -72,7 +72,7 @@ impl BoardGenMoveTrait for Board {
         self.add_castling_moves();
         self.add_ep_moves();
 
-        self.gen_moves.sort_unstable_by_key(|&(_, score)| score);
+        self.gen_moves.sort_unstable_by_key(|&(_, score)| -score);
         self.gen_moves.drain(..).map(|(mv, _)| mv).collect()
     }
 
@@ -86,7 +86,7 @@ impl BoardGenMoveTrait for Board {
 
         self.add_ep_moves();
 
-        self.gen_moves.sort_unstable_by_key(|&(_, score)| score);
+        self.gen_moves.sort_unstable_by_key(|&(_, score)| -score);
         self.gen_moves.drain(..).map(|(mv, _)| mv).collect()
     }
 
@@ -355,6 +355,10 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn quiet_eval(&self, mv: &Move) -> isize {
+        // if matches!(game.tt.get(game.key), Some(x) if x.rev == *pos) {
+        //     return 95000;
+        // }
+
         if matches!(self.s_killers[self.ply()][0], Some(x) if x == *mv) {
             90000
         } else if matches!(self.s_killers[self.ply()][1], Some(x) if x == *mv) {
@@ -365,6 +369,10 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn capture_eval(&self, mv: &Move) -> isize {
+        // if matches!(game.tt.get(game.key), Some(x) if x.rev == *pos) {
+        //     return 95000;
+        // }
+
         match mv.flag {
             Flag::Capture(cap) => cap.weight() - mv.piece as isize,
             _ => unreachable!("There is no flag capture"),

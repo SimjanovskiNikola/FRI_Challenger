@@ -12,7 +12,7 @@ use crate::engine::board::structures::color::ColorTrait;
 use crate::engine::board::structures::moves::Move;
 use crate::engine::misc::const_utility::FEN_START;
 use crate::engine::misc::print_utility::{from_move_notation, move_notation};
-use crate::engine::search::searcher::{iterative_deepening, Search};
+use crate::engine::search::iter_deepening::Search;
 use crate::engine::search::transposition_table::TTTable;
 
 use super::time::set_time_limit;
@@ -248,10 +248,10 @@ impl UCI {
         let mut tt_clone = self.tt.clone();
         let mut uci_clone = self.uci.clone();
 
-        let search = Search::init(board_clone, tt_clone, uci_clone);
+        let mut search = Search::init(board_clone, tt_clone, uci_clone);
 
         let handle = thread::spawn(move || {
-            let best_move: Option<Move> = iterative_deepening(search);
+            let best_move: Option<Move> = search.iterative_deepening();
 
             if !stop_flag_clone.load(Ordering::Relaxed) || best_move.is_some() {
                 if let Some(mv) = best_move {
