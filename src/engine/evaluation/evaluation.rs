@@ -4,7 +4,7 @@ use crate::engine::board::mv_gen::*;
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::color::*;
 use crate::engine::board::structures::piece::*;
-use crate::engine::misc::bit_pos_utility::get_bit_rank;
+use crate::engine::board::structures::square::get_rank;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::OPP_SQ;
 use crate::engine::move_generator::generated::pawn::*;
@@ -234,13 +234,10 @@ impl Evaluation for Board {
     #[inline(always)]
     fn pawn_eval(&self, piece: &Piece, sq: usize) -> isize {
         let mut score: isize = 0;
-        let (own_pawns, enemy_pawns) = (
-            self.bitboard[(PAWN + piece.color()).idx()],
-            self.bitboard[(PAWN + piece.color().opp()).idx()],
-        );
+        let (own_pawns, enemy_pawns) = self.both_bb(*piece);
 
         if PASSED_PAWN_LOOKUP[piece.color().idx()][sq] & enemy_pawns == 0 {
-            let rank = get_bit_rank(sq) as usize;
+            let rank = get_rank(sq);
             score += PASSED_PAWN_WT[piece.color().idx()][rank] as isize;
         }
 

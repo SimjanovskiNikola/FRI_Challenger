@@ -16,6 +16,7 @@ pub fn get_pawn_mv(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
         _ => panic!("There are only two colors, black and white"),
     };
 
+    assert!(bit < 64, "Bit is bigger than 64: {:?}", bit);
     return if moves.is_set(bit) { moves } else { 0 };
 }
 

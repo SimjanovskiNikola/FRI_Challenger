@@ -112,9 +112,7 @@ impl BoardGenMoveTrait for Board {
         while let Some(sq) = bb.next() {
             let moves = Board::get_mv_bb(piece, sq, own_occ, enemy_occ);
             let quiet_moves = moves & !enemy_occ;
-            let capture_moves = moves & enemy_occ;
             self.add_quiet_moves(quiet_moves, piece, sq);
-            self.add_capture_moves(capture_moves, piece, sq);
         }
     }
 
@@ -123,9 +121,7 @@ impl BoardGenMoveTrait for Board {
         let mut bb = self.bb(piece);
         while let Some(sq) = bb.next() {
             let moves = Board::get_mv_bb(piece, sq, own_occ, enemy_occ);
-            let quiet_moves = moves & !enemy_occ;
             let capture_moves = moves & enemy_occ;
-            self.add_quiet_moves(quiet_moves, piece, sq);
             self.add_capture_moves(capture_moves, piece, sq);
         }
     }
