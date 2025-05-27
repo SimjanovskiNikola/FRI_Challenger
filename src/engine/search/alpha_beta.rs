@@ -36,6 +36,7 @@ impl Search {
         {
             return score as isize;
         }
+        self.board.tt_mv = tt_guard.get(self.board.key());
         drop(tt_guard);
 
         let mut best_mv = None;
