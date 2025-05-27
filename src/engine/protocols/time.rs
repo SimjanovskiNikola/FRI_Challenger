@@ -1,4 +1,4 @@
-use crate::engine::search::searcher::Search;
+use crate::engine::search::iter_deepening::Search;
 use std::time::Duration;
 
 pub fn set_time_limit(movestogo: usize, time: usize, inc: usize) -> Duration {
