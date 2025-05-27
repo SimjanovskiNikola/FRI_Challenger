@@ -5,6 +5,7 @@ use super::state::BoardState;
 use super::{moves::Move, piece::PAWN};
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::const_utility::OPP_SQ;
+use crate::engine::search::transposition_table::TTEntry;
 use crate::engine::{
     board::fen::FenTrait,
     misc::{bitboard::Bitboard, const_utility::FEN_START},
@@ -21,6 +22,7 @@ pub struct Board {
     pub history: Vec<BoardState>,
     pub state: BoardState,
 
+    pub tt_mv: Option<TTEntry>,
     pub s_history: [[u64; 64]; 14],
     pub s_killers: [[Option<Move>; 2]; 64],
     pub pv: Vec<Move>,
@@ -41,6 +43,8 @@ impl Board {
             moves: Vec::with_capacity(1024),
             history: Vec::with_capacity(1024),
             state: BoardState::init(),
+
+            tt_mv: None,
             s_history: [[0u64; 64]; 14],
             s_killers: [[None; 2]; 64],
             pv: Vec::new(),
@@ -56,6 +60,7 @@ impl Board {
         self.moves = Vec::with_capacity(1024);
         self.history = Vec::with_capacity(1024);
         self.state = BoardState::init();
+        self.tt_mv = None;
         self.s_history = [[0u64; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
         self.gen_moves.clear();

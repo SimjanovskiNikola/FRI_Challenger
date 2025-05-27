@@ -355,9 +355,9 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn quiet_eval(&self, mv: &Move) -> isize {
-        // if matches!(game.tt.get(game.key), Some(x) if x.rev == *pos) {
-        //     return 95000;
-        // }
+        if matches!(self.tt_mv, Some(x) if x.mv == *mv) {
+            return 95000;
+        }
 
         if matches!(self.s_killers[self.ply()][0], Some(x) if x == *mv) {
             90000
@@ -369,9 +369,9 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn capture_eval(&self, mv: &Move) -> isize {
-        // if matches!(game.tt.get(game.key), Some(x) if x.rev == *pos) {
-        //     return 95000;
-        // }
+        if matches!(self.tt_mv, Some(x) if x.mv == *mv) {
+            return 95000;
+        }
 
         match mv.flag {
             Flag::Capture(cap) => cap.weight() - mv.piece as isize,
