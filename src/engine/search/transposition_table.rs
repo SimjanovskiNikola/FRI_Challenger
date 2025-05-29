@@ -90,7 +90,7 @@ impl TTTable {
         self.lookups += 1;
         let idx = Self::idx(key);
         if let Some(e) = self.table[idx] {
-            if e.key == key && e.depth >= depth {
+            if e.key == key && (e.depth + e.age as u8) >= (depth + self.curr_age as u8) {
                 match e.category {
                     Bound::Lower => alpha = alpha.max(e.score),
                     Bound::Exact => {

@@ -92,12 +92,10 @@ impl Search {
                     return score;
                 }
 
-                // pv.clear();
-                // pv.push(*mv);
-                // pv.append(&mut node_pv);
                 alpha = score;
                 best_score = score;
                 best_mv = Some(*mv);
+                self.board.pv[self.board.ply()] = best_mv;
 
                 if !mv.flag.is_capture() {
                     self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as u64;

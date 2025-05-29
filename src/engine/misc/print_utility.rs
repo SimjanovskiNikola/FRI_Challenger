@@ -65,9 +65,34 @@ pub fn print_move_list(moves: &[Move]) {
     }
 }
 
-pub fn get_move_list(moves: &[Move]) -> String {
+pub fn get_move_list(moves: &[Move], depth: u8) -> String {
     let mut move_list_resp: String = String::new();
-    for mv in moves {
+    for (idx, mv) in moves.iter().enumerate() {
+        if idx >= depth as usize {
+            break;
+        }
+        let promotion = match mv.flag {
+            Flag::Promotion(piece, _) => Some(piece),
+            _ => None,
+        };
+        move_list_resp.push_str(" ");
+        move_list_resp.push_str(move_notation(mv.from, mv.to, promotion).as_str());
+    }
+
+    return move_list_resp;
+}
+
+pub fn get_pv_move_list(moves: &[Option<Move>], depth: u8) -> String {
+    let mut move_list_resp: String = String::new();
+    for (idx, op_mv) in moves.iter().enumerate() {
+        let mv = match op_mv {
+            Some(mv) => mv,
+            None => break,
+        };
+
+        if idx >= depth as usize {
+            break;
+        }
         let promotion = match mv.flag {
             Flag::Promotion(piece, _) => Some(piece),
             _ => None,
