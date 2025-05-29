@@ -24,11 +24,12 @@ pub struct TTEntry {
     pub score: i16,
     pub depth: u8,
     pub category: Bound,
+    pub age: u16,
 }
 
 impl TTEntry {
-    pub fn init(key: u64, mv: Move, score: i16, depth: u8, category: Bound) -> Self {
-        Self { key, mv, score, depth, category }
+    pub fn init(key: u64, mv: Move, score: i16, depth: u8, category: Bound, age: u16) -> Self {
+        Self { key, mv, score, depth, category, age }
     }
 }
 
@@ -39,6 +40,7 @@ pub struct TTTable {
     pub inserts: u64,
     pub hits: u64,
     pub collisions: u64,
+    pub curr_age: u16,
 }
 
 impl TTTable {
@@ -49,6 +51,7 @@ impl TTTable {
             inserts: 0,
             hits: 0,
             collisions: 0,
+            curr_age: 0,
         }
     }
 
@@ -58,10 +61,23 @@ impl TTTable {
 
     pub fn set(&mut self, key: u64, mv: Move, score: i16, depth: u8, category: Bound) {
         self.inserts += 1;
-        if self.table[Self::idx(key)].is_some() {
+
+        if let Some(entry) = self.table[Self::idx(key)] {
             self.collisions += 1;
+            if entry.age < self.curr_age || entry.depth < depth {
+                self.table[Self::idx(key)] =
+                    Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
+            } else {
+                // println!(
+                //     "Curr Pos: {:?}, Age: {:?}, Depth: {:?}",
+                //     entry.key, entry.age, entry.depth
+                // );
+                // println!(" New Pos: {:?}, Age: {:?}, Depth: {:?}", key, self.curr_age, depth);
+            }
+        } else {
+            self.table[Self::idx(key)] =
+                Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
         }
-        self.table[Self::idx(key)] = Some(TTEntry::init(key, mv, score, depth, category));
     }
 
     pub fn probe(
@@ -115,6 +131,8 @@ impl TTTable {
 
     pub fn clear(&mut self) {
         self.table.fill(None);
+        self.clear_stats();
+        self.curr_age = 0;
     }
 
     pub fn clear_stats(&mut self) {
@@ -122,6 +140,7 @@ impl TTTable {
         self.collisions = 0;
         self.inserts = 0;
         self.lookups = 0;
+        self.curr_age += 1;
     }
 
     pub fn get_line(&self, board: &mut Board) -> Vec<Move> {

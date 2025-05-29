@@ -59,7 +59,7 @@ impl Search {
         self.info.curr_key = self.board.state.key;
         self.info.curr_depth = 0;
 
-        self.tt.lock().unwrap().clear();
+        // self.tt.lock().unwrap().clear();
         self.tt.lock().unwrap().clear_stats();
     }
 
@@ -106,7 +106,7 @@ impl Search {
             }
 
             self.set_curr_depth(depth);
-            let score = self.alpha_beta(alpha, beta, depth, &mut root_pv, true);
+            let score = self.alpha_beta(alpha, beta, depth, true);
 
             if time_over(&self) {
                 break;
@@ -116,12 +116,13 @@ impl Search {
             (alpha, beta) = Self::aspiration_window(alpha, beta, score, depth);
 
             // Get Best Line from current position and print info
+            root_pv = self.tt.lock().unwrap().get_line(&mut self.board);
             if root_pv.len() > 0 {
                 best_mv = Some(root_pv[0]);
             }
             self.print_info(score, get_move_list(&root_pv));
             self.print_ordering_info();
-            root_pv.clear();
+            // root_pv.clear();
             // search.tt.lock().unwrap().print_stats();
         }
 

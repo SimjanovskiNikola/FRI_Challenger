@@ -5,6 +5,7 @@ use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::moves::Move;
 use crate::engine::board::structures::piece::PieceTrait;
 use crate::engine::board::structures::piece::KING;
+use crate::engine::evaluation::evaluation::Evaluation;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::protocols::time::time_over;
 
@@ -13,8 +14,7 @@ impl Search {
         &mut self,
         mut alpha: isize,
         mut beta: isize,
-        depth: u8,
-        pv: &mut Vec<Move>,
+        mut depth: u8,
         take_null: bool,
     ) -> isize {
         // If we reached the final depth than make sure there is no horizon effect
@@ -28,6 +28,17 @@ impl Search {
         // TODO: There is some bug regarding repetition
         if self.board.state.half_move >= 100 || self.board.is_repetition() {
             return 0;
+        }
+
+        if self.board.ply() > 63 {
+            return self.board.evaluate_pos();
+        }
+
+        let in_check: bool =
+            self.board.sq_attack(self.board.king_sq(self.board.color()), self.board.color()) != 0;
+
+        if in_check {
+            depth += 1;
         }
 
         let mut tt_guard = self.tt.lock().unwrap();
@@ -57,7 +68,7 @@ impl Search {
             }
             legal_mv_num += 1;
             let mut node_pv: Vec<Move> = Vec::new();
-            let score = -self.alpha_beta(-beta, -alpha, depth - 1, &mut node_pv, true);
+            let score = -self.alpha_beta(-beta, -alpha, depth - 1, true);
             self.board.undo_move();
 
             if score > alpha {
@@ -81,23 +92,22 @@ impl Search {
                     return score;
                 }
 
-                pv.clear();
-                pv.push(*mv);
-                pv.append(&mut node_pv);
+                // pv.clear();
+                // pv.push(*mv);
+                // pv.append(&mut node_pv);
                 alpha = score;
                 best_score = score;
                 best_mv = Some(*mv);
 
                 if !mv.flag.is_capture() {
-                    self.board.s_history[mv.piece.idx()][mv.to as usize] += (depth * depth) as u64;
+                    self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as u64;
                 }
             }
         }
 
         // Checking for if the position is draw or checkmate
         if legal_mv_num == 0 {
-            let king_sq = self.board.bitboard[(KING + self.board.state.color) as usize].get_lsb();
-            return match self.board.sq_attack(king_sq, self.board.state.color) != 0 {
+            return match in_check {
                 true => -1000000 + (self.board.ply() as isize),
                 false => 0,
             };
