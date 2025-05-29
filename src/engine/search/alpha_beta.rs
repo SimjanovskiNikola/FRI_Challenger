@@ -67,7 +67,6 @@ impl Search {
                 continue;
             }
             legal_mv_num += 1;
-            let mut node_pv: Vec<Move> = Vec::new();
             let score = -self.alpha_beta(-beta, -alpha, depth - 1, true);
             self.board.undo_move();
 
