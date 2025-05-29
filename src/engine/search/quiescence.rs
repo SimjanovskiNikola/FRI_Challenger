@@ -4,6 +4,8 @@ use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::evaluation::evaluation::Evaluation;
 use crate::engine::protocols::time::time_over;
 
+const BIG_DELTA: isize = 900;
+
 impl Search {
     pub fn quiescence_search(&mut self, mut alpha: isize, beta: isize) -> isize {
         let eval = self.board.evaluate_pos();
@@ -12,6 +14,11 @@ impl Search {
         }
 
         self.info.nodes += 1;
+
+        // NOTE: DELTA PRUNING
+        if eval < alpha - BIG_DELTA {
+            return alpha;
+        }
 
         alpha = alpha.max(eval);
 
