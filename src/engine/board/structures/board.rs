@@ -25,7 +25,7 @@ pub struct Board {
     pub tt_mv: Option<TTEntry>,
     pub s_history: [[u64; 64]; 14],
     pub s_killers: [[Option<Move>; 2]; 64],
-    pub pv: Vec<Move>,
+    pub pv: [Option<Move>; 64],
     pub gen_moves: Vec<(Move, isize)>,
 }
 
@@ -47,7 +47,7 @@ impl Board {
             tt_mv: None,
             s_history: [[0u64; 64]; 14],
             s_killers: [[None; 2]; 64],
-            pv: Vec::new(),
+            pv: [None; 64],
             gen_moves: Vec::with_capacity(256),
             // info: SearchInfo::init(),
         }

@@ -144,6 +144,7 @@ impl UCI {
         self.abort_search();
 
         self.board.reset();
+        self.tt.lock().unwrap().clear();
     }
 
     fn position(&mut self, args: &[&str]) {
