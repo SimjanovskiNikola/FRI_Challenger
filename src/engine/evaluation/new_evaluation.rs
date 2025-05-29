@@ -201,6 +201,7 @@
 //     fn bishop_eval(&self, piece: &Piece, sq: usize) -> isize;
 //     fn rook_eval(&self, piece: &Piece, sq: usize) -> isize;
 //     fn queen_eval(&self, piece: &Piece, sq: usize) -> isize;
+//     fn insufficient_material(&self) -> Option<isize>;
 // }
 
 // impl Evaluation for Game {
@@ -436,6 +437,19 @@
 //         }
 //         score
 //     }
+
+// #[inline(always)]
+// fn insufficient_material(board: &Board) -> bool {
+//     let (own, enemy) = self.both_occ_bb(board.color());
+//     if (own | enemy).count_ones() < 4 {
+//         let kings = self.bb(WHITE_KING) | self.bb(BLACK_KING);
+//         let knights = self.bb(WHITE_KNIGHT) | self.bb(BLACK_KNIGHT);
+//         let bishops = self.bb(WHITE_BISHOP) | self.bb(BLACK_BISHOP);
+//         if (kings | knights | bishops) == (own | enemy) {
+//             return true;
+//         }
+//     }
+// }
 
 //     fn determine_phase(&self) -> usize {
 //         let mut phase = 0;
