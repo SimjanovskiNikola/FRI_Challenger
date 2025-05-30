@@ -1,14 +1,14 @@
 use super::iter_deepening::Search;
 use crate::engine::board::make_move::BoardMoveTrait;
 use crate::engine::board::mv_gen::BoardGenMoveTrait;
-use crate::engine::evaluation::evaluation::Evaluation;
+use crate::engine::evaluation::new_evaluation::Evaluation;
 use crate::engine::protocols::time::time_over;
 
 const BIG_DELTA: isize = 900;
 
 impl Search {
     pub fn quiescence_search(&mut self, mut alpha: isize, beta: isize) -> isize {
-        let eval = self.board.evaluate_pos();
+        let eval = self.board.evaluation();
         if eval >= beta {
             return beta;
         }
