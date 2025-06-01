@@ -5,7 +5,7 @@ use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::moves::Move;
 use crate::engine::board::structures::piece::PieceTrait;
 use crate::engine::board::structures::piece::KING;
-use crate::engine::evaluation::new_evaluation::Evaluation;
+use crate::engine::evaluation::new_evaluation::EvaluationTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::protocols::time::time_over;
 

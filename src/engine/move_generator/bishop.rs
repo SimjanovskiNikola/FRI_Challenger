@@ -8,11 +8,16 @@ const WHITE_SQUARES: u64 = 0b101010101010101010101010101010101010101010101010101
 const BLACK_SQUARES: u64 = 0b0101010101010101010101010101010101010101010101010101010101010101;
 
 #[inline(always)]
-pub fn get_bishop_mv(sq: usize, own: u64, enemy: u64, _: Color) -> u64 {
+pub fn get_bishop_mv(sq: usize, own: u64, enemy: u64, _clr: Color) -> u64 {
+    get_bishop_mask(sq, own, enemy, _clr) & !own
+}
+
+#[inline(always)]
+pub fn get_bishop_mask(sq: usize, own: u64, enemy: u64, _: Color) -> u64 {
     let occupancy = own | enemy;
     let key = pext(occupancy, BISHOP_MASKS[sq]) as usize;
 
-    BISHOP_LOOKUP[BISHOP_BASE[sq] * 32 + key] & !own
+    BISHOP_LOOKUP[BISHOP_BASE[sq] * 32 + key]
 }
 
 /// Returns `true` if there is at least one bishop on a white square

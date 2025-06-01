@@ -55,6 +55,7 @@ pub trait PieceTrait {
     fn kind(&self) -> Piece;
 
     fn idx(&self) -> usize;
+    fn arr_idx(&self) -> usize;
 
     fn is_pawn(&self) -> bool;
     fn is_knight(&self) -> bool;
@@ -90,6 +91,11 @@ impl PieceTrait for Piece {
     #[inline(always)]
     fn idx(&self) -> usize {
         *self as usize
+    }
+
+    #[inline(always)]
+    fn arr_idx(&self) -> usize {
+        (self.kind() / 2).idx() - 1 as usize
     }
 
     #[inline(always)]

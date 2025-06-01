@@ -1,7 +1,7 @@
 use super::iter_deepening::Search;
 use crate::engine::board::make_move::BoardMoveTrait;
 use crate::engine::board::mv_gen::BoardGenMoveTrait;
-use crate::engine::evaluation::new_evaluation::Evaluation;
+use crate::engine::evaluation::new_evaluation::EvaluationTrait;
 use crate::engine::protocols::time::time_over;
 
 const BIG_DELTA: isize = 900;

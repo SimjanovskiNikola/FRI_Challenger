@@ -24,10 +24,11 @@ pub fn get_pawn_mv(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
 pub fn get_pawn_att(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
     let attacks = PAWN_ATTACK_LOOKUP[color.idx()][sq] & !own;
     attacks & enemy
-    // match ep {
-    //     Some(ep) => attacks & (enemy | get_pawn_ep(color, ep)),
-    //     None => attacks & enemy,
-    // }
+}
+
+#[inline(always)]
+pub fn get_pawn_att_mask(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
+    PAWN_ATTACK_LOOKUP[color.idx()][sq]
 }
 
 #[inline(always)]

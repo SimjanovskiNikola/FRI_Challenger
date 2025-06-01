@@ -1,3 +1,5 @@
+pub const OUTPOSTS: [u64; 2] = [0x0000FFFFFF000000, 0x000000FFFFFF0000];
+
 pub static PAWN_ATTACK_LOOKUP: [[u64; 64]; 2] = [
     [
         512,
