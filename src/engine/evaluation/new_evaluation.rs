@@ -1,6 +1,8 @@
 use crate::engine::board::structures::board::Board;
+use crate::engine::board::structures::color;
 use crate::engine::board::structures::color::*;
 use crate::engine::board::structures::piece::*;
+use crate::engine::board::structures::square::get_file;
 use crate::engine::board::structures::square::get_rank;
 use crate::engine::misc::bit_pos_utility::get_bit_rank;
 use crate::engine::misc::bitboard::Bitboard;
@@ -10,11 +12,13 @@ use crate::engine::misc::const_utility::RANK_BITBOARD;
 use crate::engine::move_generator::bishop::get_bishop_mask;
 use crate::engine::move_generator::bishop::get_bishop_mv;
 use crate::engine::move_generator::bishop::has_bishop_pair;
+use crate::engine::move_generator::generated::king::KING_RING;
 use crate::engine::move_generator::king::get_king_mask;
 use crate::engine::move_generator::king::get_king_mv;
 use crate::engine::move_generator::king::has_near_open_files;
 use crate::engine::move_generator::knight::get_knight_mask;
 use crate::engine::move_generator::knight::get_knight_mv;
+use crate::engine::move_generator::pawn::get_pawn_2_att;
 use crate::engine::move_generator::pawn::get_pawn_att_mask;
 use crate::engine::move_generator::pawn::is_blocked_pawn;
 use crate::engine::move_generator::pawn::is_isolated_pawn;
@@ -80,7 +84,7 @@ const PCE_KING_ATT_WEIGHT: [isize; 6] = [0, 0, 78, 56, 45, 11];
 // NOTE: BISHOP
 const BISHOP_BATTERY_RW: (isize, isize) = (20, 30);
 
-const BISHOP_PAIR_WT: (isize, isize) = (25, 25); //FIXME:
+const BISHOP_PAIR_WT: (isize, isize) = (90, 90); //FIXME:
 
 #[rustfmt::skip]
 const BISHOP_OUTPOST_REW: [(isize, isize); 2] = [
@@ -241,7 +245,6 @@ impl Evaluation {
         self.score = 0;
     }
 }
-
 //   DEPRECATE:
 //   DEPRECATE:
 //   DEPRECATE:
@@ -291,7 +294,6 @@ pub trait EvaluationTrait {
     fn determine_phase(&self) -> usize;
     fn tapered(&self, value: (isize, isize)) -> isize;
     fn material_eval(piece: Piece) -> (isize, isize);
-    fn psqt_eval(piece: Piece, sq: usize) -> (isize, isize);
     fn hanging_peace_eval(&self, piece: Piece, sq: usize) -> isize;
     fn insufficient_material(&self) -> bool;
 
@@ -304,9 +306,166 @@ pub trait EvaluationTrait {
 
     fn get_mask(&self, piece: Piece, sq: usize) -> u64;
     fn mobility(&mut self, piece: Piece, sq: usize);
+
+    fn opp_color_bishops(&self, clr: Color) -> bool;
+    fn king_dist(&self, clr: Color, sq: usize) -> usize;
+    fn king_ring(&self, clr: Color) -> u64;
+
+    // Main Evaluation Functions
+    fn all_evaluation(&self) -> isize;
+
+    // Giving Edge to the one that is moving
+
+    fn init(&self) -> isize;
+
+    // 1. Piece Value
+    fn all_piece_value(&self, color: Color) -> isize;
+    fn single_piece_value(&self, piece: Piece) -> isize;
+    fn non_pawn_material(&self, clr: Color) -> isize;
+
+    // 2. PSQT
+    fn psqt_eval(&self, piece: Piece, sq: usize) -> isize;
+
+    // 3. Imbalance
+    fn imbalance(&self) -> isize;
+
+    // 8. Tempo
+    fn tempo(color: Color) -> isize;
 }
 
 impl EvaluationTrait for Board {
+    fn init(&self) -> isize {
+        todo!()
+    }
+
+    fn all_evaluation(&self) -> isize {
+        self.init();
+        let mut score = 0;
+
+        // 1. Piece Value
+        score += self.all_piece_value(WHITE) - self.all_piece_value(BLACK);
+
+        // 2. PSQT
+        score += psqt_mg(pos) - psqt_mg(colorflip(pos));
+
+        // 3. Imbalance
+        score += imbalance_total(pos);
+        score += pawns_mg(pos) - pawns_mg(colorflip(pos));
+        score += pieces_mg(pos) - pieces_mg(colorflip(pos));
+        score += mobility_mg(pos) - mobility_mg(colorflip(pos));
+        score += threats_mg(pos) - threats_mg(colorflip(pos));
+        score += passed_mg(pos) - passed_mg(colorflip(pos));
+        score += space(pos) - space(colorflip(pos));
+        score += king_mg(pos) - king_mg(colorflip(pos));
+        score += Self::tempo(self.color());
+
+        return score;
+    }
+
+    // 1. Piece Value
+
+    fn all_piece_value(&self, color: Color) -> isize {
+        let mut score = 0;
+        for piece in PIECES {
+            score += self.single_piece_value(piece + color)
+        }
+        score
+    }
+
+    fn single_piece_value(&self, piece: Piece) -> isize {
+        self.tapered(PIECE_WEIGHT[piece.arr_idx()])
+    }
+
+    fn non_pawn_material(&self, color: Color) -> isize {
+        let mut material = 0;
+        for piece in &PIECES_WITHOUT_PAWN {
+            material += Self::material_eval(*piece + color).1;
+        }
+        material
+    }
+
+    // 2. PSQT
+
+    fn psqt_eval(&self, piece: Piece, sq: usize) -> isize {
+        let fixed_sq = CLR_SQ[piece.color().idx()][sq];
+        self.tapered(PSQT[piece.arr_idx()][fixed_sq])
+    }
+
+    // 3. Imbalance
+
+    int imbalance(const int pieceCount[][PIECE_TYPE_NB]) {
+
+        const Color Them = (Us == WHITE ? BLACK : WHITE);
+    
+        int bonus = 0;
+        // Second-degree polynomial material imbalance, by Tord Romstad
+        for (int pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
+        {
+            if (!pieceCount[Us][pt1])
+                continue;
+    
+            int v = 0;
+    
+            for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
+                v +=  QuadraticOurs[pt1][pt2] * pieceCount[Us][pt2]
+                    + QuadraticTheirs[pt1][pt2] * pieceCount[Them][pt2];
+    
+            bonus += pieceCount[Us][pt1] * v;
+        }
+    
+        return bonus;
+      }
+    
+    } // namespace
+
+    fn imbalance(&self) -> isize {
+        const int QuadraticOurs[][PIECE_TYPE_NB] = {
+            //            OUR PIECES
+            // pair pawn knight bishop rook queen
+            {1667                               }, // Bishop pair
+            {  40,    0                         }, // Pawn
+            {  32,  255,  -3                    }, // Knight      OUR PIECES
+            {   0,  104,   4,    0              }, // Bishop
+            { -26,   -2,  47,   105,  -149      }, // Rook
+            {-189,   24, 117,   133,  -134, -10 }  // Queen
+          };
+        
+          const int QuadraticTheirs[][PIECE_TYPE_NB] = {
+            //           THEIR PIECES
+            // pair pawn knight bishop rook queen
+            {   0                               }, // Bishop pair
+            {  36,    0                         }, // Pawn
+            {   9,   63,   0                    }, // Knight      OUR PIECES
+            {  59,   65,  42,     0             }, // Bishop
+            {  46,   39,  24,   -24,    0       }, // Rook
+            {  97,  100, -42,   137,  268,    0 }  // Queen
+          };
+    }
+
+    // 8. Tempo
+    fn tempo(color: Color) -> isize {
+        return 28 * color.sign();
+    }
+
+    fn king_dist(&self, clr: Color, sq: usize) -> usize {
+        let (sq_rank, sq_file) = (get_rank(sq), get_file(sq));
+        let (king_rank, king_file) = (get_rank(self.king_sq(clr)), get_file(self.king_sq(clr)));
+        return (king_rank.abs_diff(sq_rank)).max(king_file.abs_diff(sq_file));
+    }
+
+    fn king_ring(&self, clr: Color) -> u64 {
+        return KING_RING[self.king_sq(clr)] & !get_pawn_2_att(self.pawn_bb(clr), clr);
+    }
+
+    fn opp_color_bishops(&self, clr: Color) -> bool {
+        let clr_bishop = self.bishop_bb(clr).count();
+        let opp_clr_bishop = self.bishop_bb(clr.opp()).count();
+
+        return clr_bishop == 1
+            && opp_clr_bishop == 1
+            && has_bishop_pair(self.bishop_bb(clr) | self.bishop_bb(clr.opp()));
+    }
+
     #[inline(always)]
     fn get_mask(&self, piece: Piece, sq: usize) -> u64 {
         let (own, enemy) = self.both_occ_bb(piece.color());
@@ -349,11 +508,6 @@ impl EvaluationTrait for Board {
 
     fn material_eval(piece: Piece) -> (isize, isize) {
         PIECE_WEIGHT[piece.arr_idx()]
-    }
-
-    fn psqt_eval(piece: Piece, sq: usize) -> (isize, isize) {
-        let fixed_sq = CLR_SQ[piece.color().idx()][sq];
-        PSQT[piece.arr_idx()][fixed_sq]
     }
 
     #[inline(always)]
