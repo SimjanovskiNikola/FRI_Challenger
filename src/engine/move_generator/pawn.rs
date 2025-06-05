@@ -65,6 +65,16 @@ pub fn get_all_pawn_right_att_mask(bb: u64, color: Color) -> u64 {
     }
 }
 
+// TODO:
+#[inline(always)]
+pub fn get_all_pawn_forward_mask(bb: u64, color: Color) -> u64 {
+    if color.is_white() {
+        bb << 8
+    } else {
+        bb >> 8
+    }
+}
+
 #[inline(always)]
 pub fn is_passed_pawn(color: Color, sq: usize, enemy_pawns: u64) -> bool {
     PASSED_PAWN_LOOKUP[color.idx()][sq] & enemy_pawns == 0

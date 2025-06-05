@@ -13,11 +13,13 @@ use crate::engine::move_generator::bishop::get_bishop_mask;
 use crate::engine::move_generator::bishop::get_bishop_mv;
 use crate::engine::move_generator::bishop::has_bishop_pair;
 use crate::engine::move_generator::generated::king::KING_RING;
+use crate::engine::move_generator::generated::pawn::PAWN_3_BEHIND_MASKS;
 use crate::engine::move_generator::king::get_king_mask;
 use crate::engine::move_generator::king::get_king_mv;
 use crate::engine::move_generator::king::has_near_open_files;
 use crate::engine::move_generator::knight::get_knight_mask;
 use crate::engine::move_generator::knight::get_knight_mv;
+use crate::engine::move_generator::pawn::get_all_pawn_forward_mask;
 use crate::engine::move_generator::pawn::get_pawn_2_att;
 use crate::engine::move_generator::pawn::get_pawn_att_mask;
 use crate::engine::move_generator::pawn::is_blocked_pawn;
@@ -55,6 +57,9 @@ pub const CLR_SQ: [[usize; 64]; 2] = [
         0,  1,  2,  3,  4,  5,  6,  7,
    ]
 ];
+
+// TEST: Check if this are ok
+pub const CLR_CENTER: [u64; 2] = [0x0000000070F0F000, 0x0F0F0F0000000000];
 
 pub const CLR_RANK: [[usize; 8]; 2] = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]];
 pub const PSQT_FILE: [usize; 8] = [0, 1, 2, 3, 3, 2, 1, 0];
@@ -199,8 +204,31 @@ const PSQT: [[(isize, isize); 64]; 6] = [
     ]
   ];
 
+// Quadratic interaction bonuses
+const QUADRATIC_OURS: [[isize; 6]; 6] = [
+    [1667, 0, 0, 0, 0, 0],           // Bishop pair
+    [40, 0, 0, 0, 0, 0],             // Pawn
+    [32, 255, -3, 0, 0, 0],          // Knight
+    [0, 104, 4, 0, 0, 0],            // Bishop
+    [-26, -2, 47, 105, -149, 0],     // Rook
+    [-189, 24, 117, 133, -134, -10], // Queen
+];
+
+const QUADRATIC_THEIRS: [[isize; 6]; 6] = [
+    [0, 0, 0, 0, 0, 0],          // Bishop pair
+    [36, 0, 0, 0, 0, 0],         // Pawn
+    [9, 63, 0, 0, 0, 0],         // Knight
+    [59, 65, 42, 0, 0, 0],       // Bishop
+    [46, 39, 24, -24, 0, 0],     // Rook
+    [97, 100, -42, 137, 268, 0], // Queen
+];
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Evaluation {
+    pub pawn_behind_masks: [Bitboard; 2],
+    pub psqt: [isize; 2],
+
+
     pub outpost: [Bitboard; 2],
     pub king_ring: [Bitboard; 2],
     pub attacked_by: [Bitboard; 14],
@@ -217,6 +245,9 @@ pub struct Evaluation {
 impl Evaluation {
     pub fn init() -> Self {
         Self {
+            pawn_behind_masks: [0; 2],
+            psqt: [0; 2],
+
             outpost: [0; 2],
             king_ring: [0; 2],
             attacked_by: [0; 14],
@@ -312,11 +343,11 @@ pub trait EvaluationTrait {
     fn king_ring(&self, clr: Color) -> u64;
 
     // Main Evaluation Functions
-    fn all_evaluation(&self) -> isize;
+    fn all_evaluation(&mut self) -> isize;
 
     // Giving Edge to the one that is moving
 
-    fn init(&self) -> isize;
+    fn init(&mut self);
 
     // 1. Piece Value
     fn all_piece_value(&self, color: Color) -> isize;
@@ -325,20 +356,72 @@ pub trait EvaluationTrait {
 
     // 2. PSQT
     fn psqt_eval(&self, piece: Piece, sq: usize) -> isize;
-
+    fn psqt(&self, clr: Color) -> isize;
     // 3. Imbalance
-    fn imbalance(&self) -> isize;
+    fn imbalance(&self, clr: Color) -> isize;
+    fn get_imbalance_pce_cnt(&self, num: usize, clr: Color) -> isize;
 
-    // 8. Tempo
+    // 6. Mobility
+
+    // 9. Space
+    fn space(&self, color: Color) -> isize;
+    fn space_area(&self, color: Color) -> usize;
+
+    // 11. Tempo
     fn tempo(color: Color) -> isize;
 }
 
 impl EvaluationTrait for Board {
-    fn init(&self) -> isize {
-        todo!()
+    fn init(&mut self) {
+        // TODO: FIX the phase so that everything is in one function
+        let phase = self.determine_phase() as isize;
+        self.eval.phase = (phase.min(24), 24 - phase.min(24));
+
+        // TODO: Create Pawn Init so that it doesn't have duplicate code
+        let clr = WHITE;
+        let (own, enemy) = self.both_occ_bb(clr);
+        let mut bb = self.pawn_bb(clr);
+        for sq in bb.next() {
+            self.eval.pawn_behind_masks[clr.idx()] =
+                PAWN_3_BEHIND_MASKS[clr.idx()][sq] & CLR_CENTER[clr.idx()]
+
+            self.eval.attacked_by[(PAWN + clr).idx()] |= get_pawn_att_mask(sq, own, enemy, clr) 
+        }
+
+        // TODO: Create Pawn Init so that it doesn't have duplicate code
+        let clr = BLACK;
+        let (own, enemy) = self.both_occ_bb(clr);
+        let mut bb = self.pawn_bb(clr);
+        for sq in bb.next() {
+            self.eval.pawn_behind_masks[clr.idx()] =
+                PAWN_3_BEHIND_MASKS[clr.idx()][sq] & CLR_CENTER[clr.idx()]
+
+            self.eval.attacked_by[(PAWN + clr).idx()] |= get_pawn_att_mask(sq, own, enemy, clr) 
+
+        }
+
+        // TODO: Create PIECE Init so that it doesn't have duplicate code
+        let clr = WHITE;
+        for piece in &PIECES {
+            let mut bb = self.pawn_bb(clr);
+            for sq in bb.next() {
+                self.eval.psqt[clr.idx()] = self.psqt_eval(*piece, sq);
+                // self.eval.attack_map[clr.opp()] = 
+                // self.eval.defend_map[clr.opp()] =
+            }
+        }
+
+        // TODO: Create PIECE Init so that it doesn't have duplicate code
+        let clr = BLACK;
+        for piece in &PIECES {
+            let mut bb = self.pawn_bb(clr);
+            for sq in bb.next() {
+                self.eval.psqt[clr.idx()] = self.psqt_eval(*piece, sq);
+            }
+        }
     }
 
-    fn all_evaluation(&self) -> isize {
+    fn all_evaluation(&mut self) -> isize {
         self.init();
         let mut score = 0;
 
@@ -346,17 +429,33 @@ impl EvaluationTrait for Board {
         score += self.all_piece_value(WHITE) - self.all_piece_value(BLACK);
 
         // 2. PSQT
-        score += psqt_mg(pos) - psqt_mg(colorflip(pos));
+        score += self.psqt(WHITE) - self.psqt(BLACK);
 
         // 3. Imbalance
-        score += imbalance_total(pos);
+        score += (self.imbalance(WHITE) - self.imbalance(BLACK)) / 16;
+
+        // 4. Pawns
         score += pawns_mg(pos) - pawns_mg(colorflip(pos));
+
+        // 5. Pieces
         score += pieces_mg(pos) - pieces_mg(colorflip(pos));
+
+        // 6. Mobility
         score += mobility_mg(pos) - mobility_mg(colorflip(pos));
+
+        // 7. Threats
         score += threats_mg(pos) - threats_mg(colorflip(pos));
+
+        // 8. Passed Pawns
         score += passed_mg(pos) - passed_mg(colorflip(pos));
-        score += space(pos) - space(colorflip(pos));
+
+        // 9. Space
+        score += self.space(WHITE) - self.space(BLACK);
+
+        // 10. King
         score += king_mg(pos) - king_mg(colorflip(pos));
+
+        // 11. Tempo
         score += Self::tempo(self.color());
 
         return score;
@@ -391,58 +490,64 @@ impl EvaluationTrait for Board {
         self.tapered(PSQT[piece.arr_idx()][fixed_sq])
     }
 
-    // 3. Imbalance
-
-    int imbalance(const int pieceCount[][PIECE_TYPE_NB]) {
-
-        const Color Them = (Us == WHITE ? BLACK : WHITE);
-    
-        int bonus = 0;
-        // Second-degree polynomial material imbalance, by Tord Romstad
-        for (int pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
-        {
-            if (!pieceCount[Us][pt1])
-                continue;
-    
-            int v = 0;
-    
-            for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
-                v +=  QuadraticOurs[pt1][pt2] * pieceCount[Us][pt2]
-                    + QuadraticTheirs[pt1][pt2] * pieceCount[Them][pt2];
-    
-            bonus += pieceCount[Us][pt1] * v;
-        }
-    
-        return bonus;
-      }
-    
-    } // namespace
-
-    fn imbalance(&self) -> isize {
-        const int QuadraticOurs[][PIECE_TYPE_NB] = {
-            //            OUR PIECES
-            // pair pawn knight bishop rook queen
-            {1667                               }, // Bishop pair
-            {  40,    0                         }, // Pawn
-            {  32,  255,  -3                    }, // Knight      OUR PIECES
-            {   0,  104,   4,    0              }, // Bishop
-            { -26,   -2,  47,   105,  -149      }, // Rook
-            {-189,   24, 117,   133,  -134, -10 }  // Queen
-          };
-        
-          const int QuadraticTheirs[][PIECE_TYPE_NB] = {
-            //           THEIR PIECES
-            // pair pawn knight bishop rook queen
-            {   0                               }, // Bishop pair
-            {  36,    0                         }, // Pawn
-            {   9,   63,   0                    }, // Knight      OUR PIECES
-            {  59,   65,  42,     0             }, // Bishop
-            {  46,   39,  24,   -24,    0       }, // Rook
-            {  97,  100, -42,   137,  268,    0 }  // Queen
-          };
+    fn psqt(&self, clr: Color) -> isize {
+        // TODO: Create Easy functions for easy acccess of the things inside self.eval
+        self.eval.psqt[clr.idx()]
     }
 
-    // 8. Tempo
+    // 3. Imbalance
+
+    fn imbalance(&self, clr: Color) -> isize {
+        let mut bonus = 0;
+        for pt1 in 0..6 {
+            let cnt = self.get_imbalance_pce_cnt(pt1, clr);
+            if cnt == 0 {
+                continue;
+            }
+
+            let mut v = 0;
+            for pt2 in 0..pt1 + 1 {
+                v += QUADRATIC_OURS[pt1][pt2] * self.get_imbalance_pce_cnt(pt2, clr);
+                v += QUADRATIC_THEIRS[pt1][pt2] * self.get_imbalance_pce_cnt(pt2, clr.opp());
+            }
+
+            bonus += cnt * v;
+        }
+
+        bonus
+    }
+
+    fn get_imbalance_pce_cnt(&self, num: usize, clr: Color) -> isize {
+        match num {
+            0 => self.bishop_bb(clr).count() as isize,
+            1 => self.pawn_bb(clr).count() as isize,
+            2 => self.knight_bb(clr).count() as isize,
+            3 => self.bishop_bb(clr).count() as isize,
+            4 => self.rook_bb(clr).count() as isize,
+            5 => self.queen_bb(clr).count() as isize,
+            _ => panic!("Sth is not right"),
+        }
+    }
+
+    // 9. Space
+    fn space(&self, clr: Color) -> isize {
+        if self.non_pawn_material(clr) + self.non_pawn_material(clr.opp()) < 12222 {
+            return 0;
+        }
+        let blocked = (get_all_pawn_forward_mask(self.pawn_bb(clr), clr) & !self.eval.attacked_by[(PAWN + clr.opp()).idx()] & !self.pawn_bb(clr.opp())).count();
+        let weight = (self.bb(clr).count() - 3 + blocked.min(9)) as isize;
+        
+        return self.space_area(clr) as isize * weight * weight / 16;
+    }
+
+    fn space_area(&self, clr: Color) -> usize {
+        let mut cnt = 0;
+        cnt += (self.eval.pawn_behind_masks[clr.idx()] & CLR_CENTER[clr.idx()] & !self.eval.attack_map[clr.opp().idx()]).count();
+        cnt += (CLR_CENTER[clr.idx()] & !self.eval.attacked_by[(PAWN + clr.opp()).idx()]).count();
+        cnt
+    }
+
+    // 11. Tempo
     fn tempo(color: Color) -> isize {
         return 28 * color.sign();
     }
