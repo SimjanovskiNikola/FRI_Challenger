@@ -13,13 +13,20 @@ use crate::engine::move_generator::bishop::get_bishop_mask;
 use crate::engine::move_generator::bishop::get_bishop_mv;
 use crate::engine::move_generator::bishop::has_bishop_pair;
 use crate::engine::move_generator::generated::king::KING_RING;
+use crate::engine::move_generator::generated::pawn::FORWARD_FILE_LR;
+use crate::engine::move_generator::generated::pawn::ISOLATED_PAWN_LOOKUP;
 use crate::engine::move_generator::generated::pawn::PAWN_3_BEHIND_MASKS;
+use crate::engine::move_generator::generated::pawn::PAWN_ATTACK_LOOKUP;
+use crate::engine::move_generator::generated::pawn::PAWN_FORWARD_SPANS;
+use crate::engine::move_generator::generated::pawn::PAWN_MOVE_LOOKUP;
 use crate::engine::move_generator::king::get_king_mask;
 use crate::engine::move_generator::king::get_king_mv;
 use crate::engine::move_generator::king::has_near_open_files;
 use crate::engine::move_generator::knight::get_knight_mask;
 use crate::engine::move_generator::knight::get_knight_mv;
 use crate::engine::move_generator::pawn::get_all_pawn_forward_mask;
+use crate::engine::move_generator::pawn::get_all_pawn_left_att_mask;
+use crate::engine::move_generator::pawn::get_all_pawn_right_att_mask;
 use crate::engine::move_generator::pawn::get_pawn_2_att;
 use crate::engine::move_generator::pawn::get_pawn_att_mask;
 use crate::engine::move_generator::pawn::is_blocked_pawn;
@@ -65,12 +72,17 @@ pub const CLR_RANK: [[usize; 8]; 2] = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3,
 pub const PSQT_FILE: [usize; 8] = [0, 1, 2, 3, 3, 2, 1, 0];
 
 // NOTE: PAWN
+pub const BLOCKED_RANKS: [u64; 2] = [281470681743360, 4294901760];
 const ISOLATED_PAWN_PEN: (isize, isize) = (-13, -18);
 const BACKWARD_PAWN_PEN: (isize, isize) = (-24, -12);
 const DOUBLED_PAWN_PEN: (isize, isize) = (-22, -44);
-const PASSED_PAWN_REW: [[(isize, isize); 8]; 2] = [
-    [(0, 0), (0, 0), (5, 2), (10, 5), (15, 10), (35, 20), (65, 30), (100, 50)], // UNPROTECTED PASSED PAWN [BASED ON RANK]
-    [(0, 0), (0, 0), (10, 5), (20, 10), (35, 20), (55, 35), (80, 50), (125, 80)], // PROTECTED PASSED PAWN [BASED ON RANK]
+// const PASSED_PAWN_REW: [[(isize, isize); 8]; 2] = [
+//     [(0, 0), (0, 0), (5, 2), (10, 5), (15, 10), (35, 20), (65, 30), (100, 50)], // UNPROTECTED PASSED PAWN [BASED ON RANK]
+//     [(0, 0), (0, 0), (10, 5), (20, 10), (35, 20), (55, 35), (80, 50), (125, 80)], // PROTECTED PASSED PAWN [BASED ON RANK]
+// ];
+pub const PASSED_PAWN_REW: [[(isize, isize); 8]; 2] = [
+    [(0, 0), (10, 28), (17, 33), (15, 41), (62, 72), (168, 177), (276, 260), (0, 0)],
+    [(0, 0), (276, 260), (168, 177), (62, 72), (15, 41), (17, 33), (10, 28), (0, 0)],
 ];
 
 // NOTE: KNIGHT
@@ -228,7 +240,6 @@ pub struct Evaluation {
     pub pawn_behind_masks: [Bitboard; 2],
     pub psqt: [isize; 2],
 
-
     pub outpost: [Bitboard; 2],
     pub king_ring: [Bitboard; 2],
     pub attacked_by: [Bitboard; 14],
@@ -315,7 +326,7 @@ pub const KING_OPEN_FILES_PENALTY: (isize, isize) = (-40, 0);
 //   DEPRECATE:
 
 pub trait EvaluationTrait {
-    fn evaluation(&mut self) -> isize;
+    // fn evaluation(&mut self) -> isize;
 
     // fn material_balance(&self) -> isize;
 
@@ -342,8 +353,10 @@ pub trait EvaluationTrait {
     fn king_dist(&self, clr: Color, sq: usize) -> usize;
     fn king_ring(&self, clr: Color) -> u64;
 
+    // NOTE: NEW EVALUATION
+
     // Main Evaluation Functions
-    fn all_evaluation(&mut self) -> isize;
+    fn evaluation(&mut self) -> isize;
 
     // Giving Edge to the one that is moving
 
@@ -361,7 +374,33 @@ pub trait EvaluationTrait {
     fn imbalance(&self, clr: Color) -> isize;
     fn get_imbalance_pce_cnt(&self, num: usize, clr: Color) -> isize;
 
+    // 4. Pawns
+    fn pawns_eval(&self, clr: Color) -> isize;
+    fn single_pawn_eval(&self, sq: usize, clr: Color) -> isize;
+    fn isolated_pawn(&self, sq: usize, clr: Color) -> bool;
+    fn opposed_pawn(&self, sq: usize, clr: Color) -> bool;
+    fn phalanx_pawn(&self, sq: usize, clr: Color) -> bool;
+    fn supported_pawn(&self, sq: usize, clr: Color) -> bool;
+    fn backward_pawn(&self, sq: usize, clr: Color) -> bool;
+    fn doubled_pawn(&self, sq: usize, clr: Color) -> bool;
+    fn connected_pawn(&self, sq: usize, clr: Color) -> bool;
+    fn connected_bonus(&self, sq: usize, clr: Color) -> isize;
+    fn weak_unopposed_pawn(&self, sq: usize, clr: Color) -> bool;
+    fn weak_lever(&self, sq: usize, clr: Color) -> bool;
+    fn blocked_pawn(&self, sq: usize, clr: Color, bb: u64) -> bool;
+    fn blocked_pawn_5th_6th_rank(&self, sq: usize, clr: Color) -> isize;
+    fn doubled_isolated_pawn(&self, sq: usize, clr: Color) -> bool;
+
+    // 5. Peaces
+
     // 6. Mobility
+    fn mobility_eval(&self, clr: Color) -> isize;
+    fn mobility_bonus(&self, piece: Piece, sq: usize) -> isize;
+    fn mobility_area(&self, clr: Color) -> u64;
+    fn mobility_piece(&self, sq: usize, piece: Piece, clr: Color) -> u64;
+
+    // 8. Passed Pawns
+    fn passed_pawn(&self, color: Color) -> isize;
 
     // 9. Space
     fn space(&self, color: Color) -> isize;
@@ -383,9 +422,9 @@ impl EvaluationTrait for Board {
         let mut bb = self.pawn_bb(clr);
         for sq in bb.next() {
             self.eval.pawn_behind_masks[clr.idx()] =
-                PAWN_3_BEHIND_MASKS[clr.idx()][sq] & CLR_CENTER[clr.idx()]
+                PAWN_3_BEHIND_MASKS[clr.idx()][sq] & CLR_CENTER[clr.idx()];
 
-            self.eval.attacked_by[(PAWN + clr).idx()] |= get_pawn_att_mask(sq, own, enemy, clr) 
+            self.eval.attacked_by[(PAWN + clr).idx()] |= get_pawn_att_mask(sq, own, enemy, clr);
         }
 
         // TODO: Create Pawn Init so that it doesn't have duplicate code
@@ -394,10 +433,9 @@ impl EvaluationTrait for Board {
         let mut bb = self.pawn_bb(clr);
         for sq in bb.next() {
             self.eval.pawn_behind_masks[clr.idx()] =
-                PAWN_3_BEHIND_MASKS[clr.idx()][sq] & CLR_CENTER[clr.idx()]
+                PAWN_3_BEHIND_MASKS[clr.idx()][sq] & CLR_CENTER[clr.idx()];
 
-            self.eval.attacked_by[(PAWN + clr).idx()] |= get_pawn_att_mask(sq, own, enemy, clr) 
-
+            self.eval.attacked_by[(PAWN + clr).idx()] |= get_pawn_att_mask(sq, own, enemy, clr)
         }
 
         // TODO: Create PIECE Init so that it doesn't have duplicate code
@@ -406,7 +444,7 @@ impl EvaluationTrait for Board {
             let mut bb = self.pawn_bb(clr);
             for sq in bb.next() {
                 self.eval.psqt[clr.idx()] = self.psqt_eval(*piece, sq);
-                // self.eval.attack_map[clr.opp()] = 
+                // self.eval.attack_map[clr.opp()] =
                 // self.eval.defend_map[clr.opp()] =
             }
         }
@@ -421,7 +459,7 @@ impl EvaluationTrait for Board {
         }
     }
 
-    fn all_evaluation(&mut self) -> isize {
+    fn evaluation(&mut self) -> isize {
         self.init();
         let mut score = 0;
 
@@ -435,25 +473,25 @@ impl EvaluationTrait for Board {
         score += (self.imbalance(WHITE) - self.imbalance(BLACK)) / 16;
 
         // 4. Pawns
-        score += pawns_mg(pos) - pawns_mg(colorflip(pos));
+        score += self.pawns_eval(WHITE) - self.pawns_eval(BLACK);
 
         // 5. Pieces
-        score += pieces_mg(pos) - pieces_mg(colorflip(pos));
+        // score += self.pieces_eval(WHITE) - self.pieces_eval(BLACK);
 
         // 6. Mobility
-        score += mobility_mg(pos) - mobility_mg(colorflip(pos));
+        score += self.mobility_eval(WHITE) - self.mobility_eval(BLACK);
 
         // 7. Threats
-        score += threats_mg(pos) - threats_mg(colorflip(pos));
+        // score += threats_mg(pos) - threats_mg(BLACK);
 
         // 8. Passed Pawns
-        score += passed_mg(pos) - passed_mg(colorflip(pos));
+        // score += passed_mg(pos) - passed_mg(BLACK);
 
         // 9. Space
         score += self.space(WHITE) - self.space(BLACK);
 
         // 10. King
-        score += king_mg(pos) - king_mg(colorflip(pos));
+        // score += king_mg(pos) - king_mg(BLACK);
 
         // 11. Tempo
         score += Self::tempo(self.color());
@@ -529,20 +567,225 @@ impl EvaluationTrait for Board {
         }
     }
 
+    // 4. Pawns Eval
+    fn pawns_eval(&self, clr: Color) -> isize {
+        let mut score = 0;
+        let mut bb = self.pawn_bb(clr);
+        while let Some(sq) = bb.next() {
+            score += self.single_pawn_eval(sq, clr);
+        }
+
+        score
+    }
+
+    fn single_pawn_eval(&self, sq: usize, clr: Color) -> isize {
+        let mut score = 0;
+        if self.doubled_isolated_pawn(sq, clr) {
+            score += self.tapered((-11, -56));
+        } else if self.isolated_pawn(sq, clr) {
+            score += self.tapered((-5, -15));
+        } else if self.backward_pawn(sq, clr) {
+            score += self.tapered((-9, -24));
+        }
+
+        if self.doubled_pawn(sq, clr) {
+            score += self.tapered((-11, -56));
+        }
+
+        if self.connected_pawn(sq, clr) {
+            let bonus = self.connected_bonus(sq, clr);
+            // FIXME: Check if it is ok to be this a minus sth
+            score += self.tapered((
+                bonus,
+                bonus * (CLR_RANK[clr.idx()][get_rank(sq)] as isize - 3) as isize / 4,
+            ));
+        }
+
+        if self.weak_unopposed_pawn(sq, clr) {
+            score += self.tapered((-13, -27));
+        }
+
+        if self.weak_lever(sq, clr) {
+            score += self.tapered((0, -56));
+        }
+
+        if self.blocked_pawn_5th_6th_rank(sq, clr) == 1 {
+            score += self.tapered((-11, -4));
+        } else if self.blocked_pawn_5th_6th_rank(sq, clr) == 2 {
+            score += self.tapered((-3, 4));
+        }
+
+        score
+    }
+
+    fn isolated_pawn(&self, sq: usize, clr: Color) -> bool {
+        ISOLATED_PAWN_LOOKUP[sq] & self.pawn_bb(clr) != 0
+    }
+
+    fn opposed_pawn(&self, sq: usize, clr: Color) -> bool {
+        PAWN_FORWARD_SPANS[clr.idx()][sq] & self.pawn_bb(clr.opp()) != 0
+    }
+
+    fn phalanx_pawn(&self, sq: usize, clr: Color) -> bool {
+        PAWN_ATTACK_LOOKUP[clr.opp().idx()][(sq as isize + 8 * clr.sign()) as usize]
+            & self.pawn_bb(clr)
+            != 0
+    }
+
+    fn supported_pawn(&self, sq: usize, clr: Color) -> bool {
+        PAWN_ATTACK_LOOKUP[clr.opp().idx()][sq] & self.pawn_bb(clr) != 0
+    }
+
+    fn backward_pawn(&self, sq: usize, clr: Color) -> bool {
+        (FORWARD_FILE_LR[clr.opp().idx()][sq] & self.pawn_bb(clr) == 0)
+            && (self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp()))
+                || self.eval.attacked_by[(PAWN + clr.opp()).idx()].is_set(sq))
+    }
+
+    fn doubled_pawn(&self, sq: usize, clr: Color) -> bool {
+        PAWN_FORWARD_SPANS[clr.opp().idx()][sq] & self.pawn_bb(clr) != 0
+    }
+
+    fn connected_pawn(&self, sq: usize, clr: Color) -> bool {
+        self.supported_pawn(sq, clr) || self.phalanx_pawn(sq, clr)
+    }
+
+    fn connected_bonus(&self, sq: usize, clr: Color) -> isize {
+        if (!self.connected_pawn(sq, clr)) {
+            return 0;
+        }
+        let seed = [0, 7, 8, 12, 29, 48, 86];
+        let op = self.opposed_pawn(sq, clr);
+        let ph = self.phalanx_pawn(sq, clr);
+        let su = self.supported_pawn(sq, clr);
+        let bl = self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp()));
+
+        let r = CLR_RANK[clr.idx()][get_rank(sq)];
+        if r < 2 || r > 7 {
+            return 0;
+        }
+
+        return seed[r - 1] * (2 + ph as isize - op as isize) + 21 * su as isize;
+    }
+
+    fn weak_unopposed_pawn(&self, sq: usize, clr: Color) -> bool {
+        !self.opposed_pawn(sq, clr) && (self.isolated_pawn(sq, clr) || self.backward_pawn(sq, clr))
+    }
+
+    fn weak_lever(&self, sq: usize, clr: Color) -> bool {
+        !self.supported_pawn(sq, clr)
+            && (get_pawn_att_mask(sq, 0, 0, clr) & self.pawn_bb(clr.opp())).count() == 2
+    }
+
+    fn blocked_pawn(&self, sq: usize, clr: Color, bb: u64) -> bool {
+        get_all_pawn_forward_mask(Bitboard::init(sq), clr) & bb != 0
+    }
+
+    // Blocked only on the 5th and 6 rank
+    fn blocked_pawn_5th_6th_rank(&self, sq: usize, clr: Color) -> isize {
+        if BLOCKED_RANKS[clr.idx()].is_set(sq)
+            && self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp()))
+        {
+            return get_rank(sq).abs_diff(4) as isize;
+        }
+        return 0;
+    }
+
+    fn doubled_isolated_pawn(&self, sq: usize, clr: Color) -> bool {
+        self.doubled_pawn(sq, clr)
+            && self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp()))
+            && self.isolated_pawn(sq, clr)
+            && self.isolated_pawn((sq as isize + 8 * clr.sign()) as usize, clr)
+    }
+
+    fn mobility_eval(&self, clr: Color) -> isize {
+        let mut score = 0;
+        let area = self.mobility_area(clr);
+        for pce in [KNIGHT, BISHOP, ROOK, QUEEN] {
+            let piece = pce + clr;
+            let mut bb = self.bb(piece);
+            while let Some(sq) = bb.next() {
+                let safe_squares = (self.mobility_piece(sq, piece, clr) & area).count();
+                score += self.mobility_bonus(piece, safe_squares);
+            }
+        }
+        score
+    }
+
+    // 6 Mobility
+
+    fn mobility_bonus(&self, piece: Piece, safe_sqaures: usize) -> isize {
+        match piece.kind() {
+            KNIGHT => self.tapered(KNIGHT_MOBILITY[safe_sqaures]),
+            BISHOP => self.tapered(BISHOP_MOBILITY[safe_sqaures]),
+            ROOK => self.tapered(ROOK_MOBILITY[safe_sqaures]),
+            QUEEN => self.tapered(QUEEN_MOBILITY[safe_sqaures]),
+            _ => panic!("There is other peace that was not expected here"),
+        }
+    }
+
+    fn mobility_piece(&self, sq: usize, piece: Piece, clr: Color) -> u64 {
+        let (own, enemy) = self.both_occ_bb(clr);
+        match piece.kind() {
+            KNIGHT => get_knight_mv(sq, own, enemy, clr),
+            BISHOP => get_bishop_mask(sq, own, enemy, clr),
+            ROOK => get_rook_mask(sq, own, enemy, clr),
+            QUEEN => get_queen_mask(sq, own, enemy, clr),
+            _ => panic!("There is other peace that was not expected here"),
+        }
+    }
+
+    fn mobility_area(&self, clr: Color) -> u64 {
+        (u64::MAX)
+            & !self.king_bb(clr)
+            & !self.queen_bb(clr)
+            & !self.pawn_bb(clr)
+            & !get_all_pawn_left_att_mask(self.pawn_bb(clr.opp()), clr.opp())
+            & !get_all_pawn_right_att_mask(self.pawn_bb(clr.opp()), clr.opp())
+    }
+
+    // 8 Passed Pawns
+
+    // fn passed_pawn(&self, clr: Color) -> isize {
+    //     let mut score = 0;
+    //     let bb = self.pawn_bb(clr);
+    //     for sq in bb.next() {
+    //         if !passed_leverable(pos, square) {
+    //             return 0;
+    //         }
+
+    //         score += king_proximity(pos, square); // FIXME: Only In endgame
+    //         score += self.tapered(PASSED_PAWN_REW[clr.idx()][get_rank(sq)]);
+    //         score += self.passed_block(pos, square);
+    //         score -= self.tapered((11, 8)) * PSQT_FILE[get_file(sq)] as isize;
+    //     }
+    //     score
+    // }
+
+    // fn passed_block(&self, sq: usize, clr: Color) {
+
+    // }
+
     // 9. Space
     fn space(&self, clr: Color) -> isize {
         if self.non_pawn_material(clr) + self.non_pawn_material(clr.opp()) < 12222 {
             return 0;
         }
-        let blocked = (get_all_pawn_forward_mask(self.pawn_bb(clr), clr) & !self.eval.attacked_by[(PAWN + clr.opp()).idx()] & !self.pawn_bb(clr.opp())).count();
+        let blocked = (get_all_pawn_forward_mask(self.pawn_bb(clr), clr)
+            & !self.eval.attacked_by[(PAWN + clr.opp()).idx()]
+            & !self.pawn_bb(clr.opp()))
+        .count();
         let weight = (self.bb(clr).count() - 3 + blocked.min(9)) as isize;
-        
+
         return self.space_area(clr) as isize * weight * weight / 16;
     }
 
     fn space_area(&self, clr: Color) -> usize {
         let mut cnt = 0;
-        cnt += (self.eval.pawn_behind_masks[clr.idx()] & CLR_CENTER[clr.idx()] & !self.eval.attack_map[clr.opp().idx()]).count();
+        cnt += (self.eval.pawn_behind_masks[clr.idx()]
+            & CLR_CENTER[clr.idx()]
+            & !self.eval.attack_map[clr.opp().idx()])
+        .count();
         cnt += (CLR_CENTER[clr.idx()] & !self.eval.attacked_by[(PAWN + clr.opp()).idx()]).count();
         cnt
     }
@@ -633,54 +876,54 @@ impl EvaluationTrait for Board {
     fn determine_phase(&self) -> usize {
         let mut phase = 0;
         for piece in &CLR_PIECES {
-            phase += self.bb(*piece).count() * GAME_PHASE_INCREMENT[piece.idx()];
+            phase += self.bb(*piece).count() * GAME_PHASE_INCREMENT[piece.arr_idx()];
         }
         phase
     }
 
-    #[inline(always)]
-    fn evaluation(&mut self) -> isize {
-        self.eval.reset();
+    // #[inline(always)]
+    // fn evaluation(&mut self) -> isize {
+    //     self.eval.reset();
 
-        let mut score: isize = 0;
-        let mut phase: isize = 0;
+    //     let mut score: isize = 0;
+    //     let mut phase: isize = 0;
 
-        // Check if the game has sufficient material, otherwise it is a draw
-        if self.insufficient_material() {
-            return 0;
-        }
+    //     // Check if the game has sufficient material, otherwise it is a draw
+    //     if self.insufficient_material() {
+    //         return 0;
+    //     }
 
-        // TODO: PAWN STRUCTURE
-        // TODO: KING SAFETY AND PAWN STRUCTURE AROUND KING
+    //     // TODO: PAWN STRUCTURE
+    //     // TODO: KING SAFETY AND PAWN STRUCTURE AROUND KING
 
-        // Initialize Mobility, Phase
-        for piece in &CLR_PIECES {
-            let mut bb = self.bb(*piece);
-            phase += (bb.count() * GAME_PHASE_INCREMENT[piece.arr_idx()]) as isize;
-            while let Some(sq) = bb.next() {
-                self.mobility(*piece, sq);
-            }
-        }
+    //     // Initialize Mobility, Phase
+    //     for piece in &CLR_PIECES {
+    //         let mut bb = self.bb(*piece);
+    //         phase += (bb.count() * GAME_PHASE_INCREMENT[piece.arr_idx()]) as isize;
+    //         while let Some(sq) = bb.next() {
+    //             self.mobility(*piece, sq);
+    //         }
+    //     }
 
-        self.eval.phase = (phase.min(24), 24 - phase.min(24));
+    //     self.eval.phase = (phase.min(24), 24 - phase.min(24));
 
-        // Evaluate every peace
-        for piece in &CLR_PIECES {
-            let mut bb = self.bb(*piece);
-            while let Some(sq) = bb.next() {
-                // Material Evaluation
-                score += self.tapered(PIECE_WEIGHT[piece.arr_idx()]) * piece.color().sign();
+    //     // Evaluate every peace
+    //     for piece in &CLR_PIECES {
+    //         let mut bb = self.bb(*piece);
+    //         while let Some(sq) = bb.next() {
+    //             // Material Evaluation
+    //             score += self.tapered(PIECE_WEIGHT[piece.arr_idx()]) * piece.color().sign();
 
-                // PSQT Evaluation
-                score += self.tapered(Self::psqt_eval(*piece, sq)) * piece.color().sign();
+    //             // PSQT Evaluation
+    //             score += self.tapered(self.psqt_eval(*piece, sq)) * piece.color().sign();
 
-                // Custom Piece Evaluation
-                score += self.piece_eval(*piece, sq) * piece.color().sign();
-            }
-        }
+    //             // Custom Piece Evaluation
+    //             score += self.piece_eval(*piece, sq) * piece.color().sign();
+    //         }
+    //     }
 
-        return score * self.color().sign();
-    }
+    //     return score * self.color().sign();
+    // }
 
     #[inline(always)]
     fn piece_eval(&self, piece: Piece, sq: usize) -> isize {
@@ -893,6 +1136,10 @@ impl EvaluationTrait for Board {
         }
 
         return score;
+    }
+
+    fn passed_pawn(&self, color: Color) -> isize {
+        todo!()
     }
 
     // // TODO: Change name to psqt
