@@ -400,8 +400,12 @@ pub trait EvaluationTrait {
     fn mobility_piece(&self, sq: usize, piece: Piece, clr: Color) -> u64;
 
     // 8. Passed Pawns
-    fn passed_pawn(&self, color: Color) -> isize;
-
+    fn passed_pawn(&self, clr: Color) -> isize;
+    fn passed_leverable(&self, sq: usize, clr: Color) -> bool;
+    fn passed_file(&self, sq: usize) -> isize;
+    fn passed_blocked(&self, sq: usize, clr: Color) -> isize;
+    fn king_proximity(&self, sq: usize, clr: Color) -> isize;
+    fn candidate_passed(&self, sq: usize, clr: Color) -> bool;
     // 9. Space
     fn space(&self, color: Color) -> isize;
     fn space_area(&self, color: Color) -> usize;
@@ -485,7 +489,7 @@ impl EvaluationTrait for Board {
         // score += threats_mg(pos) - threats_mg(BLACK);
 
         // 8. Passed Pawns
-        // score += passed_mg(pos) - passed_mg(BLACK);
+        score += self.passed_pawn(WHITE) - self.passed_pawn(BLACK);
 
         // 9. Space
         score += self.space(WHITE) - self.space(BLACK);
@@ -698,6 +702,9 @@ impl EvaluationTrait for Board {
             && self.isolated_pawn((sq as isize + 8 * clr.sign()) as usize, clr)
     }
 
+  
+    // 6 Mobility
+
     fn mobility_eval(&self, clr: Color) -> isize {
         let mut score = 0;
         let area = self.mobility_area(clr);
@@ -711,8 +718,6 @@ impl EvaluationTrait for Board {
         }
         score
     }
-
-    // 6 Mobility
 
     fn mobility_bonus(&self, piece: Piece, safe_sqaures: usize) -> isize {
         match piece.kind() {
@@ -1138,9 +1143,89 @@ impl EvaluationTrait for Board {
         return score;
     }
 
-    fn passed_pawn(&self, color: Color) -> isize {
-        todo!()
+    fn passed_pawn(&self, clr: Color) -> isize {
+        let mut score = 0;
+
+        let mut bb = self.pawn_bb(clr);
+        while let Some(sq) = bb.next() {
+            if !self.passed_leverable(sq, clr) {
+                continue;
+            }
+            score += self.tapered((0, self.king_proximity(sq, clr)));
+            score += self.tapered(PASSED_PAWN_REW[clr.idx()][get_rank(sq)]);
+            score += self.passed_block(pos, square);
+            score += self.tapered((-11, -8)) * self.passed_file(pos, square)
+        }
+        score
     }
+
+    fn passed_leverable(&self, sq: usize, clr: Color) -> bool {
+        if !self.candidate_passed(sq, clr) {
+            return false;
+        }
+
+        if self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp())) {
+            return true;
+        }
+
+
+        for (var i = -1; i <=1; i+=2) {
+            var s1 = {x:square.x + i, y:square.y};
+            var s2 = {x:square.x + i, y:7-square.y};
+            if (
+                board(pos, square.x + i, square.y + 1) == "P" && 
+                "pnbrqk".indexOf(board(pos, square.x + i, square.y)) < 0 && 
+                (attack(pos, s1) > 0 || attack(colorflip(pos), s2) <= 1) 
+            ) 
+                return true;
+        }
+        return false;
+    }
+
+    fn passed_file(&self, sq: usize) -> isize {
+        let file = get_file(sq);
+        (file - 1).min(8 - file) as isize
+    }
+
+    fn passed_blocked(&self, sq: usize, clr: Color) -> isize {}
+
+    fn king_proximity(&self, sq: usize, clr: Color) -> isize {
+        let mut score = 0;
+
+        let (rank, file) = (get_rank(sq), get_file(sq));
+        let clr_rank = CLR_RANK[clr.idx()][rank];
+
+        let own_king_sq = self.king_sq(clr);
+        let (own_rank, own_file) = (get_rank(own_king_sq), get_file(own_king_sq));
+
+        let enemy_king_sq = self.king_sq(clr.opp());
+        let (enemy_rank, enemy_file) = (get_rank(enemy_king_sq), get_file(enemy_king_sq));
+
+        let weight = if clr_rank > 2 { 5 * clr_rank - 13 } else { 0 };
+        if weight <= 0 {
+            return 0;
+        }
+
+        score += ((((file - own_file + 1).abs_diff(0)).max((rank - own_rank).abs_diff(0))).min(5)
+            * 19
+            / 4)
+            * weight;
+
+        score += ((((file - enemy_file + 1).abs_diff(0)).max((rank - enemy_rank).abs_diff(0)))
+            .min(5)
+            * 2)
+            * weight;
+
+        // NOTE: Not sure about the rank of this
+        if clr_rank > 1 {
+            score += (((file - enemy_file + 2).abs_diff(0)).max((rank - enemy_rank).abs_diff(0)))
+                .min(5)
+                * weight;
+        }
+        score as isize
+    }
+
+    fn candidate_passed(&self, sq: usize, clr: Color) -> isize {}
 
     // // TODO: Change name to psqt
     // #[inline(always)]
