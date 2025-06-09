@@ -1154,7 +1154,7 @@ impl EvaluationTrait for Board {
             score += self.tapered((0, self.king_proximity(sq, clr)));
             score += self.tapered(PASSED_PAWN_REW[clr.idx()][get_rank(sq)]);
             score += self.passed_block(pos, square);
-            score += self.tapered((-11, -8)) * self.passed_file(pos, square)
+            score += self.tapered((-11, -8)) * self.passed_file(sq)
         }
         score
     }
