@@ -3,7 +3,7 @@ use super::color::{Color, ColorTrait};
 use super::piece::{Piece, PieceTrait, BISHOP, KING, KNIGHT, QUEEN, ROOK};
 use super::state::BoardState;
 use super::{moves::Move, piece::PAWN};
-use crate::engine::evaluation::new_evaluation::{Evaluation, CLR_SQ};
+use crate::engine::evaluation::evaluation::{Evaluation, CLR_SQ};
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::search::transposition_table::TTEntry;
 use crate::engine::{
@@ -237,7 +237,7 @@ mod tests {
     use super::*;
     use crate::engine::board::structures::castling::CastlingRights;
     use crate::engine::board::structures::color::{BLACK, WHITE};
-    use crate::engine::evaluation::new_evaluation::{Evaluation, EvaluationTrait};
+    use crate::engine::evaluation::evaluation::{Evaluation, EvaluationTrait};
     use crate::engine::misc::const_utility::{
         FEN_CASTLE_ONE, FEN_MATE_IN_5, FEN_POS_FIVE, FEN_POS_FOUR, FEN_POS_THREE,
     };
