@@ -54,6 +54,29 @@ pub fn print_board(chess_board: &[String; 64]) {
     println!();
 }
 
+pub fn print_eval(chess_board: &[String; 64]) {
+    for i in (0..9).rev() {
+        println!("+-------+--------+--------+--------+--------+--------+--------+-------+");
+
+        for j in 0..9 {
+            if j == 8 {
+                if i != 0 {
+                    print!(" {}", i);
+                }
+            } else if i == 0 {
+                print!("   {}   ", FILE_LETTERS[j]);
+            } else if j == 7 {
+                print!("| {:^4} |", chess_board[(i - 1) * 8 + (j)]);
+            } else {
+                print!("| {:^4} ", chess_board[(i - 1) * 8 + (j)]);
+            }
+        }
+        println!()
+    }
+    println!();
+    println!();
+}
+
 pub fn print_move_list(moves: &[Move]) {
     for (idx, mv) in moves.iter().enumerate() {
         let promotion = match mv.flag {

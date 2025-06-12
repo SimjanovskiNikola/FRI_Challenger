@@ -5,6 +5,7 @@
     "cSpell.words": [
         "bitboard",
         "perft",
+        "PSQT",
         "zobrist"
     ],
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
