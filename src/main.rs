@@ -33,6 +33,7 @@ fn main() {
     //     Board::read_fen("r1bq1rk1/2p2ppp/p1n2n2/2b1p3/Pp2P3/1B3N2/1PPN1PPP/R1BQR1K1 w - - 0 0");
     let mut board =
         Board::read_fen("1rb1r1k1/2q2pp1/1b1p2np/1pp5/3Pn3/1B2BNNP/1P1Q1PP1/R3R1K1 w - - 0 0");
+    // Board::read_fen("6k1/5p2/7p/4p1p1/pn2P3/2K1BP1P/6P1/8 b - - 2 45");
 
     let eval = board.evaluation();
     println!("Evaluation: {:?}", eval);

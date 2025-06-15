@@ -3,7 +3,8 @@ use super::color::{Color, ColorTrait};
 use super::piece::{Piece, PieceTrait, BISHOP, KING, KNIGHT, QUEEN, ROOK};
 use super::state::BoardState;
 use super::{moves::Move, piece::PAWN};
-use crate::engine::evaluation::evaluation::{Evaluation, CLR_SQ};
+use crate::engine::evaluation::eval_defs::CLR_SQ;
+use crate::engine::evaluation::evaluation::Evaluation;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::search::transposition_table::TTEntry;
 use crate::engine::{
