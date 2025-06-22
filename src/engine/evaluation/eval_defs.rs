@@ -231,6 +231,12 @@ pub const QUADRATIC_THEIRS: [[isize; 6]; 6] = [
 // NOTE: 5. PEACES EVALUATION
 // NOTE: 6. MOBILITY EVALUATION
 // NOTE: 7. THREATS EVALUATION
+pub const ROOK_THREAT: [(isize, isize); 6] =
+    [(3, 46), (37, 68), (42, 60), (0, 38), (58, 41), (0, 0)];
+
+pub const MINOR_THREAT: [(isize, isize); 6] =
+    [(5, 32), (57, 41), (77, 56), (88, 119), (79, 161), (0, 0)];
+
 // NOTE: 8. PASSED PAWN EVALUATION
 // NOTE: 9. SPACE EVALUATION
 // NOTE: 10. KING EVALUATION
