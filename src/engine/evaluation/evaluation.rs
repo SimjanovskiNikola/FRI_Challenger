@@ -376,7 +376,7 @@ impl EvaluationTrait for Board {
         piece: Option<Piece>,
         value: (isize, isize),
     ) {
-        self.trace(color, square, piece, value);
+        // self.trace(color, square, piece, value);
 
         self.eval.score[color.idx()].0 += value.0;
         self.eval.score[color.idx()].1 += value.1;
@@ -490,8 +490,8 @@ impl EvaluationTrait for Board {
         self.mobility_eval(BLACK);
 
         // 7. Threats
-        self.threats_eval(WHITE);
-        self.threats_eval(BLACK);
+        // self.threats_eval(WHITE);
+        // self.threats_eval(BLACK);
 
         // 8. Passed Pawns
         self.passed_pawn(WHITE);
@@ -509,7 +509,7 @@ impl EvaluationTrait for Board {
         // 11. Tempo NOTE: DONE
         self.tempo(self.color());
 
-        return self.calculate_score();
+        return self.calculate_score() * self.color().sign();
     }
 
     // ************************************************
@@ -1002,24 +1002,24 @@ impl EvaluationTrait for Board {
         self.eval.attacked_by[king.idx()] & self.weak_enemy(clr)
     }
 
-    fn pawn_push_threat(&mut self, sq: usize, clr: Color) -> u64 {
-        let clr_push_ranks = [2, 5];
-        let both_occ = self.occ_bb(clr) | self.occ_bb(clr.opp());
-        let mut pawn_threats = 0;
-        let pawn_one_push = get_all_pawn_forward_mask(self.pawn_bb(clr), clr) & both_occ;
-        let pawn_two_push = get_all_pawn_forward_mask(
-            (pawn_one_push & RANK_BITBOARD[clr_push_ranks[clr.idx()]]),
-            clr,
-        ) & both_occ;
-        pawn_threats =
-            (pawn_one_push | pawn_two_push) & !self.eval.attacked_by[(PAWN + clr.opp()).idx()];
+    // fn pawn_push_threat(&mut self, sq: usize, clr: Color) -> u64 {
+    //     let clr_push_ranks = [2, 5];
+    //     let both_occ = self.occ_bb(clr) | self.occ_bb(clr.opp());
+    //     let mut pawn_threats = 0;
+    //     let pawn_one_push = get_all_pawn_forward_mask(self.pawn_bb(clr), clr) & both_occ;
+    //     let pawn_two_push = get_all_pawn_forward_mask(
+    //         (pawn_one_push & RANK_BITBOARD[clr_push_ranks[clr.idx()]]),
+    //         clr,
+    //     ) & both_occ;
+    //     pawn_threats =
+    //         (pawn_one_push | pawn_two_push) & !self.eval.attacked_by[(PAWN + clr.opp()).idx()];
 
-        return (pawn_threats & self.eval.defend_map[clr.idx()])
-            | (pawn_threats & !self.eval.attack_map[clr.opp().idx()]);
-    }
+    //     return (pawn_threats & self.eval.defend_map[clr.idx()])
+    //         | (pawn_threats & !self.eval.attack_map[clr.opp().idx()]);
+    // }
 
-    fn slider_on_queen() {}
-    fn knight_on_queen() {}
+    // fn slider_on_queen() {}
+    // fn knight_on_queen() {}
 
     fn restricted(&mut self, clr: Color) -> u64 {
         let restricted_bb = self.eval.attack_map[clr.idx()]
@@ -1245,40 +1245,40 @@ impl EvaluationTrait for Board {
 
         // NOTE: This is ether (clr_rank > 3) or (clr_rank > 2) check both !!!
         let weight = if clr_rank > 3 { 5 * clr_rank - 13 } else { 0 } as isize;
-        println!("Square: {:?}, Weight:{:?}", sq, weight);
+        // println!("Square: {:?}, Weight:{:?}", sq, weight);
 
         if weight <= 0 {
             return 0;
         }
 
-        println!("Square: {:?}, Weight:{:?}", sq, weight);
+        // println!("Square: {:?}, Weight:{:?}", sq, weight);
 
         score += ((((enemy_rank - rank + 1).abs()).max((enemy_file - file).abs())).min(5) * 19 / 4)
             * weight;
 
-        println!(
-            "For Enemy king ; Square: {:?}, Weight:{:?}",
-            sq,
-            ((((enemy_rank - rank + 1).abs()).max((enemy_file - file).abs())).min(5) * 19 / 4)
-                * weight
-        );
+        // println!(
+        //     "For Enemy king ; Square: {:?}, Weight:{:?}",
+        //     sq,
+        //     ((((enemy_rank - rank + 1).abs()).max((enemy_file - file).abs())).min(5) * 19 / 4)
+        //         * weight
+        // );
 
         score -= ((((own_rank - rank + 1).abs()).max((own_file - file).abs())).min(5) * 2) * weight;
 
-        println!(
-            "For Own king ; Square: {:?}, Weight:{:?}",
-            sq,
-            ((((own_rank - rank + 1).abs()).max((own_file - file).abs())).min(5) * 2) * weight
-        );
+        // println!(
+        //     "For Own king ; Square: {:?}, Weight:{:?}",
+        //     sq,
+        //     ((((own_rank - rank + 1).abs()).max((own_file - file).abs())).min(5) * 2) * weight
+        // );
 
         // NOTE: Not sure about the rank of this
         if clr_rank != 6 {
             score -= (((own_rank - rank + 2).abs()).max((own_file - file).abs())).min(5) * weight;
-            println!(
-                "Second Push Consider Enemy king ; Square: {:?}, Weight:{:?}",
-                sq,
-                (((own_rank - rank + 2).abs()).max((own_file - file).abs())).min(5) * weight
-            );
+            // println!(
+            //     "Second Push Consider Enemy king ; Square: {:?}, Weight:{:?}",
+            //     sq,
+            //     (((own_rank - rank + 2).abs()).max((own_file - file).abs())).min(5) * weight
+            // );
         }
         score
     }
