@@ -4,6 +4,7 @@ use crate::engine::board::structures::piece::*;
 use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::const_utility::Rank;
+use crate::engine::misc::const_utility::FILE_BITBOARD;
 
 // PAWN MOVE, ATTACK, EP
 #[inline(always)]
@@ -24,10 +25,11 @@ pub fn get_pawn_mv(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
 pub fn get_pawn_att(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
     let attacks = PAWN_ATTACK_LOOKUP[color.idx()][sq] & !own;
     attacks & enemy
-    // match ep {
-    //     Some(ep) => attacks & (enemy | get_pawn_ep(color, ep)),
-    //     None => attacks & enemy,
-    // }
+}
+
+#[inline(always)]
+pub fn get_pawn_att_mask(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
+    PAWN_ATTACK_LOOKUP[color.idx()][sq]
 }
 
 #[inline(always)]
@@ -37,6 +39,39 @@ pub fn get_pawn_ep(color: Color, ep: u8) -> u64 {
         1 << ep
     } else {
         0
+    }
+}
+
+#[inline(always)]
+pub fn get_pawn_2_att(bb: u64, color: Color) -> u64 {
+    get_all_pawn_left_att_mask(bb, color) & get_all_pawn_right_att_mask(bb, color)
+}
+
+#[inline(always)]
+pub fn get_all_pawn_left_att_mask(bb: u64, color: Color) -> u64 {
+    if color.is_white() {
+        (bb << 9) & !FILE_BITBOARD[0]
+    } else {
+        (bb >> 9) & !FILE_BITBOARD[7]
+    }
+}
+
+#[inline(always)]
+pub fn get_all_pawn_right_att_mask(bb: u64, color: Color) -> u64 {
+    if color.is_white() {
+        (bb << 7) & !FILE_BITBOARD[7]
+    } else {
+        (bb >> 7) & !FILE_BITBOARD[0]
+    }
+}
+
+// TODO:
+#[inline(always)]
+pub fn get_all_pawn_forward_mask(bb: u64, color: Color) -> u64 {
+    if color.is_white() {
+        bb << 8
+    } else {
+        bb >> 8
     }
 }
 

@@ -102,8 +102,6 @@ impl Search {
         let mut best_mv = None;
 
         for depth in 1..max_depth + 1 {
-            self.board.pv.fill(None);
-
             if !safe_to_start_next_iter(&self) {
                 break;
             }
@@ -120,17 +118,12 @@ impl Search {
 
             // Get Best Line from current position and print info
 
-            if matches!(self.board.pv[0], None) {
-                let root_pv = self.tt.lock().unwrap().get_line(&mut self.board);
-                if root_pv.len() > 0 {
-                    best_mv = Some(root_pv[0]);
-                }
-                self.print_info(score, get_move_list(&root_pv, self.info.curr_depth));
-            } else {
-                best_mv = self.board.pv[0];
-                self.print_info(score, get_pv_move_list(&self.board.pv, self.info.curr_depth));
+            let root_pv = self.tt.lock().unwrap().get_line(&mut self.board);
+            if root_pv.len() > 0 {
+                best_mv = Some(root_pv[0]);
             }
-            // self.print_ordering_info();
+            self.print_info(score, get_move_list(&root_pv, self.info.curr_depth));
+            self.print_ordering_info();
             // search.tt.lock().unwrap().print_stats();
         }
 

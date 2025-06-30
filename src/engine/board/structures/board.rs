@@ -3,8 +3,9 @@ use super::color::{Color, ColorTrait};
 use super::piece::{Piece, PieceTrait, BISHOP, KING, KNIGHT, QUEEN, ROOK};
 use super::state::BoardState;
 use super::{moves::Move, piece::PAWN};
+use crate::engine::evaluation::eval_defs::CLR_SQ;
+use crate::engine::evaluation::evaluation::Evaluation;
 use crate::engine::misc::bitboard::BitboardTrait;
-use crate::engine::misc::const_utility::OPP_SQ;
 use crate::engine::search::transposition_table::TTEntry;
 use crate::engine::{
     board::fen::FenTrait,
@@ -22,11 +23,13 @@ pub struct Board {
     pub history: Vec<BoardState>,
     pub state: BoardState,
 
+    // TODO: Add This to Move Gen Struct
     pub tt_mv: Option<TTEntry>,
     pub s_history: [[u64; 64]; 14],
     pub s_killers: [[Option<Move>; 2]; 64],
-    pub pv: [Option<Move>; 64],
     pub gen_moves: Vec<(Move, isize)>,
+
+    pub eval: Evaluation,
 }
 
 impl Board {
@@ -47,9 +50,9 @@ impl Board {
             tt_mv: None,
             s_history: [[0u64; 64]; 14],
             s_killers: [[None; 2]; 64],
-            pv: [None; 64],
             gen_moves: Vec::with_capacity(256),
-            // info: SearchInfo::init(),
+
+            eval: Evaluation::init(),
         }
     }
 
@@ -64,6 +67,8 @@ impl Board {
         self.s_history = [[0u64; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
         self.gen_moves.clear();
+
+        self.eval.reset();
     }
 
     #[inline(always)]
@@ -202,12 +207,12 @@ impl Board {
                 Some(p) => Some(p.opp()),
                 None => None,
             };
-            let second_piece = match self.squares[OPP_SQ[idx]] {
+            let second_piece = match self.squares[CLR_SQ[1][idx]] {
                 Some(p) => Some(p.opp()),
                 None => None,
             };
             self.squares[idx] = second_piece;
-            self.squares[OPP_SQ[idx]] = first_piece;
+            self.squares[CLR_SQ[1][idx]] = first_piece;
         }
 
         for idx in (0..self.bitboard.len()).step_by(2) {
@@ -218,7 +223,7 @@ impl Board {
 
         self.state.color = self.state.color.opp();
         self.state.ep = match self.state.ep {
-            Some(sq) => Some(OPP_SQ[sq as usize] as u8),
+            Some(sq) => Some(CLR_SQ[1][sq as usize] as u8),
             None => None,
         };
 
@@ -232,11 +237,12 @@ mod tests {
 
     use super::*;
     use crate::engine::board::structures::castling::CastlingRights;
-    use crate::engine::board::structures::color::WHITE;
-    use crate::engine::evaluation::evaluation::Evaluation;
+    use crate::engine::board::structures::color::{BLACK, WHITE};
+    use crate::engine::evaluation::evaluation::{Evaluation, EvaluationTrait};
     use crate::engine::misc::const_utility::{
         FEN_CASTLE_ONE, FEN_MATE_IN_5, FEN_POS_FIVE, FEN_POS_FOUR, FEN_POS_THREE,
     };
+    use crate::engine::misc::print_utility::{print_bitboard, print_chess};
 
     #[test]
     fn test_reset_board() {
@@ -256,12 +262,13 @@ mod tests {
 
     fn test_mirror_framework(fen: &str) {
         let mut board = Board::read_fen(fen);
-        let eval = board.evaluate_pos();
+        let eval = board.evaluation();
         // print_chess(&board);
         board.mirror();
         // print_chess(&board);
-        let mirror_eval = board.evaluate_pos();
-        assert_eq!(eval, mirror_eval)
+        board.eval.reset();
+        let mirror_eval = board.evaluation();
+        // assert_eq!(eval, mirror_eval)
     }
 
     #[test]

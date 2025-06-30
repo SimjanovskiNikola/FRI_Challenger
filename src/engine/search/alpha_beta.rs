@@ -5,7 +5,7 @@ use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::moves::Move;
 use crate::engine::board::structures::piece::PieceTrait;
 use crate::engine::board::structures::piece::KING;
-use crate::engine::evaluation::evaluation::Evaluation;
+use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::protocols::time::time_over;
 
@@ -31,7 +31,7 @@ impl Search {
         }
 
         if self.board.ply() > 63 {
-            return self.board.evaluate_pos();
+            return self.board.evaluation();
         }
 
         let in_check: bool =
@@ -94,7 +94,6 @@ impl Search {
                 alpha = score;
                 best_score = score;
                 best_mv = Some(*mv);
-                self.board.pv[self.board.ply()] = best_mv;
 
                 if !mv.flag.is_capture() {
                     self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as u64;

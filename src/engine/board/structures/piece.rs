@@ -48,13 +48,14 @@ const BISHOP_WT: isize = 350;
 const KNIGHT_WT: isize = 325;
 const PAWN_WT: isize = 100;
 
-pub const PIECE_WT: [isize; 6] = [PAWN_WT, KNIGHT_WT, BISHOP_WT, ROOK_WT, QUEEN_WT, KING_WT];
+pub const PIECE_WT: [isize; 6] = [PAWN_WT, KNIGHT_WT, KING_WT, BISHOP_WT, ROOK_WT, QUEEN_WT];
 
 pub trait PieceTrait {
     fn color(&self) -> Color;
     fn kind(&self) -> Piece;
 
     fn idx(&self) -> usize;
+    fn arr_idx(&self) -> usize;
 
     fn is_pawn(&self) -> bool;
     fn is_knight(&self) -> bool;
@@ -90,6 +91,11 @@ impl PieceTrait for Piece {
     #[inline(always)]
     fn idx(&self) -> usize {
         *self as usize
+    }
+
+    #[inline(always)]
+    fn arr_idx(&self) -> usize {
+        (self.kind() / 2).idx() - 1 as usize
     }
 
     #[inline(always)]

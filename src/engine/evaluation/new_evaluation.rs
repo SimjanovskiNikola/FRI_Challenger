@@ -1,46 +1,23 @@
 // use std::usize;
 
-// use crate::engine::game::Game;
-// use crate::engine::move_generation::mv_gen::{get_all_moves, get_occupancy};
-// use crate::engine::move_generator::bishop::{get_bishop_mv, has_bishop_pair};
+// use crate::engine::board::mv_gen::*;
+// use crate::engine::board::structures::board::Board;
+// use crate::engine::board::structures::color::*;
+// use crate::engine::board::structures::piece::*;
+// use crate::engine::board::structures::square::get_rank;
+// use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
+// use crate::engine::misc::const_utility::OPP_SQ;
 // use crate::engine::move_generator::generated::pawn::*;
-// use crate::engine::move_generator::king::{get_king_mv, has_good_pawn_shield, has_near_open_files};
-// use crate::engine::move_generator::knight::get_knight_mv;
-// use crate::engine::move_generator::pawn::{is_blocked_pawn, is_isolated_pawn, is_passed_pawn};
-// use crate::engine::move_generator::rook::{
-//     get_rook_mv, is_rook_on_open_file, is_rook_on_semi_open_file,
-// };
-// use crate::engine::shared::helper_func::bit_pos_utility::get_bit_rank;
-// use crate::engine::shared::helper_func::bitboard::{BitboardTrait, Iterator};
-// use crate::engine::shared::helper_func::const_utility::OPP_SQ;
-// use crate::engine::shared::structures::color::*;
-// use crate::engine::shared::structures::piece::*;
 
 // const DOUBLE_PAWN_WT: isize = -15;
 // const BLOCKED_PAWN_WT: isize = -15;
 // const ISOLATED_PAWN_WT: isize = -15;
 // const MOBILITY_WT: isize = 1;
-// const ROOK_OPEN_FILE_WT: (isize, isize) = (8, 20); // NOTE: TAPERED ACHIEVED
-// const ROOK_SEMI_OPEN_FILE_WT: (isize, isize) = (8, 20); // NOTE: TAPERED ACHIEVED
+// const ROOK_OPEN_FILE_WT: isize = 5;
 // const PASSED_PAWN_WT: [[isize; 8]; 2] =
-//     [[0, 5, 10, 20, 35, 60, 100, 0], [0, 100, 60, 35, 20, 10, 5, 0]]; // NOTE: TAPERED ACHIEVED
-// const BISHOP_PAIR_WT: (isize, isize) = (5, 20); // NOTE: TAPERED ACHIEVED
+//     [[0, 5, 10, 20, 35, 60, 100, 0], [0, 100, 60, 35, 20, 10, 5, 0]];
+// const BISHOP_PAIR_WT: isize = 10;
 // const GAME_PHASE_INCREMENT: [usize; 14] = [0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 4, 4];
-// const ROOK_TRAP_PENALTY: isize = 50;
-// const ROOK_LOW_NUM_MOVES: isize = 2;
-
-// const BISHOP_TRAP_PENALTY: isize = 50;
-// const BISHOP_LOW_NUM_MOVES: isize = 1;
-
-// const KNIGHT_TRAP_PENALTY: isize = 50;
-// const KNIGHT_LOW_NUM_MOVES: isize = 2;
-// const KNIGHT_VALUE_PER_PAWN_WT: (isize, isize) = (0, 1);
-
-// pub const CASTLE_BONUS_WT: [(isize, isize); 4] = [(30, 0), (20, 0), (30, 0), (20, 0)];
-// pub const KING_OPEN_FILES_PENALTY: (isize, isize) = (30, 0);
-
-// const PIECE_WEIGHT: [(isize, isize); 6] =
-//     [(82, 94), (337, 281), (0, 0), (365, 297), (477, 512), (1025, 936)];
 
 // #[rustfmt::skip]
 // const PAWN_EVAL:[[isize; 64]; 2] = [[
@@ -185,12 +162,11 @@
 //     ]
 //  ];
 
-// pub trait New_Evaluation {
-//     fn evaluation(&self) -> isize;
+// pub trait Evaluation {
+//     fn evaluate_pos(&self) -> isize;
 
 //     fn material_balance(&self) -> isize;
 //     fn determine_phase(&self) -> usize;
-//     fn tapered(value: (isize, isize), phase: (isize, isize)) -> isize;
 
 //     fn piece_eval(&self, piece: &Piece, sq: usize) -> isize;
 //     fn piece_sq_eval(piece: &Piece, phase: usize, sq: usize) -> isize; //FIXME: Fix Phase to enum
@@ -201,44 +177,45 @@
 //     fn bishop_eval(&self, piece: &Piece, sq: usize) -> isize;
 //     fn rook_eval(&self, piece: &Piece, sq: usize) -> isize;
 //     fn queen_eval(&self, piece: &Piece, sq: usize) -> isize;
-//     fn insufficient_material(&self) -> Option<isize>;
 // }
 
-// impl Evaluation for Game {
+// impl Evaluation for Board {
 //     #[inline(always)]
-//     fn tapered(value: (isize, isize), phase: (isize, isize)) -> isize {
-//         (phase.0 * value.0 + phase.1 * value.1) / 24
-//     }
-
-//     #[inline(always)]
-//     fn evaluation(&self) -> isize {
+//     fn evaluate_pos(&self) -> isize {
 //         let mut score: isize = 0;
 
-//         let (white_occ, black_occ) = get_occupancy(&WHITE, &self);
-//         // TODO: Add Phase to the game
-//         let mg_phase = self.phase.min(24) as isize;
+//         let (white_occ, black_occ) = self.both_occ_bb(WHITE); //get_occupancy(&WHITE, &self);
+//         let phase = self.determine_phase();
+//         let mg_phase = phase.min(24) as isize;
 //         let eg_phase = (24 - mg_phase) as isize;
 
-//         // TODO: ADD WHITE PEACES AND BLACK PEACES
-//         // NOTE: WHITE PEACES
-//         for piece in &PIECES {
+//         for piece in &CLR_PIECES {
 //             let mut bb = self.bitboard[piece.idx()];
 //             while let Some(sq) = bb.next() {
-//                 // // FIXME: Not Good: (self.kind() / 2).idx() - 1
-//                 // score +=
-//                 //     Self::tapered(PIECE_WEIGHT[(self.kind() / 2).idx() - 1], mg_phase, eg_phase);
+//                 let mut temp_score = 0;
+//                 temp_score += piece.weight();
 
-//                 // score += New_Evaluation::tapered(
-//                 //     (Self::piece_sq_eval(piece, 0, sq), Self::piece_sq_eval(piece, 1, sq)),
-//                 //     mg_phase,
-//                 //     eg_phase,
-//                 // );
+//                 temp_score += (mg_phase * Self::piece_sq_eval(piece, 0, sq)
+//                     + eg_phase * Self::piece_sq_eval(piece, 1, sq))
+//                     / 24;
 
-//                 score += self.piece_eval(piece, sq)
+//                 temp_score += self.piece_eval(piece, sq);
+
+//                 if piece.color().is_black() {
+//                     temp_score += Board::get_mv_bb(*piece, sq, black_occ, white_occ).count()
+//                         as isize
+//                         * MOBILITY_WT;
+//                 } else {
+//                     temp_score += Board::get_mv_bb(*piece, sq, white_occ, black_occ).count()
+//                         as isize
+//                         * MOBILITY_WT;
+//                 }
+
+//                 score += temp_score * piece.color().sign();
 //             }
 //         }
 
-//         return score * self.color.sign();
+//         return score * self.state.color.sign();
 //     }
 
 //     #[inline(always)]
@@ -257,21 +234,18 @@
 //     #[inline(always)]
 //     fn pawn_eval(&self, piece: &Piece, sq: usize) -> isize {
 //         let mut score: isize = 0;
-//         let (own_pawns, enemy_pawns) = (
-//             self.bitboard[(PAWN + piece.color()).idx()],
-//             self.bitboard[(PAWN + piece.color().opp()).idx()],
-//         );
+//         let (own_pawns, enemy_pawns) = self.both_bb(*piece);
 
-//         if is_passed_pawn(piece.color(), sq, enemy_pawns) {
-//             let rank = get_bit_rank(sq) as usize;
+//         if PASSED_PAWN_LOOKUP[piece.color().idx()][sq] & enemy_pawns == 0 {
+//             let rank = get_rank(sq);
 //             score += PASSED_PAWN_WT[piece.color().idx()][rank] as isize;
 //         }
 
-//         if is_isolated_pawn(sq, own_pawns) {
+//         if ISOLATED_PAWN_LOOKUP[sq] & own_pawns == 0 {
 //             score += ISOLATED_PAWN_WT;
 //         }
 
-//         if is_blocked_pawn(piece.color(), sq, own_pawns) {
+//         if BLOCKED_PAWN_LOOKUP[piece.color().idx()][sq] & own_pawns == 0 {
 //             score += DOUBLE_PAWN_WT;
 //         }
 
@@ -279,137 +253,34 @@
 //     }
 
 //     #[inline(always)]
-//     fn knight_eval(&self, piece: &Piece, sq: usize, phase: (isize, isize)) -> isize {
-//         let clr = piece.color();
-//         let (own, enemy) = get_occupancy(piece, self);
-//         let (own_pawns, enemy_pawns) = (
-//             self.bitboard[(PAWN + piece.color()).idx()],
-//             self.bitboard[(PAWN + piece.color().opp()).idx()],
-//         );
-
-//         // Material Evaluation
-//         let score = Self::tapered(PIECE_WEIGHT[(self.kind() / 2).idx() - 1], phase);
-
-//         // PSQT Evaluation
-//         // TODO: ADD PSQT as tapered
-//         score += Self::tapered((KNIGHT_EVAL[phase.0][sq], KNIGHT_EVAL[phase.1][sq]), phase);
-
-//         // Increase value if there are more pawns on the board
-//         score += (16 - (own_pawns.count_ones() + enemy.count_ones()))
-//             * Self::tapered(KNIGHT_VALUE_PER_PAWN_WT, phase);
-
-//         let moves = get_knight_mv(sq, own, enemy).count_ones();
-//         score += moves * MOBILITY_WT;
-
-//         if moves <= KNIGHT_LOW_NUM_MOVES {
-//             score += KNIGHT_TRAP_PENALTY;
-//         }
-
-//         return score;
+//     fn knight_eval(&self, piece: &Piece, _sq: usize) -> isize {
+//         0
 //     }
 
 //     #[inline(always)]
-//     fn king_eval(&self, piece: &Piece, sq: usize, phase: (isize, isize)) -> isize {
-//         let clr = piece.color();
-//         let (own, enemy) = get_occupancy(piece, self);
-
-//         // Material Evaluation
-//         let score = Self::tapered(PIECE_WEIGHT[(self.kind() / 2).idx() - 1], phase);
-
-//         // PSQT Evaluation
-//         // TODO: ADD PSQT as tapered
-//         score += Self::tapered((KING_EVAL[phase.0][sq], KING_EVAL[phase.1][sq]), phase);
-
-//         if has_near_open_files(sq, self.get_pawn_bb(clr)) {
-//             score += Self.tapered(KING_OPEN_FILES_PENALTY, phase);
-//         }
-
-//         if Some(c) = self.get_castle(clr) {
-//             score += Self.tapered(CASTLE_BONUS_WT(c), phase);
-//         }
-
-//         let moves = get_king_mv(sq, own, enemy).count_ones();
-//         score += moves * MOBILITY_WT;
-
-//         return score;
+//     fn king_eval(&self, piece: &Piece, _sq: usize) -> isize {
+//         0
 //     }
 
 //     #[inline(always)]
-//     fn bishop_eval(&self, piece: &Piece, sq: usize, phase: (isize, isize)) -> isize {
-//         let clr = piece.color();
-//         let (own, enemy) = get_occupancy(piece, self);
-
-//         // Material Evaluation
-//         let score = Self::tapered(PIECE_WEIGHT[(self.kind() / 2).idx() - 1], phase);
-
-//         // PSQT Evaluation
-//         // TODO: ADD PSQT as tapered
-//         score += Self::tapered((BISHOP_EVAL[phase.0][sq], BISHOP_EVAL[phase.1][sq]), phase);
-
-//         // Do we have bishop pair evaluation
-//         // TODO: Implement functions like this: To get Pawn Bitboard
-//         if has_bishop_pair(self.bishop_bb(clr)) {
-//             score += Self::tapered(BISHOP_PAIR_WT, phase);
+//     fn bishop_eval(&self, piece: &Piece, _sq: usize) -> isize {
+//         if self.bb(*piece).count() >= 2 {
+//             BISHOP_PAIR_WT
+//         } else {
+//             0
 //         }
-
-//         let moves = get_bishop_mv(sq, own, enemy).count_ones();
-//         score += moves * MOBILITY_WT;
-
-//         // Checks if bishop is trapped (has extremely low number of moves)
-//         if moves <= BISHOP_LOW_NUM_MOVES {
-//             score += BISHOP_TRAP_PENALTY;
-//         }
-
-//         return score;
 //     }
 
 //     #[inline(always)]
-//     fn rook_eval(&self, piece: &Piece, sq: usize, phase: (isize, isize)) -> isize {
-//         let clr = piece.color();
-//         let (own, enemy) = get_occupancy(piece, self);
-
-//         // Material Evaluation
-//         let score = Self::tapered(PIECE_WEIGHT[(self.kind() / 2).idx() - 1], phase);
-
-//         // PSQT Evaluation
-//         // TODO: ADD PSQT as tapered
-//         score += Self::tapered((ROOK_EVAL[phase.0][sq], ROOK_EVAL[phase.1][sq]), phase);
-
-//         // Is Rook on open or semi-open file evaluation
-//         // TODO: Implement functions like this: To get Pawn Bitboard
-//         if is_rook_on_open_file(sq, self.pawn_bb(piece.color())) {
-//             score += Self::tapered(ROOK_OPEN_FILE_WT, phase);
-//         } else if is_rook_on_semi_open_file(sq, self.pawn_bb(clr), self.pawn_bb(clr.opp())) {
-//             score += Self::tapered(ROOK_SEMI_OPEN_FILE_WT, phase);
-//         }
-
-//         let moves = get_rook_mv(sq, own, enemy).count_ones();
-//         score += moves * MOBILITY_WT;
-
-//         // Checks if rook is trapped (has extremely low number of moves)
-//         if moves <= ROOK_LOW_NUM_MOVES {
-//             score += ROOK_TRAP_PENALTY;
-//         }
-
-//         return score;
+//     fn rook_eval(&self, piece: &Piece, sq: usize) -> isize {
+//         0
 //     }
 
 //     #[inline(always)]
-//     fn queen_eval(&self, piece: &Piece, sq: usize, phase: (isize, isize)) -> isize {
-//         // Material Evaluation
-//         let score = Self::tapered(PIECE_WEIGHT[(self.kind() / 2).idx() - 1], phase.0, phase.1);
-
-//         // PSQT Evaluation
-//         // TODO: ADD PSQT as tapered
-//         score += New_Evaluation::tapered((QUEEN_EVAL[phase.0][sq], QUEEN_EVAL[phase.1][sq]), phase);
-
-//         // NOTE: IT IS BAD TO ADD MOBILITY FOR THE QUEEN
-//         // NOTE: IT MOVES EARLY WHICH IS BAD
-
-//         return score;
+//     fn queen_eval(&self, piece: &Piece, sq: usize) -> isize {
+//         0
 //     }
 
-//     // TODO: Change name to psqt
 //     #[inline(always)]
 //     fn piece_sq_eval(piece: &Piece, phase: usize, mut sq: usize) -> isize {
 //         if piece.color().is_white() {
@@ -437,19 +308,6 @@
 //         }
 //         score
 //     }
-
-// #[inline(always)]
-// fn insufficient_material(board: &Board) -> bool {
-//     let (own, enemy) = self.both_occ_bb(board.color());
-//     if (own | enemy).count_ones() < 4 {
-//         let kings = self.bb(WHITE_KING) | self.bb(BLACK_KING);
-//         let knights = self.bb(WHITE_KNIGHT) | self.bb(BLACK_KNIGHT);
-//         let bishops = self.bb(WHITE_BISHOP) | self.bb(BLACK_BISHOP);
-//         if (kings | knights | bishops) == (own | enemy) {
-//             return true;
-//         }
-//     }
-// }
 
 //     fn determine_phase(&self) -> usize {
 //         let mut phase = 0;
