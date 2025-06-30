@@ -1220,10 +1220,12 @@ impl EvaluationTrait for Board {
             get_all_pawn_forward_mask(self.pawn_bb(clr), clr) & self.pawn_bb(clr.opp());
         let enemy_pawns_blocked =
             get_all_pawn_forward_mask(self.pawn_bb(clr.opp()), clr.opp()) & self.pawn_bb(clr);
-        let own_sq_blocked = get_all_pawn_left_att_mask(self.pawn_bb(clr.opp()), clr)
-            & get_all_pawn_right_att_mask(self.pawn_bb(clr.opp()), clr);
+        let own_sq_blocked = get_all_pawn_left_att_mask(self.pawn_bb(clr.opp()), clr.opp())
+            & get_all_pawn_right_att_mask(self.pawn_bb(clr.opp()), clr.opp())
+            & get_all_pawn_forward_mask(self.pawn_bb(clr), clr);
         let enemy_sq_blocked = get_all_pawn_left_att_mask(self.pawn_bb(clr), clr)
-            & get_all_pawn_right_att_mask(self.pawn_bb(clr), clr);
+            & get_all_pawn_right_att_mask(self.pawn_bb(clr), clr)
+            & get_all_pawn_forward_mask(self.pawn_bb(clr.opp()), clr.opp());
 
         let blocked =
             (own_pawns_blocked | enemy_pawns_blocked | own_sq_blocked | enemy_sq_blocked).count();
@@ -1248,6 +1250,10 @@ impl EvaluationTrait for Board {
         let opp_att_bb = self.eval.attack_map[clr.opp().idx()];
         let opp_pawn_att_bb = self.eval.attacked_by[(PAWN + clr.opp()).idx()];
 
+        // println!("Central Area {:?}", clr);
+        // print_bitboard(CLR_CENTER[clr.idx()] & !opp_pawn_att_bb & !own_pawns_bb, None);
+        // println!("Behind Pawn Area {:?}", clr);
+        // print_bitboard(pawn_behind_bb & CLR_CENTER[clr.idx()] & !opp_att_bb & !own_pawns_bb, None);
         cnt += (CLR_CENTER[clr.idx()] & !opp_pawn_att_bb & !own_pawns_bb).count();
         cnt += (pawn_behind_bb & CLR_CENTER[clr.idx()] & !opp_att_bb & !own_pawns_bb).count();
         cnt
@@ -1289,6 +1295,7 @@ impl EvaluationTrait for Board {
             let king_proximity = self.king_proximity(sq, clr);
 
             let passed_block = self.passed_blocked(sq, clr);
+
             let passed_file = self.passed_file(sq);
             self.sum(clr, Some(sq), Some(piece), (0, king_proximity));
             self.sum(clr, Some(sq), Some(piece), PASSED_PAWN_REW[clr.idx()][get_rank(sq)]);
@@ -1302,9 +1309,13 @@ impl EvaluationTrait for Board {
             return false;
         }
 
+        println!("Candidate Passed : {:?}", sq);
+
         if !self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp())) {
             return true;
         }
+
+        println!("Is not blocked pawn : {:?}", sq);
 
         let mut bb = PAWN_ATTACK_LOOKUP[clr.opp().idx()][sq] & self.pawn_bb(clr);
 
@@ -1328,24 +1339,34 @@ impl EvaluationTrait for Board {
 
     fn passed_blocked(&mut self, sq: usize, clr: Color) -> isize {
         let (own, enemy) = self.both_occ_bb(clr);
-        let rank = get_rank(sq);
+        let clr_rank = CLR_RANK[clr.idx()][get_rank(sq) as usize];
 
-        if !self.passed_leverable(sq, clr) || rank < 3 || (own | enemy).is_set(sq) {
+        if clr_rank <= 2 || (own | enemy).is_set(self.front_sq(sq, clr)) {
             return 0;
         }
 
-        let weight = 5 * (rank - 1) - 13;
+        let weight = 5 * clr_rank - 13;
         let forward = PAWN_FORWARD_SPANS[clr.idx()][sq];
         let backward = PAWN_FORWARD_SPANS[clr.opp().idx()][sq];
         let forward_lr = FORWARD_SPANS_LR[clr.idx()][sq];
 
         let mut defended_bb =
             forward & (self.eval.defend_map[clr.idx()] | self.eval.attack_map[clr.idx()]);
+
+        // print_bitboard(forward, None);
+        // print_bitboard(self.eval.defend_map[clr.opp().idx()], None);
+        // print_bitboard(self.eval.attack_map[clr.opp().idx()], None);
+
         let mut unsafe_bb = forward
             & (self.eval.defend_map[clr.opp().idx()] | self.eval.attack_map[clr.opp().idx()]);
+
+        // print_bitboard(unsafe_bb, None);
+
         let mut wunsafe_bb = forward_lr
             & (self.eval.defend_map[clr.opp().idx()] | self.eval.attack_map[clr.opp().idx()]);
+
         let mut is_defended1 = defended_bb.is_set(self.front_sq(sq, clr));
+
         let mut is_unsafe1 = unsafe_bb.is_set(self.front_sq(sq, clr));
 
         if (self.queen_bb(clr) | self.rook_bb(clr)) & backward != 0 {
@@ -1360,11 +1381,16 @@ impl EvaluationTrait for Board {
 
         let mut k = 0;
 
+        // println!("Unsafe: {:?}", unsafe_bb.count());
+        // println!("Wunsafe: {:?}", wunsafe_bb.count());
+        // println!("is_unsafe1: {:?}", is_unsafe1);
+        // println!("is_defended1: {:?}", is_defended1);
+
         if unsafe_bb == 0 && wunsafe_bb == 0 {
             k = 35;
         } else if unsafe_bb == 0 {
             k = 20;
-        } else if is_unsafe1 {
+        } else if !is_unsafe1 {
             k = 9;
         }
 
@@ -1378,52 +1404,22 @@ impl EvaluationTrait for Board {
     fn king_proximity(&mut self, sq: usize, clr: Color) -> isize {
         let mut score = 0;
 
-        let (rank, file) = (get_rank(sq) as isize, get_file(sq) as isize);
-        let clr_rank = CLR_RANK[clr.idx()][rank as usize];
+        let clr_rank = CLR_RANK[clr.idx()][get_rank(sq) as usize];
 
-        let own_king_sq = self.king_sq(clr);
-        let (own_rank, own_file) = (get_rank(own_king_sq) as isize, get_file(own_king_sq) as isize);
-
-        let enemy_king_sq = self.king_sq(clr.opp());
-        let (enemy_rank, enemy_file) =
-            (get_rank(enemy_king_sq) as isize, get_file(enemy_king_sq) as isize);
-
-        // NOTE: This is ether (clr_rank > 3) or (clr_rank > 2) check both !!!
-        let weight = if clr_rank > 3 { 5 * clr_rank - 13 } else { 0 } as isize;
-        // println!("Square: {:?}, Weight:{:?}", sq, weight);
-
-        if weight <= 0 {
+        if clr_rank <= 2 {
             return 0;
         }
 
-        // println!("Square: {:?}, Weight:{:?}", sq, weight);
+        let weight = (5 * clr_rank - 13) as isize;
 
-        score += ((((enemy_rank - rank + 1).abs()).max((enemy_file - file).abs())).min(5) * 19 / 4)
-            * weight;
+        let front_sq = self.front_sq(sq, clr);
 
-        // println!(
-        //     "For Enemy king ; Square: {:?}, Weight:{:?}",
-        //     sq,
-        //     ((((enemy_rank - rank + 1).abs()).max((enemy_file - file).abs())).min(5) * 19 / 4)
-        //         * weight
-        // );
+        score += (self.king_dist(clr.opp(), front_sq).min(5) * 19 / 4) as isize * weight;
+        score -= (self.king_dist(clr, front_sq).min(5) * 2) as isize * weight;
 
-        score -= ((((own_rank - rank + 1).abs()).max((own_file - file).abs())).min(5) * 2) * weight;
-
-        // println!(
-        //     "For Own king ; Square: {:?}, Weight:{:?}",
-        //     sq,
-        //     ((((own_rank - rank + 1).abs()).max((own_file - file).abs())).min(5) * 2) * weight
-        // );
-
-        // NOTE: Not sure about the rank of this
+        // Consider another push if the next square is the queening square
         if clr_rank != 6 {
-            score -= (((own_rank - rank + 2).abs()).max((own_file - file).abs())).min(5) * weight;
-            // println!(
-            //     "Second Push Consider Enemy king ; Square: {:?}, Weight:{:?}",
-            //     sq,
-            //     (((own_rank - rank + 2).abs()).max((own_file - file).abs())).min(5) * weight
-            // );
+            score -= self.king_dist(clr, front_sq).min(5) as isize * weight;
         }
         score
     }
@@ -1435,6 +1431,7 @@ impl EvaluationTrait for Board {
         let their_pawns = self.pawn_bb(clr.opp());
 
         // Own pawn ahead? Blocked by same-file pawn
+        println!("Try Candidate Passed : {:?}", sq);
         if forward & our_pawns != 0 {
             return false;
         }
@@ -1993,9 +1990,9 @@ mod tests {
     #[test]
     fn passed_pawns_test() {
         for obj in &SF_EVAL {
-            // if obj.fen != "rnb1k2r/2p1ppPp/5bn1/p1p5/P2p2p1/P2P1P1P/6P1/RNB1KBNR b KQkq - 0 0" {
-            //     continue;
-            // }
+            if obj.fen != "4rrk1/Rpp3pp/6q1/2PPn3/4p3/2N5/1P2QPPP/5RK1 w - - 0 0" {
+                continue;
+            }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2023,7 +2020,7 @@ mod tests {
         }
     }
 
-    // NOTE: 9. SPACE [FIXME: TEST: WORKS]
+    // NOTE: 9. SPACE [TEST: WORKS]
     #[test]
     fn space_test() {
         for obj in &SF_EVAL {
