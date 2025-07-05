@@ -58,6 +58,9 @@ pub struct Evaluation {
     pub vec_test: Vec<String>,
 
     pub outpost: [Bitboard; 2],
+    pub open_file: [Bitboard; 2],
+    pub semi_file: [Bitboard; 2],
+    pub pawn_att_span: [Bitboard; 2],
     pub king_ring: [Bitboard; 2],
     pub x_ray: [Bitboard; 14],
     pub attacked_by: [Bitboard; 14],
@@ -84,6 +87,10 @@ impl Evaluation {
             vec_test: Vec::with_capacity(200),
 
             outpost: [0; 2],
+
+            open_file: [0; 2],
+            semi_file: [0; 2],
+            pawn_att_span: [0; 2],
             king_ring: [0; 2],
             x_ray: [0; 14],
             attacked_by: [0; 14],
@@ -101,7 +108,10 @@ impl Evaluation {
     }
 
     pub fn reset(&mut self) {
+        self.open_file.fill(0);
+        self.semi_file.fill(0);
         self.outpost.fill(0);
+        self.pawn_att_span.fill(0);
         self.king_ring.fill(0);
         self.x_ray.fill(0);
         self.attacked_by.fill(0);
@@ -189,21 +199,21 @@ pub trait EvaluationTrait {
     fn doubled_isolated_pawn(&mut self, sq: usize, clr: Color) -> bool;
 
     // NOTE: 5. PEACES Evaluation TODO: FIXME:
-    // fn piece_eval(&mut self, clr: Color);
-
-    // fn minor_behind_pawn(&mut self, clr: Color, sq: usize) -> bool;
-    // fn bishop_pawns(&mut self, clr: Color, sq: usize) -> bool;
-    // fn rook_on_file(&mut self, clr: Color, sq: usize) -> isize;
-    // fn trapped_rook(&mut self, clr: Color, sq: usize) -> isize;
-    // fn weak_queen(&mut self, clr: Color, sq: usize) -> isize;
-    // fn king_protector(&mut self, clr: Color, sq: usize) -> isize;
-    // fn outpost_total(&mut self, clr: Color, sq: usize) -> isize;
-    // fn rook_on_queen_file(&mut self, clr: Color, sq: usize) -> isize;
-    // fn bishop_xray_pawns(&mut self, clr: Color, sq: usize) -> isize;
-    // fn bishop_long_diagonal(&mut self, clr: Color) -> bool;
-    // fn rook_on_king_ring(&mut self, clr: Color, sq: usize) -> isize;
-    // fn bishop_on_king_ring(&mut self, clr: Color, sq: usize) -> isize;
-    // fn queen_infaltration(&mut self, clr: Color, sq: usize) -> isize;
+    fn piece_eval(&mut self, clr: Color);
+    fn outpost(&mut self, clr: Color) -> u64;
+    fn reachable_outpost(&mut self, clr: Color) -> isize;
+    fn minor_behind_pawn(&mut self, clr: Color) -> isize;
+    fn bishop_pawns(&mut self, clr: Color, sq: usize) -> bool;
+    fn trapped_rook(&mut self, clr: Color, sq: usize) -> isize;
+    fn weak_queen(&mut self, clr: Color, sq: usize) -> isize;
+    fn king_protector(&mut self, clr: Color);
+    fn outpost_total(&mut self, clr: Color, sq: usize) -> isize;
+    fn rook_on_queen_file(&mut self, clr: Color);
+    fn bishop_xray_pawns(&mut self, clr: Color, sq: usize) -> isize;
+    fn bishop_long_diagonal(&mut self, clr: Color) -> bool;
+    fn rook_on_king_ring(&mut self, clr: Color) -> isize;
+    fn bishop_on_king_ring(&mut self, clr: Color) -> isize;
+    fn queen_infaltration(&mut self, clr: Color) -> isize;
 
     // NOTE: 6. MOBILITY Evaluation
     fn mobility_eval(&mut self, clr: Color);
@@ -293,8 +303,17 @@ impl EvaluationTrait for Board {
                 self.eval.pawn_behind_masks[clr.idx()] |=
                     PAWN_3_BEHIND_MASKS[clr.idx()][sq] & CLR_CENTER[clr.idx()];
 
-                // self.eval.outpost[clr.idx()] |=
+                if !self.backward_pawn(sq, *clr)
+                    && !self.blocked_pawn(sq, *clr, self.pawn_bb(clr.opp()))
+                {
+                    self.eval.pawn_att_span[clr.idx()] |=
+                        FORWARD_SPANS_LR[clr.idx()][sq] | get_pawn_att_mask(sq, own, enemy, *clr);
+                }
             }
+            self.eval.outpost[clr.idx()] = self.eval.pawn_att_span[clr.opp().idx()]
+                & (RANK_BITBOARD[3] | RANK_BITBOARD[4] | RANK_BITBOARD[5])
+                & (get_all_pawn_left_att_mask(self.pawn_bb(*clr), *clr)
+                    | get_all_pawn_right_att_mask(self.pawn_bb(*clr), *clr));
         }
     }
 
@@ -328,6 +347,19 @@ impl EvaluationTrait for Board {
 
                     if !piece.is_king() && !piece.is_pawn() {
                         self.eval.x_ray[piece.idx()] |= self.mobility_piece(sq, piece, *clr)
+                    }
+
+                    if piece.is_rook() {
+                        // OPEN AND SEMI-OPEN FILES
+                        if (self.pawn_bb(*clr) | self.pawn_bb(clr.opp()))
+                            & FILE_BITBOARD[get_file(sq)]
+                            == 0
+                        {
+                            self.eval.open_file[clr.idx()] |= Bitboard::init(sq);
+                            self.eval.semi_file[clr.idx()] |= Bitboard::init(sq);
+                        } else if self.pawn_bb(clr.opp()) & FILE_BITBOARD[get_file(sq)] == 0 {
+                            self.eval.semi_file[clr.idx()] |= Bitboard::init(sq);
+                        }
                     }
                 }
             }
@@ -394,7 +426,7 @@ impl EvaluationTrait for Board {
         piece: Option<Piece>,
         value: (isize, isize),
     ) {
-        self.trace(color, square, piece, value);
+        // self.trace(color, square, piece, value);
 
         self.eval.score[color.idx()].0 += value.0;
         self.eval.score[color.idx()].1 += value.1;
@@ -531,8 +563,8 @@ impl EvaluationTrait for Board {
         self.mobility_eval(BLACK);
 
         // 7. Threats
-        // self.threats_eval(WHITE);
-        // self.threats_eval(BLACK);
+        self.threats_eval(WHITE);
+        self.threats_eval(BLACK);
 
         // 8. Passed Pawns
         self.passed_pawn(WHITE);
@@ -818,56 +850,121 @@ impl EvaluationTrait for Board {
     //              5. PIECE EVALUATION               *
     // ************************************************
 
-    // fn piece_eval(&mut self, clr: Color) {
-    //     let mut bb = self.queen_bb(clr);
-    //     while let Some(sq) = bb.next() {
-    //         self.single_pawn_eval(sq, clr);
-    //     }
-    // }
+    fn piece_eval(&mut self, clr: Color) {
+        let mut bb = self.queen_bb(clr);
+        while let Some(sq) = bb.next() {
+            self.single_pawn_eval(sq, clr);
+        }
+    }
 
-    // fn single_piece_eval(&mut self, clr: Color, piece: Piece) {
-    //     todo!()
-    // }
+    fn outpost(&mut self, clr: Color) -> u64 {
+        (self.knight_bb(clr) | self.bishop_bb(clr)) & self.eval.outpost[clr.idx()]
+    }
 
-    // fn minor_behind_pawn(&mut self, clr: Color, sq: usize) -> bool {
-    //     todo!()
-    // }
-    // fn bishop_pawns(&mut self, clr: Color, sq: usize) -> bool {
-    //     todo!()
-    // }
-    // fn rook_on_file(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
-    // fn trapped_rook(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
-    // fn weak_queen(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
-    // fn king_protector(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
-    // fn outpost_total(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
-    // fn rook_on_queen_file(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
-    // fn bishop_xray_pawns(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
-    // fn bishop_long_diagonal(&mut self, clr: Color) -> bool {
-    //     todo!()
-    // }
-    // fn rook_on_king_ring(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
-    // fn bishop_on_king_ring(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
-    // fn queen_infaltration(&mut self, clr: Color, sq: usize) -> isize {
-    //     todo!()
-    // }
+    fn reachable_outpost(&mut self, clr: Color) -> isize {
+        let att = self.eval.attacked_by[(KNIGHT + clr).idx()]
+            | self.eval.attacked_by[(BISHOP + clr).idx()];
+        let reachable_bb = self.eval.outpost[clr.idx()] & !self.occ_bb(clr) & att;
+        (reachable_bb.count() * 2) as isize
+    }
+
+    fn minor_behind_pawn(&mut self, clr: Color) -> isize {
+        let all_pawns = self.pawn_bb(clr) | self.pawn_bb(clr.opp());
+        ((self.knight_bb(clr) | self.bishop_bb(clr))
+            & get_all_pawn_forward_mask(all_pawns, clr.opp())) as isize
+    }
+
+    fn bishop_pawns(&mut self, clr: Color, sq: usize) -> bool {
+        todo!()
+    }
+
+    fn trapped_rook(&mut self, clr: Color, sq: usize) -> isize {
+        todo!()
+    }
+    fn weak_queen(&mut self, clr: Color, sq: usize) -> isize {
+        todo!()
+    }
+
+    fn king_protector(&mut self, clr: Color) {
+        let mut bb = self.knight_bb(clr);
+        while let Some(sq) = bb.next() {
+            let dx = self.king_dist(clr, sq) as isize;
+            self.sum(clr, Some(sq), Some(KNIGHT), (-8 * dx, -9 * dx));
+        }
+
+        let mut bb = self.bishop_bb(clr);
+        while let Some(sq) = bb.next() {
+            let dx = self.king_dist(clr, sq) as isize;
+            self.sum(clr, Some(sq), Some(BISHOP), (-6 * dx, -9 * dx));
+        }
+    }
+
+    fn outpost_total(&mut self, clr: Color, sq: usize) -> isize {
+        todo!()
+    }
+
+    fn rook_on_queen_file(&mut self, clr: Color) {
+        let mut bb = self.rook_bb(clr);
+        let all_queens = self.queen_bb(clr) | self.queen_bb(clr.opp());
+        while let Some(sq) = bb.next() {
+            if all_queens & FILE_BITBOARD[get_file(sq)] != 0 {
+                self.sum(clr, Some(sq), Some(ROOK), (6, 11));
+            }
+        }
+    }
+
+    fn bishop_xray_pawns(&mut self, clr: Color, sq: usize) -> isize {
+        let bishop = BISHOP + clr;
+        (self.eval.attacked_by[bishop.idx()] & self.pawn_bb(clr.opp())).count() as isize
+    }
+
+    // REMOVE THIS
+    fn bishop_long_diagonal(&mut self, clr: Color) -> bool {
+        todo!()
+    }
+
+    fn rook_on_king_ring(&mut self, clr: Color) -> isize {
+        // FIXME:
+        // if self.king_attackers_count(clr) > 0 {
+        //     return 0;
+        // }
+
+        let mut count = 0;
+        let mut bb = self.rook_bb(clr);
+        while let Some(sq) = bb.next() {
+            if self.eval.king_ring[clr.opp().idx()] & FILE_BITBOARD[get_file(sq)] != 0 {
+                count += 1;
+            }
+        }
+
+        count
+    }
+
+    fn bishop_on_king_ring(&mut self, clr: Color) -> isize {
+        // FIXME:
+        // if self.king_attackers_count(clr) > 0 {
+        //     return 0;
+        // }
+
+        let mut count = 0;
+        let mut bb = self.rook_bb(clr);
+        while let Some(sq) = bb.next() {
+            if self.eval.king_ring[clr.opp().idx()] & FILE_BITBOARD[get_file(sq)] != 0 {
+                count += 1;
+            }
+        }
+
+        count
+    }
+
+    fn queen_infaltration(&mut self, clr: Color) -> isize {
+        let bb = self.queen_bb(clr)
+            & (RANK_BITBOARD[0] | RANK_BITBOARD[1] | RANK_BITBOARD[2])
+            & !(self.eval.attacked_by[(PAWN + clr.opp()).idx()]
+                | self.eval.defended_by[(PAWN + clr.opp()).idx()])
+            & !self.eval.pawn_att_span[clr.opp().idx()];
+        bb.count() as isize
+    }
 
     // ************************************************
     //             6. MOBILITY EVALUATION             *
@@ -1309,13 +1406,13 @@ impl EvaluationTrait for Board {
             return false;
         }
 
-        println!("Candidate Passed : {:?}", sq);
+        // println!("Candidate Passed : {:?}", sq);
 
         if !self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp())) {
             return true;
         }
 
-        println!("Is not blocked pawn : {:?}", sq);
+        // println!("Is not blocked pawn : {:?}", sq);
 
         let mut bb = PAWN_ATTACK_LOOKUP[clr.opp().idx()][sq] & self.pawn_bb(clr);
 
@@ -1431,7 +1528,7 @@ impl EvaluationTrait for Board {
         let their_pawns = self.pawn_bb(clr.opp());
 
         // Own pawn ahead? Blocked by same-file pawn
-        println!("Try Candidate Passed : {:?}", sq);
+        // println!("Try Candidate Passed : {:?}", sq);
         if forward & our_pawns != 0 {
             return false;
         }
@@ -1937,7 +2034,7 @@ mod tests {
     // #[test]
     // fn pieces_test() {
     //     for obj in &SF_EVAL {
-    //         let board = Board::read_fen(obj.fen);
+    //         let mut board = Board::read_fen(obj.fen);
     //         board.init();
     //         board.piece_eval(WHITE);
     //         board.piece_eval(BLACK);
