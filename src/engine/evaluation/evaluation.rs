@@ -1,5 +1,7 @@
 use std::array;
 
+use rand::rand_core::block;
+
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::color;
 use crate::engine::board::structures::color::*;
@@ -20,6 +22,9 @@ use crate::engine::misc::print_utility::print_eval;
 use crate::engine::move_generator::bishop::get_bishop_mask;
 use crate::engine::move_generator::bishop::get_bishop_mv;
 use crate::engine::move_generator::bishop::has_bishop_pair;
+use crate::engine::move_generator::bishop::BLACK_SQUARES;
+use crate::engine::move_generator::bishop::WHITE_SQUARES;
+use crate::engine::move_generator::generated::bishop::BISHOP_MASKS;
 use crate::engine::move_generator::generated::king::KING_RING;
 use crate::engine::move_generator::generated::knight;
 use crate::engine::move_generator::generated::pawn::FORWARD_SPANS_LR;
@@ -203,13 +208,13 @@ pub trait EvaluationTrait {
     fn outpost(&mut self, clr: Color) -> u64;
     fn reachable_outpost(&mut self, clr: Color) -> isize;
     fn minor_behind_pawn(&mut self, clr: Color) -> isize;
-    fn bishop_pawns(&mut self, clr: Color, sq: usize) -> bool;
-    fn trapped_rook(&mut self, clr: Color, sq: usize) -> isize;
-    fn weak_queen(&mut self, clr: Color, sq: usize) -> isize;
+    fn bishop_pawns(&mut self, clr: Color) -> isize;
+    fn trapped_rook(&mut self, clr: Color) -> isize;
+    fn weak_queen(&mut self, clr: Color) -> isize;
     fn king_protector(&mut self, clr: Color);
-    fn outpost_total(&mut self, clr: Color, sq: usize) -> isize;
+    fn outpost_total(&mut self, clr: Color) -> isize;
     fn rook_on_queen_file(&mut self, clr: Color);
-    fn bishop_xray_pawns(&mut self, clr: Color, sq: usize) -> isize;
+    fn bishop_xray_pawns(&mut self, clr: Color) -> isize;
     fn bishop_long_diagonal(&mut self, clr: Color) -> bool;
     fn rook_on_king_ring(&mut self, clr: Color) -> isize;
     fn bishop_on_king_ring(&mut self, clr: Color) -> isize;
@@ -851,10 +856,40 @@ impl EvaluationTrait for Board {
     // ************************************************
 
     fn piece_eval(&mut self, clr: Color) {
-        let mut bb = self.queen_bb(clr);
-        while let Some(sq) = bb.next() {
-            self.single_pawn_eval(sq, clr);
-        }
+        let bonus = self.minor_behind_pawn(clr);
+        self.sum(clr, None, None, (18 * bonus, 3 * bonus));
+
+        let bonus = self.bishop_pawns(clr);
+        self.sum(clr, None, None, (-3 * bonus, -5 * bonus));
+
+        let bonus = self.bishop_xray_pawns(clr);
+        self.sum(clr, None, None, (-4 * bonus, -5 * bonus));
+
+        self.rook_on_queen_file(clr);
+
+        let bonus = self.rook_on_king_ring(clr);
+        self.sum(clr, None, None, (16 * bonus, 0));
+
+        let bonus = self.bishop_on_king_ring(clr);
+        self.sum(clr, None, None, (24 * bonus, 0));
+
+        let bonus = self.trapped_rook(clr);
+        // FIXME, If Castle is not awailable add 2 * 55 / 2 * 13
+        self.sum(clr, None, None, (-55 * bonus, -13 * bonus));
+
+        let bonus = self.weak_queen(clr);
+        self.sum(clr, None, None, (-56 * bonus, -15 * bonus));
+
+        let bonus = self.queen_infiltration(clr);
+        self.sum(clr, None, None, (-2 * bonus, 14 * bonus));
+
+        self.king_protector(clr);
+
+        v += [0, 31, -7, 30, 56][outpost_total(clr)];
+        v += [0, 22, 36, 23, 36][outpost_total(clr)];
+
+        v += [0, 19, 48][rook_on_file(clr)];
+        v += [0, 7, 29][rook_on_file(clr)];
     }
 
     fn outpost(&mut self, clr: Color) -> u64 {
@@ -874,14 +909,27 @@ impl EvaluationTrait for Board {
             & get_all_pawn_forward_mask(all_pawns, clr.opp())) as isize
     }
 
-    fn bishop_pawns(&mut self, clr: Color, sq: usize) -> bool {
-        todo!()
+    fn bishop_pawns(&mut self, clr: Color) -> isize {
+        let mut score = 0;
+        let blocked = get_all_pawn_forward_mask(self.pawn_bb(clr), clr)
+            & self.occ_bb(clr.opp())
+            & (FILE_BITBOARD[2] | FILE_BITBOARD[3] | FILE_BITBOARD[4] | FILE_BITBOARD[5]);
+
+        for squares in [WHITE_SQUARES, BLACK_SQUARES] {
+            let bishops_on_sq = self.bishop_bb(clr) & squares;
+            let pawns_on_sq = self.pawn_bb(clr) & squares;
+            let blocked_on_sq = blocked & squares;
+            let att_bishops = self.eval.attacked_by[(PAWN + clr.opp()).idx()] & bishops_on_sq;
+            score += pawns_on_sq * (blocked_on_sq * bishops_on_sq + att_bishops.count() as u64);
+        }
+
+        return score as isize;
     }
 
-    fn trapped_rook(&mut self, clr: Color, sq: usize) -> isize {
+    fn trapped_rook(&mut self, clr: Color) -> isize {
         todo!()
     }
-    fn weak_queen(&mut self, clr: Color, sq: usize) -> isize {
+    fn weak_queen(&mut self, clr: Color) -> isize {
         todo!()
     }
 
@@ -899,7 +947,7 @@ impl EvaluationTrait for Board {
         }
     }
 
-    fn outpost_total(&mut self, clr: Color, sq: usize) -> isize {
+    fn outpost_total(&mut self, clr: Color) -> isize {
         todo!()
     }
 
@@ -913,9 +961,14 @@ impl EvaluationTrait for Board {
         }
     }
 
-    fn bishop_xray_pawns(&mut self, clr: Color, sq: usize) -> isize {
-        let bishop = BISHOP + clr;
-        (self.eval.attacked_by[bishop.idx()] & self.pawn_bb(clr.opp())).count() as isize
+    fn bishop_xray_pawns(&mut self, clr: Color) -> isize {
+        let mut count = 0;
+        let mut bb = self.bishop_bb(clr);
+        while let Some(sq) = bb.next() {
+            count += (BISHOP_MASKS[sq] & self.pawn_bb(clr.opp())).count();
+        }
+
+        return count as isize;
     }
 
     // REMOVE THIS
@@ -2031,16 +2084,16 @@ mod tests {
     }
 
     // // NOTE: 5. PIECES FIXME:
-    // #[test]
-    // fn pieces_test() {
-    //     for obj in &SF_EVAL {
-    //         let mut board = Board::read_fen(obj.fen);
-    //         board.init();
-    //         board.piece_eval(WHITE);
-    //         board.piece_eval(BLACK);
-    //         assert_eq!(board.calculate_score(), obj.piece);
-    //     }
-    // }
+    #[test]
+    fn pieces_test() {
+        for obj in &SF_EVAL {
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.piece_eval(WHITE);
+            board.piece_eval(BLACK);
+            assert_eq!(board.calculate_score(), obj.piece);
+        }
+    }
 
     // NOTE: 6. MOBILITY [TEST:FIXME: SEMI-WORKS 90%]
     #[test]
