@@ -212,10 +212,9 @@ pub trait EvaluationTrait {
     fn trapped_rook(&mut self, clr: Color) -> isize;
     fn weak_queen(&mut self, clr: Color) -> isize;
     fn king_protector(&mut self, clr: Color);
-    fn outpost_total(&mut self, clr: Color) -> isize;
+    fn outpost_total(&mut self, clr: Color);
     fn rook_on_queen_file(&mut self, clr: Color);
     fn bishop_xray_pawns(&mut self, clr: Color) -> isize;
-    fn bishop_long_diagonal(&mut self, clr: Color) -> bool;
     fn rook_on_king_ring(&mut self, clr: Color) -> isize;
     fn bishop_on_king_ring(&mut self, clr: Color) -> isize;
     fn queen_infaltration(&mut self, clr: Color) -> isize;
@@ -880,16 +879,18 @@ impl EvaluationTrait for Board {
         let bonus = self.weak_queen(clr);
         self.sum(clr, None, None, (-56 * bonus, -15 * bonus));
 
-        let bonus = self.queen_infiltration(clr);
+        let bonus = self.queen_infaltration(clr);
         self.sum(clr, None, None, (-2 * bonus, 14 * bonus));
 
         self.king_protector(clr);
 
-        v += [0, 31, -7, 30, 56][outpost_total(clr)];
-        v += [0, 22, 36, 23, 36][outpost_total(clr)];
+        self.outpost_total(clr);
 
-        v += [0, 19, 48][rook_on_file(clr)];
-        v += [0, 7, 29][rook_on_file(clr)];
+        let bonus = self.eval.open_file[clr.idx()].count() as isize;
+        self.sum(clr, None, None, (48 * bonus, 29 * bonus));
+
+        let bonus = self.eval.semi_file[clr.idx()].count() as isize;
+        self.sum(clr, None, None, (19 * bonus, 7 * bonus));
     }
 
     fn outpost(&mut self, clr: Color) -> u64 {
@@ -930,7 +931,20 @@ impl EvaluationTrait for Board {
         todo!()
     }
     fn weak_queen(&mut self, clr: Color) -> isize {
-        todo!()
+        todo!();
+        // let mut bb = self.queen_bb(clr);
+        // while let Some(sq_q) = bb.next() {
+        //     let att = get_queen_mask(sq, 0, 0, clr);
+        //     let rook_att = att & self.rook_bb(clr.opp());
+        //     while let Some(sq_a) in rook_att.next() {
+
+        //     }
+
+        //     let bishop_att = att & self.bishop_bb(clr.opp());
+        //     while let Some(sq_a) in rook_att.next() {
+
+        //     }
+        // }
     }
 
     fn king_protector(&mut self, clr: Color) {
@@ -947,8 +961,24 @@ impl EvaluationTrait for Board {
         }
     }
 
-    fn outpost_total(&mut self, clr: Color) -> isize {
-        todo!()
+    fn outpost_total(&mut self, clr: Color) {
+        let mut bb = self.knight_bb(clr);
+        while let Some(sq) = bb.next() {
+            let reachable_bb = self.eval.outpost[clr.idx()]
+                & !self.occ_bb(clr)
+                & self.x_ray_mask(KNIGHT + clr, sq);
+            if !self.eval.outpost[clr.idx()].is_set(sq) && reachable_bb > 0 {
+                self.sum(clr, Some(sq), Some(KNIGHT + clr), (31, 22));
+            }
+        }
+
+        let bonus = (self.knight_bb(clr) & self.eval.outpost[clr.idx()]).count() as isize;
+        self.sum(clr, None, Some(KNIGHT + clr), (bonus * 56, bonus * 36));
+
+        let bonus = (self.bishop_bb(clr) & self.eval.outpost[clr.idx()]).count() as isize;
+        self.sum(clr, None, Some(BISHOP + clr), (bonus * 30, bonus * 23));
+        // NOTE: FIXME: NOT FULL EVAL BUT AN OK ONE
+        // Only the +2 is missing
     }
 
     fn rook_on_queen_file(&mut self, clr: Color) {
@@ -969,11 +999,6 @@ impl EvaluationTrait for Board {
         }
 
         return count as isize;
-    }
-
-    // REMOVE THIS
-    fn bishop_long_diagonal(&mut self, clr: Color) -> bool {
-        todo!()
     }
 
     fn rook_on_king_ring(&mut self, clr: Color) -> isize {
