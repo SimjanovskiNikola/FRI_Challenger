@@ -1,4 +1,4 @@
-use crate::engine::misc::bitboard::Bitboard;
+use crate::engine::misc::{bitboard::Bitboard, const_utility::RANK_BITBOARD};
 use std::array;
 
 // ************************************************
@@ -240,5 +240,15 @@ pub const MINOR_THREAT: [(isize, isize); 6] =
 // NOTE: 8. PASSED PAWN EVALUATION
 // NOTE: 9. SPACE EVALUATION
 // NOTE: 10. KING EVALUATION
+
+pub const FLANK_MASK: [u64; 2] = [
+    (RANK_BITBOARD[0] | RANK_BITBOARD[1] | RANK_BITBOARD[2] | RANK_BITBOARD[3] | RANK_BITBOARD[4]),
+    (RANK_BITBOARD[7] | RANK_BITBOARD[6] | RANK_BITBOARD[5] | RANK_BITBOARD[4] | RANK_BITBOARD[3]),
+];
+
+pub const KING_ATT_WEIGHT: [isize; 6] = [0, 81, 0, 52, 44, 10];
+
+pub const FLANK_ADDITIONAL_FILE: [usize; 8] = [0, 3, 0, 5, 2, 7, 4, 7];
+
 // NOTE: 11. TEMPO EVALUATION
 pub const TEMPO_WT: isize = 28;
