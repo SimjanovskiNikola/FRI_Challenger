@@ -1776,18 +1776,18 @@ impl EvaluationTrait for Board {
     fn king_danger(&mut self, clr: Color) -> isize {
         let count = self.king_attackers_count(clr);
         let weight = self.king_attackers_weight(clr);
-        let kingAttacks = self.king_attacks(clr);
+        let king_att = self.king_attacks(clr);
         let weak = self.weak_bonus(clr).count() as isize;
-        let unsafeChecks = self.unsafe_checks(clr).count() as isize;
-        let kingFlankAttack = self.flank_attack(clr);
-        let kingFlankDefense = self.flank_defense(clr);
+        let unsafe_checks = self.unsafe_checks(clr).count() as isize;
+        let flank_att = self.flank_attack(clr);
+        let flank_def = self.flank_defense(clr);
         let no_queen = if self.queen_bb(clr).count() > 0 { 0 } else { 1 };
         let knight_defender = if self.knight_defender(clr.opp()).count() > 0 { 1 } else { 0 };
 
-        let v = count * weight + 69 * kingAttacks + 185 * weak - 100 * knight_defender
-            + 148 * unsafeChecks
-            - 4 * kingFlankDefense
-            + (3 * kingFlankAttack * kingFlankAttack / 8)
+        let v = count * weight + 69 * king_att + 185 * weak - 100 * knight_defender
+            + 148 * unsafe_checks
+            - 4 * flank_def
+            + (3 * flank_att * flank_att / 8)
             - 873 * no_queen
             - (6 * (self.shelter(clr).0 - self.shelter(clr).1) / 8)
             + self.eval.mobility[clr.idx()]
@@ -1798,15 +1798,15 @@ impl EvaluationTrait for Board {
                     as f64)
                     .min(1.45) as isize
             + 1084
-                * ((self.safe_check(clr) & self.eval.attacked_by[(QUEEN + clr).idx()]).count()
+                * ((self.safe_check(clr) & self.eval.attacked_by[(ROOK + clr).idx()]).count()
                     as f64)
                     .min(1.75) as isize
             + 645
-                * ((self.safe_check(clr) & self.eval.attacked_by[(QUEEN + clr).idx()]).count()
+                * ((self.safe_check(clr) & self.eval.attacked_by[(BISHOP + clr).idx()]).count()
                     as f64)
                     .min(1.50) as isize
             + 792
-                * ((self.safe_check(clr) & self.eval.attacked_by[(QUEEN + clr).idx()]).count()
+                * ((self.safe_check(clr) & self.eval.attacked_by[(KNIGHT + clr).idx()]).count()
                     as f64)
                     .min(1.62) as isize;
 
@@ -1935,13 +1935,13 @@ impl EvaluationTrait for Board {
 
     fn shelter(&mut self, clr: Color) -> (isize, isize) {
         let king_sq = self.king_sq(clr.opp());
-        let mut king_strenght = self.strength_square(king_sq, clr.opp());
-        let mut king_storm: isize = self.storm_square(king_sq, clr.opp()).1;
+        let mut king_strenght = self.strength_square(king_sq, clr);
+        let mut king_storm: isize = self.storm_square(king_sq, clr).1;
 
         if self.castling().short(clr.opp()) != 0 {
             let short_castle_sq = if clr.is_white() { 6 } else { 62 };
-            let short_castle_strength = self.strength_square(short_castle_sq, clr.opp());
-            let short_castle_storm = self.storm_square(short_castle_sq, clr.opp()).1;
+            let short_castle_strength = self.strength_square(short_castle_sq, clr);
+            let short_castle_storm = self.storm_square(short_castle_sq, clr).1;
 
             if (short_castle_strength + short_castle_storm) < (king_strenght + king_storm) {
                 king_strenght = short_castle_strength;
@@ -1951,8 +1951,8 @@ impl EvaluationTrait for Board {
 
         if self.castling().long(clr.opp()) != 0 {
             let long_castle_sq = if clr.is_white() { 2 } else { 58 };
-            let long_castle_strength = self.strength_square(long_castle_sq, clr.opp());
-            let long_castle_storm = self.storm_square(long_castle_sq, clr.opp()).1;
+            let long_castle_strength = self.strength_square(long_castle_sq, clr);
+            let long_castle_storm = self.storm_square(long_castle_sq, clr).1;
 
             if (long_castle_strength + long_castle_storm) < (king_strenght + king_storm) {
                 king_strenght = long_castle_strength;
@@ -1969,6 +1969,7 @@ impl EvaluationTrait for Board {
     fn storm_square(&mut self, sq: usize, clr: Color) -> (isize, isize) {
         let mut v = 0;
         let mut ev = 5;
+
         let file = get_file(sq);
         let sq = match file {
             0 => sq + 1,
@@ -1990,25 +1991,33 @@ impl EvaluationTrait for Board {
         let blockedstorm = [[0, 0, 76, -10, -7, -4, -1], [0, 0, 78, 15, 10, 6, 2]];
 
         for square in (sq - 1)..(sq + 2) {
-            let us_bb: u64 = PAWN_FORWARD_SPANS[clr.idx()][square]
+            // FIXME: ALL Squares forward ????????????
+            let us_bb: u64 = (PAWN_FORWARD_SPANS[clr.idx()][square] | Bitboard::init(square))
                 & (self.pawn_bb(clr.opp()) & !self.eval.attacked_by[(PAWN + clr).idx()]);
-            let them_bb: u64 = PAWN_FORWARD_SPANS[clr.opp().idx()][square] & self.pawn_bb(clr);
+
+            let them_bb: u64 = (PAWN_FORWARD_SPANS[clr.idx()][square] | Bitboard::init(square))
+                & self.pawn_bb(clr);
+
             let mut us = 0;
             let mut them = 0;
 
-            if clr.is_white() {
-                us = us_bb.get_lsb();
-                them = them_bb.get_lsb();
-            } else {
-                us = us_bb.get_msb();
-                them = them_bb.get_lsb();
+            if us_bb != 0 {
+                us = if clr.is_white() { us_bb.get_lsb() } else { us_bb.get_msb() };
+            }
+
+            if them_bb != 0 {
+                them = if clr.is_white() { them_bb.get_lsb() } else { them_bb.get_msb() };
             }
 
             if us > 0 && them == us + 1 {
                 v += blockedstorm[0][CLR_RANK[clr.idx()][get_rank(them)]];
                 ev += blockedstorm[1][CLR_RANK[clr.idx()][get_rank(them)]];
             } else {
-                // v += unblockedstorm[get_file(square)][CLR_RANK[clr.idx()][get_rank(them)]];
+                if CLR_RANK[clr.idx()][get_rank(them)] == 7 {
+                    print_bitboard(self.pawn_bb(clr), None);
+                    print_bitboard(self.pawn_bb(clr), Some(square as i8));
+                }
+                v += unblockedstorm[get_file(square)][CLR_RANK[clr.idx()][get_rank(them)]];
             }
         }
         return (v, ev);
