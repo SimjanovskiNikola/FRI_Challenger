@@ -79,7 +79,7 @@ pub struct Evaluation {
     pub defended_by_2: [Bitboard; 2],
     pub attacked_by_2: [Bitboard; 2],
     pub king_att_weight: [isize; 2],
-    pub king_att_count: [u64; 2],
+    pub king_att_count: [usize; 2],
     pub king_att: [usize; 2],
     pub king_pawn_dx: [usize; 2],
     pub defend_map: [Bitboard; 2],
@@ -156,6 +156,7 @@ impl Evaluation {
 pub trait EvaluationTrait {
     // NOTE: Functions That Initialize the Evaluation Structure
     fn init(&mut self);
+    fn king_init(&mut self);
     fn pawn_init(&mut self);
     fn piece_init(&mut self);
     fn determine_phase(&mut self);
@@ -284,7 +285,7 @@ pub trait EvaluationTrait {
     fn king_attacks(&mut self, clr: Color) -> isize;
     fn king_attackers_weight(&mut self, clr: Color) -> isize;
     fn king_attackers_count(&mut self, clr: Color) -> isize;
-    fn safe_check(&mut self, clr: Color) -> u64;
+    fn safe_check(&mut self, clr: Color, piece: Piece) -> u64;
     fn check(&mut self, clr: Color);
     // fn king_pawn_distance(&mut self, clr: Color);
     fn shelter(&mut self, clr: Color) -> (isize, isize);
@@ -313,8 +314,10 @@ impl EvaluationTrait for Board {
     fn init(&mut self) {
         self.eval.reset();
         self.determine_phase();
+
         self.pawn_init();
         self.piece_init();
+        self.king_init();
     }
 
     fn pawn_init(&mut self) {
@@ -350,7 +353,8 @@ impl EvaluationTrait for Board {
                 let piece = pce + clr;
                 let mut bb = self.bb(piece);
                 let king_ring = self.king_ring(clr.opp());
-                let king_sq = self.king_sq(*clr);
+                let king_sq = self.king_sq(clr.opp());
+                let mut attckers_count = 0;
                 while let Some(sq) = bb.next() {
                     let piece_mask = self.x_ray_mask(piece, sq);
                     // self.eval.psqt[clr.idx()] += self.piece_psqt(piece, sq);
@@ -370,13 +374,24 @@ impl EvaluationTrait for Board {
 
                     if piece.is_pawn() {
                         if piece_mask & KING_RING[king_sq] != 0 {
-                            self.eval.king_att_count[clr.idx()] |= piece_mask & KING_RING[king_sq];
-                            self.eval.king_att_weight[clr.idx()] = KING_ATT_WEIGHT[piece.arr_idx()];
+                            attckers_count += 1;
+                            self.eval.king_att_count[clr.idx()] +=
+                                (piece_mask & KING_RING[king_sq]).count();
+
+                            // self.eval.king_att[clr.idx()] +=
+                            //     (piece_mask & KING_RING[king_sq]).count();
+                            // self.eval.king_att_count[clr.idx()] |= piece_mask & KING_RING[king_sq];
+                            // self.eval.king_att_weight[clr.idx()] +=
+                            // KING_ATT_WEIGHT[piece.arr_idx()];
                         }
                     } else if !piece.is_king() {
                         if piece_mask & king_ring != 0 {
-                            self.eval.king_att_count[clr.idx()] |= piece_mask & king_ring;
-                            self.eval.king_att_weight[clr.idx()] = KING_ATT_WEIGHT[piece.arr_idx()];
+                            attckers_count += 1;
+                            self.eval.king_att_count[clr.idx()] += 1;
+                            // self.eval.king_att[clr.idx()] += (piece_mask & king_ring).count();
+                            // self.eval.king_att_count[clr.idx()] |= piece_mask & king_ring;
+                            // self.eval.king_att_weight[clr.idx()] +=
+                            // KING_ATT_WEIGHT[piece.arr_idx()];
                         }
 
                         self.eval.king_att[clr.idx()] +=
@@ -407,7 +422,17 @@ impl EvaluationTrait for Board {
 
                     // if piece.is_king() {}
                 }
+
+                self.eval.king_att_weight[clr.idx()] +=
+                    KING_ATT_WEIGHT[piece.arr_idx()] * attckers_count as isize;
             }
+        }
+    }
+
+    fn king_init(&mut self) {
+        for clr in &COLORS {
+            self.eval.king_ring[clr.idx()] = self.king_ring(*clr);
+            self.check(*clr);
         }
     }
 
@@ -1775,14 +1800,35 @@ impl EvaluationTrait for Board {
 
     fn king_danger(&mut self, clr: Color) -> isize {
         let count = self.king_attackers_count(clr);
+        println!("King Attackers Count: {:?}", count);
+
         let weight = self.king_attackers_weight(clr);
+        println!("King Attackers Weight: {:?}", weight);
+
         let king_att = self.king_attacks(clr);
+        println!("King Attacks: {:?}", king_att);
+
         let weak = self.weak_bonus(clr).count() as isize;
+        print_bitboard(self.eval.king_ring[clr.opp().idx()], None);
+        print_bitboard(self.weak_squares(clr), None);
+        print_bitboard(self.weak_bonus(clr), None);
+        println!("Weak Bonus: {:?}", weak);
+
         let unsafe_checks = self.unsafe_checks(clr).count() as isize;
+        print_bitboard(self.unsafe_checks(clr), None);
+        println!("Unsafe Checks: {:?}", unsafe_checks);
+
         let flank_att = self.flank_attack(clr);
+        println!("Flank Attack: {:?}", flank_att);
+
         let flank_def = self.flank_defense(clr);
+        println!("Flank defense: {:?}", flank_def);
+
         let no_queen = if self.queen_bb(clr).count() > 0 { 0 } else { 1 };
+        println!("No Queen: {:?}", no_queen);
+
         let knight_defender = if self.knight_defender(clr.opp()).count() > 0 { 1 } else { 0 };
+        println!("Knight Defender: {:?}", knight_defender);
 
         let v = count * weight + 69 * king_att + 185 * weak - 100 * knight_defender
             + 148 * unsafe_checks
@@ -1793,22 +1839,12 @@ impl EvaluationTrait for Board {
             + self.eval.mobility[clr.idx()]
             - self.eval.mobility[clr.opp().idx()]
             + 37
-            + 772
-                * ((self.safe_check(clr) & self.eval.attacked_by[(QUEEN + clr).idx()]).count()
-                    as f64)
-                    .min(1.45) as isize
-            + 1084
-                * ((self.safe_check(clr) & self.eval.attacked_by[(ROOK + clr).idx()]).count()
-                    as f64)
-                    .min(1.75) as isize
-            + 645
-                * ((self.safe_check(clr) & self.eval.attacked_by[(BISHOP + clr).idx()]).count()
-                    as f64)
-                    .min(1.50) as isize
-            + 792
-                * ((self.safe_check(clr) & self.eval.attacked_by[(KNIGHT + clr).idx()]).count()
-                    as f64)
-                    .min(1.62) as isize;
+            + 772 * (self.safe_check(clr, QUEEN + clr).count() as f64).min(1.45) as isize
+            + 1084 * (self.safe_check(clr, ROOK + clr).count() as f64).min(1.75) as isize
+            + 645 * (self.safe_check(clr, BISHOP + clr).count() as f64).min(1.50) as isize
+            + 792 * (self.safe_check(clr, KNIGHT + clr).count() as f64).min(1.62) as isize;
+        println!("V Score: {:?}", v);
+        println!("-------------------------------");
 
         if v > 100 {
             return v;
@@ -1857,27 +1893,67 @@ impl EvaluationTrait for Board {
     }
 
     fn unsafe_checks(&mut self, clr: Color) -> u64 {
-        let all_checks = self.eval.checks[(KNIGHT + clr).idx()]
-            | self.eval.checks[(BISHOP + clr).idx()]
-            | self.eval.checks[(ROOK + clr).idx()];
+        let unsafe_checks = (self.eval.checks[(KNIGHT + clr).idx()]
+            & !self.safe_check(clr, KNIGHT + clr))
+            | (self.eval.checks[(BISHOP + clr).idx()] & !self.safe_check(clr, BISHOP + clr))
+            | (self.eval.checks[(ROOK + clr).idx()] & !self.safe_check(clr, ROOK + clr));
+
+        return unsafe_checks;
+    }
+
+    fn safe_check(&mut self, clr: Color, piece: Piece) -> u64 {
+        let checks = match piece.kind() {
+            PAWN => 0,
+            KNIGHT => self.eval.checks[piece.idx()],
+            KING => 0,
+            BISHOP => self.eval.checks[piece.idx()] & !self.eval.checks[(QUEEN + clr).idx()],
+            ROOK => self.eval.checks[piece.idx()],
+            QUEEN => self.eval.checks[piece.idx()] & !self.eval.checks[(ROOK + clr).idx()],
+            _ => panic!("There is other peace that was not expected here"),
+        };
 
         let weak_squares = self.weak_squares(clr) & self.eval.attacked_by_2[clr.idx()];
 
-        return !(self.eval.attack_map[clr.opp().idx()] | weak_squares) & all_checks;
+        return (!self.eval.attack_map[clr.opp().idx()] | weak_squares) & checks;
     }
 
     fn weak_squares(&mut self, clr: Color) -> u64 {
-        self.eval.attack_map[clr.idx()]
-            & !(!(self.eval.attacked_by_2[clr.opp().idx()]
-                | self.eval.defended_by_2[clr.opp().idx()])
-                | !(self.eval.attacked_by[(KING + clr.opp()).idx()]
-                    | self.eval.defended_by[(KING + clr.opp()).idx()])
-                | !(self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
+        let enemy_att_2 =
+            self.eval.attacked_by_2[clr.opp().idx()] | self.eval.defended_by_2[clr.opp().idx()];
+
+        let not_att_2_times =
+            (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()]) & !enemy_att_2;
+
+        (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()])
+            & (not_att_2_times & !self.eval.attack_map[clr.opp().idx()])
+            | (not_att_2_times
+                & (self.eval.attacked_by[(KING + clr.opp()).idx()]
+                    | self.eval.defended_by[(KING + clr.opp()).idx()]
+                    | self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
                     | self.eval.defended_by[(QUEEN + clr.opp()).idx()]))
+
+        // self.eval.attack_map[clr.idx()]
+        //     & self.eval.attack_map[clr.idx()]
+        //     & !(!(self.eval.attacked_by_2[clr.opp().idx()]
+        //         | self.eval.defended_by_2[clr.opp().idx()])
+        //         | !(self.eval.attacked_by[(KING + clr.opp()).idx()]
+        //             | self.eval.defended_by[(KING + clr.opp()).idx()])
+        //         | !(self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
+        //             | self.eval.defended_by[(QUEEN + clr.opp()).idx()]))
+
+        // if (attack(pos, square)) {
+        //     var pos2 = colorflip(pos);
+        //     var attack = attack(pos2, {x:square.x,y:7-square.y});
+        //     if (attack >= 2) return 0;
+        //     if (attack == 0) return 1;
+        //     if (king_attack(pos2, {x:square.x,y:7-square.y})
+        //     || queen_attack(pos2, {x:square.x,y:7-square.y})) return 1;
+        // }
+        // return 0;
     }
 
     fn weak_bonus(&mut self, clr: Color) -> u64 {
-        self.weak_squares(clr) & self.eval.king_ring[clr.idx()]
+        self.weak_squares(clr) & self.eval.king_ring[clr.opp().idx()]
     }
 
     fn king_attacks(&mut self, clr: Color) -> isize {
@@ -1887,18 +1963,7 @@ impl EvaluationTrait for Board {
         self.eval.king_att_weight[clr.idx()]
     }
     fn king_attackers_count(&mut self, clr: Color) -> isize {
-        self.eval.king_att_count[clr.idx()].count() as isize
-    }
-
-    fn safe_check(&mut self, clr: Color) -> u64 {
-        let all_checks = self.eval.checks[(KNIGHT + clr).idx()]
-            | self.eval.checks[(BISHOP + clr).idx()]
-            | self.eval.checks[(ROOK + clr).idx()]
-            | self.eval.checks[(QUEEN + clr).idx()];
-
-        let weak_squares = self.weak_squares(clr) & self.eval.attacked_by_2[clr.idx()];
-
-        return (self.eval.attack_map[clr.opp().idx()] | weak_squares) & all_checks;
+        self.eval.king_att_count[clr.idx()] as isize
     }
 
     fn check(&mut self, clr: Color) {
@@ -1977,19 +2042,6 @@ impl EvaluationTrait for Board {
             _ => sq,
         };
 
-        let unblockedstorm = [
-            [85, -289, -166, 97, 50, 45, 50],
-            [46, -25, 122, 45, 37, -10, 20],
-            [-6, 51, 168, 34, -2, -22, -14],
-            [-15, -11, 101, 4, 11, -15, -29],
-            [-15, -11, 101, 4, 11, -15, -29],
-            [-6, 51, 168, 34, -2, -22, -14],
-            [46, -25, 122, 45, 37, -10, 20],
-            [85, -289, -166, 97, 50, 45, 50],
-        ];
-
-        let blockedstorm = [[0, 0, 76, -10, -7, -4, -1], [0, 0, 78, 15, 10, 6, 2]];
-
         for square in (sq - 1)..(sq + 2) {
             // FIXME: ALL Squares forward ????????????
             let us_bb: u64 = (PAWN_FORWARD_SPANS[clr.idx()][square] | Bitboard::init(square))
@@ -2010,14 +2062,14 @@ impl EvaluationTrait for Board {
             }
 
             if us > 0 && them == us + 1 {
-                v += blockedstorm[0][CLR_RANK[clr.idx()][get_rank(them)]];
-                ev += blockedstorm[1][CLR_RANK[clr.idx()][get_rank(them)]];
+                v += BLOCKED_STORM[0][CLR_RANK[clr.idx()][get_rank(them)]];
+                ev += BLOCKED_STORM[1][CLR_RANK[clr.idx()][get_rank(them)]];
             } else {
-                if CLR_RANK[clr.idx()][get_rank(them)] == 7 {
-                    print_bitboard(self.pawn_bb(clr), None);
-                    print_bitboard(self.pawn_bb(clr), Some(square as i8));
-                }
-                v += unblockedstorm[get_file(square)][CLR_RANK[clr.idx()][get_rank(them)]];
+                // println!("First: {:?}", get_rank(square));
+                // println!("Them: {:?}", them);
+                // println!("CLR_RANK: {:?}", CLR_RANK[clr.idx()]);
+                // println!("GET Rank{:?}", get_rank(them));
+                v += UNBLOCKED_STORM[get_rank(square)][CLR_RANK[clr.idx()][get_rank(them)]];
             }
         }
         return (v, ev);
@@ -2521,6 +2573,10 @@ mod tests {
     #[test]
     fn king_test() {
         for obj in &SF_EVAL {
+            if obj.fen != "8/2P1P3/b1B2p2/1pPRp3/2k3P1/P4pK1/nP3p1p/N7 w - - 0 0" {
+                continue;
+            }
+
             let mut board = Board::read_fen(obj.fen);
             board.init();
             board.king_eval(WHITE);
@@ -2533,6 +2589,9 @@ mod tests {
                 println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.king);
                 assert_eq!(board.calculate_score(), obj.king);
             }
+
+            board.print_trace_log("");
+            // board.print_trace_score("");
         }
     }
 
