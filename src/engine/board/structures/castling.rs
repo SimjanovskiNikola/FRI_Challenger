@@ -4,6 +4,7 @@ use super::color::*;
 use super::square::SqPos::*;
 use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::board::Board;
+use crate::engine::board::structures::piece::PieceTrait;
 
 pub const CASTLE_DATA: [(usize, usize, CastlingRights, Color); 4] = [
     (H1 as usize, E1 as usize, CastlingRights::WKINGSIDE, WHITE),
@@ -22,6 +23,16 @@ pub const CASTLE_PAWN_SHIELD: [u64; 4] = [
     0b0000000000000000000000000000000000000000000001110000011100000000,
     0b0000000011100000111000000000000000000000000000000000000000000000,
     0b0000000000000111000001110000000000000000000000000000000000000000,
+];
+
+pub const CLR_LONG_SHORT_CASTLE_MASK: [[u8; 2]; 2] = [
+    [CastlingRights::WKINGSIDE.bits(), CastlingRights::WQUEENSIDE.bits()],
+    [CastlingRights::BKINGSIDE.bits(), CastlingRights::BQUEENSIDE.bits()],
+];
+
+pub const CLR_CASTLE_MASK: [u8; 2] = [
+    CastlingRights::WQUEENSIDE.bits() | CastlingRights::WKINGSIDE.bits(),
+    CastlingRights::BQUEENSIDE.bits() | CastlingRights::BKINGSIDE.bits(),
 ];
 
 bitflags! {
@@ -65,6 +76,20 @@ impl CastlingRights {
     #[inline(always)]
     pub fn is_set(&self, castle: CastlingRights) -> bool {
         self.val() & castle.val() != 0
+    }
+
+    fn get_mask(&self, clr: Color) -> u8 {
+        CLR_CASTLE_MASK[clr.idx()] & self.val()
+    }
+
+    #[inline(always)]
+    pub fn long(&self, clr: Color) -> u8 {
+        CLR_LONG_SHORT_CASTLE_MASK[clr.idx()][1] & self.val()
+    }
+
+    #[inline(always)]
+    pub fn short(&self, clr: Color) -> u8 {
+        CLR_LONG_SHORT_CASTLE_MASK[clr.idx()][0] & self.val()
     }
 
     #[inline(always)]
