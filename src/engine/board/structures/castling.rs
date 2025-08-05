@@ -84,12 +84,12 @@ impl CastlingRights {
 
     #[inline(always)]
     pub fn long(&self, clr: Color) -> u8 {
-        CLR_LONG_SHORT_CASTLE_MASK[clr.idx()][0] & self.val()
+        CLR_LONG_SHORT_CASTLE_MASK[clr.idx()][1] & self.val()
     }
 
     #[inline(always)]
     pub fn short(&self, clr: Color) -> u8 {
-        CLR_LONG_SHORT_CASTLE_MASK[clr.idx()][1] & self.val()
+        CLR_LONG_SHORT_CASTLE_MASK[clr.idx()][0] & self.val()
     }
 
     #[inline(always)]

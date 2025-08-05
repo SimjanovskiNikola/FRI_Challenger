@@ -288,7 +288,7 @@ pub trait EvaluationTrait {
     fn safe_check(&mut self, clr: Color, piece: Piece) -> u64;
     fn check(&mut self, clr: Color);
     // fn king_pawn_distance(&mut self, clr: Color);
-    fn shelter(&mut self, clr: Color) -> (isize, isize);
+    fn shelter(&mut self, clr: Color) -> (isize, isize, isize);
     // fn shelter_storm(&mut self, clr: Color);
     // fn shelter_strength(&mut self, clr: Color);
     fn storm_square(&mut self, sq: usize, clr: Color) -> (isize, isize);
@@ -349,6 +349,7 @@ impl EvaluationTrait for Board {
     fn piece_init(&mut self) {
         for clr in &COLORS {
             let (own, enemy) = self.both_occ_bb(*clr);
+            let area = self.mobility_area(*clr);
             for pce in &PIECES {
                 let piece = pce + clr;
                 let mut bb = self.bb(piece);
@@ -385,6 +386,9 @@ impl EvaluationTrait for Board {
                             // KING_ATT_WEIGHT[piece.arr_idx()];
                         }
                     } else if !piece.is_king() {
+                        let safe_squares = (self.mobility_piece(sq, piece, *clr) & area).count();
+                        self.eval.mobility[clr.idx()] += self.mobility_bonus(piece, safe_squares).0;
+
                         if piece_mask & king_ring != 0 {
                             attckers_count += 1;
                             self.eval.king_att_count[clr.idx()] += 1;
@@ -644,8 +648,8 @@ impl EvaluationTrait for Board {
         self.pawns_eval(BLACK);
 
         // 5. Pieces
-        // self.pieces_eval(WHITE);
-        // self.pieces_eval(BLACK);
+        self.piece_eval(WHITE);
+        self.piece_eval(BLACK);
 
         // 6. Mobility
         self.mobility_eval(WHITE);
@@ -662,11 +666,10 @@ impl EvaluationTrait for Board {
         // 9. Space
         self.space(WHITE);
         self.space(BLACK);
-        // score += self.tapered((self.space(WHITE) - self.space(BLACK), 0));
 
         // 10. King
-        // self.king_eval(WHITE);
-        // self.king_eval(BLACK);
+        self.king_eval(WHITE);
+        self.king_eval(BLACK);
 
         // 11. Tempo NOTE: DONE
         self.tempo(self.color());
@@ -1161,7 +1164,7 @@ impl EvaluationTrait for Board {
                 let safe_squares = (self.mobility_piece(sq, piece, clr) & area).count();
                 let bonus = self.mobility_bonus(piece, safe_squares);
                 self.sum(clr, Some(sq), Some(piece), bonus);
-                self.eval.mobility[clr.idx()] += bonus.0;
+                // self.eval.mobility[clr.idx()] += bonus.0;
             }
         }
     }
@@ -1775,11 +1778,11 @@ impl EvaluationTrait for Board {
         let king_sq = self.king_sq(clr);
 
         let bonus = self.king_danger(clr);
-        self.sum(clr, None, None, (bonus * bonus / 4096, 0));
+        self.sum(clr, None, None, ((bonus * bonus) / 4096, bonus / 16));
 
         let bonus = self.shelter(clr);
-        self.sum(clr, None, None, (-bonus.0, 0));
-        self.sum(clr, None, None, (bonus.1, 0));
+        self.sum(clr, None, None, (-bonus.0, 0)); // Shelter Strength
+        self.sum(clr, None, None, (bonus.1, 0)); // Shelter Storm
 
         let bonus = if self.pawnless_flank(king_sq, clr) { 1 } else { 0 };
         self.sum(clr, None, None, (17 * bonus, 95 * bonus));
@@ -1793,42 +1796,55 @@ impl EvaluationTrait for Board {
         // FIXME: This is not correct, the function is wrong
         let bonus = self.endgame_shelter(clr);
         self.sum(clr, None, None, (0, bonus));
-
-        let bonus = self.king_danger(clr);
-        self.sum(clr, None, None, (0, bonus / 16));
     }
 
     fn king_danger(&mut self, clr: Color) -> isize {
         let count = self.king_attackers_count(clr);
-        println!("King Attackers Count: {:?}", count);
+        // println!("King Attackers Count: {:?}", count);
 
         let weight = self.king_attackers_weight(clr);
-        println!("King Attackers Weight: {:?}", weight);
+        // println!("King Attackers Weight: {:?}", weight);
 
         let king_att = self.king_attacks(clr);
-        println!("King Attacks: {:?}", king_att);
+        // println!("King Attacks: {:?}", king_att);
 
         let weak = self.weak_bonus(clr).count() as isize;
-        print_bitboard(self.eval.king_ring[clr.opp().idx()], None);
-        print_bitboard(self.weak_squares(clr), None);
-        print_bitboard(self.weak_bonus(clr), None);
-        println!("Weak Bonus: {:?}", weak);
+        // print_bitboard(self.eval.king_ring[clr.opp().idx()], None);
+        // print_bitboard(self.weak_squares(clr), None);
+        // print_bitboard(self.weak_bonus(clr), None);
+        // println!("Weak Bonus: {:?}", weak);
 
         let unsafe_checks = self.unsafe_checks(clr).count() as isize;
-        print_bitboard(self.unsafe_checks(clr), None);
-        println!("Unsafe Checks: {:?}", unsafe_checks);
+        // println!("Unsafe Checks: {:?}", unsafe_checks);
+        // print_bitboard(self.unsafe_checks(clr), None);
 
         let flank_att = self.flank_attack(clr);
-        println!("Flank Attack: {:?}", flank_att);
+        // println!("Flank Attack: {:?}", flank_att);
 
         let flank_def = self.flank_defense(clr);
-        println!("Flank defense: {:?}", flank_def);
+        // println!("Flank defense: {:?}", flank_def);
 
         let no_queen = if self.queen_bb(clr).count() > 0 { 0 } else { 1 };
-        println!("No Queen: {:?}", no_queen);
+        // println!("No Queen: {:?}", no_queen);
 
         let knight_defender = if self.knight_defender(clr.opp()).count() > 0 { 1 } else { 0 };
-        println!("Knight Defender: {:?}", knight_defender);
+        // println!("Knight Defender: {:?}", knight_defender);
+
+        // let knight_safe = self.safe_check(clr, KNIGHT + clr);
+        // println!("Knight Safe Check");
+        // print_bitboard(knight_safe, None);
+
+        // let rook_safe = self.safe_check(clr, ROOK + clr);
+        // println!("Rook Safe Check");
+        // print_bitboard(rook_safe, None);
+
+        // let bishop_safe = self.safe_check(clr, BISHOP + clr);
+        // println!("Bishop Safe Check");
+        // print_bitboard(bishop_safe, None);
+
+        // let queen_safe = self.safe_check(clr, QUEEN + clr);
+        // println!("Queen Safe Check");
+        // print_bitboard(queen_safe, None);
 
         let v = count * weight + 69 * king_att + 185 * weak - 100 * knight_defender
             + 148 * unsafe_checks
@@ -1843,8 +1859,8 @@ impl EvaluationTrait for Board {
             + 1084 * (self.safe_check(clr, ROOK + clr).count() as f64).min(1.75) as isize
             + 645 * (self.safe_check(clr, BISHOP + clr).count() as f64).min(1.50) as isize
             + 792 * (self.safe_check(clr, KNIGHT + clr).count() as f64).min(1.62) as isize;
-        println!("V Score: {:?}", v);
-        println!("-------------------------------");
+        // println!("V Score: {:?}", v);
+        // println!("-------------------------------");
 
         if v > 100 {
             return v;
@@ -1853,29 +1869,43 @@ impl EvaluationTrait for Board {
     }
 
     fn flank_defense(&mut self, clr: Color) -> isize {
-        let mut count = 0;
         let king_sq = self.king_sq(clr.opp());
         let flanks = ISOLATED_PAWN_LOOKUP[king_sq]
             | FILE_BITBOARD[get_file(king_sq)]
             | FILE_BITBOARD[FLANK_ADDITIONAL_FILE[get_file(king_sq)]];
 
-        count += (flanks & FLANK_MASK[clr.idx()] & self.eval.attack_map[clr.opp().idx()]).count();
+        let att_1 = flanks
+            & FLANK_MASK[clr.opp().idx()]
+            & (self.eval.attack_map[clr.opp().idx()] | self.eval.defend_map[clr.opp().idx()]);
 
-        return count as isize;
+        // println!("Attack 1");
+        // print_bitboard(att_1, None);
+
+        return att_1.count() as isize;
         // self.eval.sum(clr, None, None, (count as isize * 2, count as isize * 2));
     }
 
     fn flank_attack(&mut self, clr: Color) -> isize {
-        let mut count = 0;
         let king_sq = self.king_sq(clr.opp());
         let flanks = ISOLATED_PAWN_LOOKUP[king_sq]
             | FILE_BITBOARD[get_file(king_sq)]
             | FILE_BITBOARD[FLANK_ADDITIONAL_FILE[get_file(king_sq)]];
 
-        count += (flanks & FLANK_MASK[clr.idx()] & self.eval.attack_map[clr.idx()]).count();
-        count += (flanks & FLANK_MASK[clr.idx()] & self.eval.attacked_by_2[clr.idx()]).count();
+        let att_1 = flanks
+            & FLANK_MASK[clr.opp().idx()]
+            & (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()]);
 
-        return count as isize;
+        let att_2 = flanks
+            & FLANK_MASK[clr.opp().idx()]
+            & (self.eval.attacked_by_2[clr.idx()] | self.eval.defended_by_2[clr.idx()]);
+
+        // println!("Attack 1");
+        // print_bitboard(att_1, None);
+
+        // println!("Attack 2");
+        // print_bitboard(att_2, None);
+
+        return (att_1.count() + att_2.count()) as isize;
     }
 
     fn king_blockers(&mut self, clr: Color) {
@@ -1883,7 +1913,7 @@ impl EvaluationTrait for Board {
     }
 
     fn endgame_shelter(&mut self, clr: Color) -> isize {
-        self.shelter(clr).0
+        self.shelter(clr).2
     }
 
     fn knight_defender(&mut self, clr: Color) -> u64 {
@@ -1893,12 +1923,25 @@ impl EvaluationTrait for Board {
     }
 
     fn unsafe_checks(&mut self, clr: Color) -> u64 {
-        let unsafe_checks = (self.eval.checks[(KNIGHT + clr).idx()]
-            & !self.safe_check(clr, KNIGHT + clr))
-            | (self.eval.checks[(BISHOP + clr).idx()] & !self.safe_check(clr, BISHOP + clr))
-            | (self.eval.checks[(ROOK + clr).idx()] & !self.safe_check(clr, ROOK + clr));
+        let knight_unsafe =
+            (self.eval.checks[(KNIGHT + clr).idx()] & !self.safe_check(clr, KNIGHT + clr));
 
-        return unsafe_checks;
+        let bishop_unsafe =
+            (self.eval.checks[(BISHOP + clr).idx()] & !self.safe_check(clr, BISHOP + clr));
+
+        let rook_unsafe =
+            (self.eval.checks[(ROOK + clr).idx()] & !self.safe_check(clr, ROOK + clr));
+
+        // println!("Knight Unsafe");
+        // print_bitboard(knight_unsafe, None);
+
+        // println!("Bishop Unsafe");
+        // print_bitboard(bishop_unsafe, None);
+
+        // println!("Rook Unsafe");
+        // print_bitboard(rook_unsafe, None);
+
+        return knight_unsafe | bishop_unsafe | rook_unsafe;
     }
 
     fn safe_check(&mut self, clr: Color, piece: Piece) -> u64 {
@@ -1908,13 +1951,21 @@ impl EvaluationTrait for Board {
             KING => 0,
             BISHOP => self.eval.checks[piece.idx()] & !self.eval.checks[(QUEEN + clr).idx()],
             ROOK => self.eval.checks[piece.idx()],
-            QUEEN => self.eval.checks[piece.idx()] & !self.eval.checks[(ROOK + clr).idx()],
+            QUEEN => {
+                self.eval.checks[piece.idx()]
+                    & !self.eval.checks[(ROOK + clr).idx()]
+                    & !(self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
+                        | self.eval.defended_by[(QUEEN + clr.opp()).idx()])
+            }
             _ => panic!("There is other peace that was not expected here"),
         };
 
         let weak_squares = self.weak_squares(clr) & self.eval.attacked_by_2[clr.idx()];
 
-        return (!self.eval.attack_map[clr.opp().idx()] | weak_squares) & checks;
+        return !self.occ_bb(clr)
+            & (!(self.eval.attack_map[clr.opp().idx()] | self.eval.defend_map[clr.opp().idx()])
+                | weak_squares)
+            & checks;
     }
 
     fn weak_squares(&mut self, clr: Color) -> u64 {
@@ -1925,7 +1976,8 @@ impl EvaluationTrait for Board {
             (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()]) & !enemy_att_2;
 
         (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()])
-            & (not_att_2_times & !self.eval.attack_map[clr.opp().idx()])
+            & (not_att_2_times
+                & !(self.eval.attack_map[clr.opp().idx()] | self.eval.defend_map[clr.opp().idx()]))
             | (not_att_2_times
                 & (self.eval.attacked_by[(KING + clr.opp()).idx()]
                     | self.eval.defended_by[(KING + clr.opp()).idx()]
@@ -1967,22 +2019,22 @@ impl EvaluationTrait for Board {
     }
 
     fn check(&mut self, clr: Color) {
-        let king_sq = self.king_sq(clr);
-        let knight_checks = (self.eval.attacked_by[(KNIGHT + clr.opp()).idx()]
-            | self.eval.defended_by[(KNIGHT + clr.opp()).idx()])
-            & self.x_ray_mask(KNIGHT + clr, king_sq);
+        let king_sq = self.king_sq(clr.opp());
+        let knight_checks = (self.eval.attacked_by[(KNIGHT + clr).idx()]
+            | self.eval.defended_by[(KNIGHT + clr).idx()])
+            & self.x_ray_mask(KNIGHT + clr.opp(), king_sq);
 
-        let bishop_checks = (self.eval.attacked_by[(BISHOP + clr.opp()).idx()]
-            | self.eval.defended_by[(BISHOP + clr.opp()).idx()])
-            & self.x_ray_mask(BISHOP + clr, king_sq);
+        let bishop_checks = (self.eval.attacked_by[(BISHOP + clr).idx()]
+            | self.eval.defended_by[(BISHOP + clr).idx()])
+            & self.x_ray_mask(BISHOP + clr.opp(), king_sq);
 
-        let rook_checks = (self.eval.attacked_by[(ROOK + clr.opp()).idx()]
-            | self.eval.defended_by[(ROOK + clr.opp()).idx()])
-            & self.x_ray_mask(ROOK + clr, king_sq);
+        let rook_checks = (self.eval.attacked_by[(ROOK + clr).idx()]
+            | self.eval.defended_by[(ROOK + clr).idx()])
+            & self.x_ray_mask(ROOK + clr.opp(), king_sq);
 
-        let queen_checks = (self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
-            | self.eval.defended_by[(QUEEN + clr.opp()).idx()])
-            & self.x_ray_mask(QUEEN + clr, king_sq);
+        let queen_checks = (self.eval.attacked_by[(QUEEN + clr).idx()]
+            | self.eval.defended_by[(QUEEN + clr).idx()])
+            & self.x_ray_mask(QUEEN + clr.opp(), king_sq);
 
         self.eval.checks[(KNIGHT + clr).idx()] = knight_checks;
         self.eval.checks[(BISHOP + clr).idx()] = bishop_checks;
@@ -1998,34 +2050,37 @@ impl EvaluationTrait for Board {
     //     todo!()
     // }
 
-    fn shelter(&mut self, clr: Color) -> (isize, isize) {
+    fn shelter(&mut self, clr: Color) -> (isize, isize, isize) {
         let king_sq = self.king_sq(clr.opp());
         let mut king_strenght = self.strength_square(king_sq, clr);
-        let mut king_storm: isize = self.storm_square(king_sq, clr).1;
+        let mut king_storm = self.storm_square(king_sq, clr);
+        // println!("Storm SQ king{:?}", self.storm_square(king_sq, clr));
 
         if self.castling().short(clr.opp()) != 0 {
-            let short_castle_sq = if clr.is_white() { 6 } else { 62 };
+            let short_castle_sq = if clr.opp().is_white() { 6 } else { 62 };
             let short_castle_strength = self.strength_square(short_castle_sq, clr);
-            let short_castle_storm = self.storm_square(short_castle_sq, clr).1;
+            let short_castle_storm = self.storm_square(short_castle_sq, clr);
+            // println!("Storm SQ short{:?}", self.storm_square(short_castle_sq, clr));
 
-            if (short_castle_strength + short_castle_storm) < (king_strenght + king_storm) {
+            if (short_castle_storm.0 - short_castle_strength) < (king_storm.0 - king_strenght) {
                 king_strenght = short_castle_strength;
                 king_storm = short_castle_storm;
             }
         }
 
         if self.castling().long(clr.opp()) != 0 {
-            let long_castle_sq = if clr.is_white() { 2 } else { 58 };
+            let long_castle_sq = if clr.opp().is_white() { 2 } else { 58 };
             let long_castle_strength = self.strength_square(long_castle_sq, clr);
-            let long_castle_storm = self.storm_square(long_castle_sq, clr).1;
+            let long_castle_storm = self.storm_square(long_castle_sq, clr);
+            // println!("Storm SQ long{:?}", self.storm_square(long_castle_sq, clr));
 
-            if (long_castle_strength + long_castle_storm) < (king_strenght + king_storm) {
+            if (long_castle_storm.0 - long_castle_strength) < (king_storm.0 - king_strenght) {
                 king_strenght = long_castle_strength;
                 king_storm = long_castle_storm;
             }
         }
 
-        return (king_strenght, king_storm);
+        return (king_strenght, king_storm.0, king_storm.1);
     }
 
     // FIXME: DELETE
@@ -2044,32 +2099,46 @@ impl EvaluationTrait for Board {
 
         for square in (sq - 1)..(sq + 2) {
             // FIXME: ALL Squares forward ????????????
-            let us_bb: u64 = (PAWN_FORWARD_SPANS[clr.idx()][square] | Bitboard::init(square))
+            let us_bb: u64 = (PAWN_FORWARD_SPANS[clr.opp().idx()][square] | Bitboard::init(square))
                 & (self.pawn_bb(clr.opp()) & !self.eval.attacked_by[(PAWN + clr).idx()]);
 
-            let them_bb: u64 = (PAWN_FORWARD_SPANS[clr.idx()][square] | Bitboard::init(square))
+            let them_bb: u64 = (PAWN_FORWARD_SPANS[clr.opp().idx()][square]
+                | Bitboard::init(square))
                 & self.pawn_bb(clr);
 
             let mut us = 0;
             let mut them = 0;
 
             if us_bb != 0 {
-                us = if clr.is_white() { us_bb.get_lsb() } else { us_bb.get_msb() };
+                us = get_rank(if clr.is_white() { us_bb.get_msb() } else { us_bb.get_lsb() });
             }
 
             if them_bb != 0 {
-                them = if clr.is_white() { them_bb.get_lsb() } else { them_bb.get_msb() };
+                them = get_rank(if clr.is_white() { them_bb.get_msb() } else { them_bb.get_lsb() });
             }
 
-            if us > 0 && them == us + 1 {
-                v += BLOCKED_STORM[0][CLR_RANK[clr.idx()][get_rank(them)]];
-                ev += BLOCKED_STORM[1][CLR_RANK[clr.idx()][get_rank(them)]];
+            // println!("Sq: {:?}, Square: {:?}, Us: {:?}, Them: {:?}", sq, square, us, them);
+            if us > 0 && (them as isize) == (us as isize) - clr.sign() {
+                // v += BLOCKED_STORM[0][CLR_RANK[clr.idx()][them]];
+                // ev += BLOCKED_STORM[1][CLR_RANK[clr.idx()][them]];
+
+                if them == 0 {
+                    v += BLOCKED_STORM[0][0];
+                    ev += BLOCKED_STORM[1][0];
+                } else {
+                    v += BLOCKED_STORM[0][CLR_RANK[clr.idx()][them]];
+                    ev += BLOCKED_STORM[1][CLR_RANK[clr.idx()][them]];
+                }
             } else {
                 // println!("First: {:?}", get_rank(square));
                 // println!("Them: {:?}", them);
                 // println!("CLR_RANK: {:?}", CLR_RANK[clr.idx()]);
                 // println!("GET Rank{:?}", get_rank(them));
-                v += UNBLOCKED_STORM[get_rank(square)][CLR_RANK[clr.idx()][get_rank(them)]];
+                if them == 0 {
+                    v += UNBLOCKED_STORM[get_file(square)][0];
+                } else {
+                    v += UNBLOCKED_STORM[get_file(square)][CLR_RANK[clr.idx()][them]];
+                }
             }
         }
         return (v, ev);
@@ -2077,30 +2146,29 @@ impl EvaluationTrait for Board {
 
     fn strength_square(&mut self, sq: usize, clr: Color) -> isize {
         let mut score = 5;
+
         let file = get_file(sq);
-        let kx = 6.min(file.max(1));
+        let sq = match file {
+            0 => sq + 1,
+            7 => sq - 1,
+            _ => sq,
+        };
 
-        let weakness = [
-            [0, -6, 81, 93, 58, 39, 18, 25],
-            [0, -43, 61, 35, -49, -29, -11, -63],
-            [0, -10, 75, 23, -2, 32, 3, -45],
-            [0, -39, -13, -29, -52, -48, -67, -166],
-            [0, -39, -13, -29, -52, -48, -67, -166],
-            [0, -10, 75, 23, -2, 32, 3, -45],
-            [0, -43, 61, 35, -49, -29, -11, -63],
-            [0, -6, 81, 93, 58, 39, 18, 25],
-        ];
-
-        for x in (kx - 1)..(kx + 1) {
-            let mut bb = PAWN_FORWARD_SPANS[clr.idx()][x] & self.pawn_bb(clr.opp());
+        for square in (sq - 1)..(sq + 2) {
             let mut us = 0;
-            while let Some(sq) = bb.next() {
-                let sq_file = get_file(sq);
-                if PAWN_ATTACK_LOOKUP[clr.idx()][sq] ^ self.pawn_bb(clr) == 0 {
-                    us = sq_file;
-                }
+            let us_bb: u64 = (PAWN_FORWARD_SPANS[clr.opp().idx()][square] | Bitboard::init(square))
+                & (self.pawn_bb(clr.opp()) & !self.eval.attacked_by[(PAWN + clr).idx()]);
+
+            if us_bb != 0 {
+                us = get_rank(if clr.is_white() { us_bb.get_msb() } else { us_bb.get_lsb() });
             }
-            score += weakness[x][us];
+
+            if us == 0 {
+                score += WEAKNESS[get_file(square)][0];
+            } else {
+                score += WEAKNESS[get_file(square)][CLR_RANK[clr.idx()][us]];
+            }
+            // println!("Sq: {:?}, Square: {:?}, Us: {:?}", sq, square, us);
         }
 
         return score;
@@ -2113,7 +2181,7 @@ impl EvaluationTrait for Board {
             | FILE_BITBOARD[file]
             | FILE_BITBOARD[FLANK_ADDITIONAL_FILE[file]];
 
-        return flanks & all_pawns != 0;
+        return (flanks & all_pawns) == 0;
     }
 
     // ************************************************
@@ -2233,7 +2301,7 @@ mod tests {
             material: -825,
             psqt: 154,
             imbalance: -148,
-            king: -84,
+            king: -135,
             mobility: 103,
             passed_pawn: 10,
             pawns: 93,
@@ -2251,7 +2319,7 @@ mod tests {
             material: -1743,
             psqt: 124,
             imbalance: -123,
-            king: -142,
+            king: -187,
             mobility: -21,
             passed_pawn: 231,
             pawns: -46,
@@ -2345,7 +2413,7 @@ mod tests {
     // FIXME: DEPRECATE: TEST
     #[test]
     fn testing() {
-        let phase: isize = 107;
+        let phase: isize = 106;
         // println!("      material: {:?},", stockfish_eval(phase, -124, -206)); // material
         // println!("          psqt: {:?},", stockfish_eval(phase, -89, -94)); // psqt
         // println!("     imbalance: {:?},", -64); // imbalance
@@ -2362,7 +2430,7 @@ mod tests {
         println!("      material: {:?},", stockfish_eval(phase, -80, -145)); // material
         println!("          psqt: {:?},", stockfish_eval(phase, 170, 60)); // psqt
         println!("      imbalance: {:?},", stockfish_eval(phase, -21, -21)); // imbalance
-        println!("           king: {:?},", stockfish_eval(phase, -120, -16)); // king
+        println!("           king: {:?},", stockfish_eval(phase, -75, -31)); // king
         println!("      mobility: {:?},", stockfish_eval(phase, 17, 71)); // mobility
         println!("   passed_pawn: {:?},", stockfish_eval(phase, -32, -73)); // passed pawns
         println!("         pawns: {:?},", stockfish_eval(phase, -171, -162)); // pawns
@@ -2573,9 +2641,9 @@ mod tests {
     #[test]
     fn king_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "8/2P1P3/b1B2p2/1pPRp3/2k3P1/P4pK1/nP3p1p/N7 w - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "r1n2N1k/2n2K1p/3pp3/5Pp1/b5R1/8/1PPP4/8 w - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2590,7 +2658,7 @@ mod tests {
                 assert_eq!(board.calculate_score(), obj.king);
             }
 
-            board.print_trace_log("");
+            // board.print_trace_log("");
             // board.print_trace_score("");
         }
     }
@@ -2603,6 +2671,22 @@ mod tests {
             board.init();
             board.tempo(board.color());
             assert_eq!(board.calculate_score(), obj.tempo);
+        }
+    }
+
+    #[test]
+    fn storm_sq_test() {
+        for obj in &SF_EVAL {
+            if obj.fen != "rnb1k2r/2p1ppPp/5bn1/p1p5/P2p2p1/P2P1P1P/6P1/RNB1KBNR b KQkq - 0 0" {
+                continue;
+            }
+
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+
+            for sq in 0..64 {
+                println!("{:?}", board.strength_square(sq, WHITE));
+            }
         }
     }
 

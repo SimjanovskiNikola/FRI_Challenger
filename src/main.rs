@@ -21,62 +21,9 @@ pub mod engine;
 
 fn main() {
     // FIXME: Needed to backtrace the call stack
-    // env::set_var("RUST_BACKTRACE", "1");
-    // let mut uci = UCI::init();
-    // uci.main();
-
-    let mut between = [[0u64; 64]; 64];
-
-    for sq1 in 0..64 {
-        for sq2 in 0..64 {
-            if sq1 == sq2 {
-                between[sq1][sq2] = 1u64 << sq1;
-                continue;
-            }
-
-            let r1 = sq1 / 8;
-            let f1 = sq1 % 8;
-            let r2 = sq2 / 8;
-            let f2 = sq2 % 8;
-
-            let dr = (r2 as isize - r1 as isize).signum();
-            let df = (f2 as isize - f1 as isize).signum();
-
-            let aligned = (r1 == r2)
-                || (f1 == f2)
-                || ((r1 as isize - r2 as isize).abs() == (f1 as isize - f2 as isize).abs());
-
-            if aligned {
-                let mut bb = 0u64;
-                let mut rr = r1 as isize;
-                let mut ff = f1 as isize;
-
-                loop {
-                    let sq = (rr * 8 + ff) as usize;
-                    bb |= 1u64 << sq;
-                    if sq == sq2 {
-                        break;
-                    }
-                    rr += dr;
-                    ff += df;
-                }
-                between[sq1][sq2] = bb;
-            }
-        }
-    }
-
-    println!("pub const BETWEEN_BB: [[u64; 64]; 64] = [");
-    for row in &between {
-        print!("    [");
-        for (j, val) in row.iter().enumerate() {
-            print!("{:#018x}", val);
-            if j != row.len() - 1 {
-                print!(", ");
-            }
-        }
-        println!("],");
-    }
-    println!("];");
+    env::set_var("RUST_BACKTRACE", "1");
+    let mut uci = UCI::init();
+    uci.main();
 
     // let mut board = Board::read_fen("8/2p1k1p1/p3p3/2n1N3/4P2P/8/4K1P1/8 w - - 0 0"); // Endgame Good position for black -0.7
     // let mut board = Board::read_fen("8/8/2KB4/3Pb3/1r2k3/8/2R5/8 b - - 0 0"); // Endgame Good position for black 0.63
