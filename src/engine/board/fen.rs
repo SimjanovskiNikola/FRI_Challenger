@@ -3,6 +3,7 @@ use super::structures::board::Board;
 use super::structures::castling::CastlingRights;
 use super::structures::color::*;
 use super::structures::piece::*;
+use crate::engine::board::structures::zobrist::ZobristKeysTrait;
 use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 
@@ -34,8 +35,6 @@ impl FenTrait for Board {
         Board::set_half_move_clock(&mut board, data[4]);
         Board::set_full_move_number(&mut board, data[5]);
 
-        board.generate_pos_key();
-
         board
     }
 
@@ -61,6 +60,7 @@ impl FenTrait for Board {
             "b" => BLACK,
             _ => panic!("Unknown color: {}", color),
         };
+        self.zb_clr();
     }
 
     fn set_en_passant(&mut self, square: &str) {
@@ -70,7 +70,8 @@ impl FenTrait for Board {
                 Ok(bit) => Some(bit.get_lsb() as u8),
                 Err(e) => panic!("Unknown En Passant Position: {}", e),
             },
-        }
+        };
+        self.zb_ep();
     }
 
     fn set_castling(&mut self, castling: &str) {
@@ -84,6 +85,7 @@ impl FenTrait for Board {
                 _ => panic!("Unknown Castling Rights: {}", ch),
             }
         }
+        self.zb_castling();
     }
 
     fn set_half_move_clock(&mut self, half_move: &str) {

@@ -152,9 +152,8 @@ impl TTTable {
                 break;
             }
 
-            line.push(entry.mv);
-
             if board.move_exists(&entry.mv) {
+                line.push(entry.mv);
                 board.make_move(&entry.mv);
                 moves_made += 1;
             } else {

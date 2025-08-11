@@ -4,6 +4,7 @@ use super::structures::castling::*;
 use super::structures::color::ColorTrait;
 use super::structures::moves::*;
 use super::structures::piece::*;
+use crate::engine::board::structures::zobrist::ZobristKeysTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::print_utility::print_chess;
 use crate::engine::misc::print_utility::print_move_list;
@@ -19,7 +20,6 @@ pub trait BoardMoveTrait {
     fn make_state(&mut self, mv: &Move);
     fn undo_state(&mut self);
 
-    fn generate_pos_key(&mut self);
     fn add_piece(&mut self, sq: usize, piece: Piece);
     fn clear_piece(&mut self, sq: usize);
     fn replace_piece(&mut self, from_sq: usize, to_sq: usize);
@@ -28,6 +28,9 @@ pub trait BoardMoveTrait {
 
 impl BoardMoveTrait for Board {
     fn make_move(&mut self, mv: &Move) -> bool {
+        self.history.push(self.state);
+        self.moves.push(*mv);
+
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece),
             Flag::Capture(_) => self.replace_piece(mv.from as usize, mv.to as usize),
@@ -51,9 +54,6 @@ impl BoardMoveTrait for Board {
             }
         }
 
-        self.history.push(self.state);
-        self.moves.push(*mv);
-
         self.make_state(mv);
 
         if self.sq_attack(self.king_sq(self.color().opp()), mv.piece.color()) != 0 {
@@ -69,9 +69,11 @@ impl BoardMoveTrait for Board {
             (None, None) => return,
             (_, _) => panic!("There is something wrong"),
         };
-
-        self.generate_pos_key();
-        self.state = st;
+        // self.zb_reset_key();
+        // self.zb_clr();
+        // self.zb_castling();
+        // self.zb_ep();
+        // self.generate_pos_key();
 
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.to as usize, mv.from as usize, mv.piece),
@@ -104,6 +106,8 @@ impl BoardMoveTrait for Board {
                 self.quiet_mv(sq.1, sq.0, ROOK + mv.piece.color());
             }
         }
+
+        self.state = st;
     }
 
     #[inline(always)]
@@ -166,16 +170,6 @@ impl BoardMoveTrait for Board {
         self.add_piece(to_sq, piece);
     }
 
-    #[inline(always)]
-    fn generate_pos_key(&mut self) {
-        self.state.key ^=
-            (SIDE_KEY * self.state.color as u64) | CASTLE_KEYS[self.state.castling.idx()];
-
-        if let Some(idx) = self.state.ep {
-            self.state.key ^= EP_KEYS[idx as usize]
-        }
-    }
-
     fn make_null_move(&mut self) -> bool {
         todo!()
     }
@@ -185,8 +179,11 @@ impl BoardMoveTrait for Board {
     }
 
     fn make_state(&mut self, mv: &Move) {
+        self.zb_reset_key();
+
         // Switch the color
         self.state.color.change_color();
+        self.zb_clr();
 
         //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
         for c in &CASTLE_DATA {
@@ -197,6 +194,7 @@ impl BoardMoveTrait for Board {
                 self.state.castling.clear(c.2);
             }
         }
+        self.zb_castling();
 
         // Setting the En passant
         if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {
@@ -204,6 +202,7 @@ impl BoardMoveTrait for Board {
         } else {
             self.state.ep = None
         }
+        self.zb_ep();
 
         // If the move is pawn or if there is a capture, reset the halfmove
         if mv.piece.is_pawn() || matches!(mv.flag, Flag::Capture(_)) {
@@ -217,11 +216,30 @@ impl BoardMoveTrait for Board {
             self.state.full_move += 1;
         }
 
-        self.generate_pos_key();
+        // self.generate_pos_key();
     }
 
     fn undo_state(&mut self) {
         assert!(self.history.len() > 0, "Can't Pop states from empty history");
         self.history.pop();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn key_test() {
+        let mut board = Board::initialize();
+        let key = board.state.key;
+        println!("{:?}", board.state.key);
+
+        let moves = board.gen_moves();
+        board.make_move(&moves[0]);
+        board.undo_move();
+
+        assert_eq!(board.state.key, key, "Key should be same after undoing the move");
     }
 }
