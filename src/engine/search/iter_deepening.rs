@@ -6,6 +6,7 @@ use crate::engine::misc::print_utility::get_pv_move_list;
 use crate::engine::protocols::time::safe_to_start_next_iter;
 use crate::engine::protocols::time::time_over;
 use crate::engine::protocols::uci::NewUCI;
+use crate::engine::search::transposition_table::TT;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::RwLock;
@@ -40,15 +41,14 @@ impl SearchInfo {
 #[derive(Debug)]
 pub struct Search {
     pub board: Board,
-    pub tt: Arc<Mutex<TTTable>>,
     pub uci: Arc<RwLock<NewUCI>>,
     pub info: SearchInfo,
 }
 
 // Common Search Function
 impl Search {
-    pub fn init(board: Board, tt: Arc<Mutex<TTTable>>, uci: Arc<RwLock<NewUCI>>) -> Self {
-        Self { board, tt, uci, info: SearchInfo::init() }
+    pub fn init(board: Board, uci: Arc<RwLock<NewUCI>>) -> Self {
+        Self { board, uci, info: SearchInfo::init() }
     }
 
     pub fn clear_search(&mut self) {
@@ -60,8 +60,7 @@ impl Search {
         self.info.curr_key = self.board.state.key;
         self.info.curr_depth = 0;
 
-        // self.tt.lock().unwrap().clear();
-        self.tt.lock().unwrap().clear_stats();
+        TT.write().unwrap().clear_stats();
     }
 
     pub fn set_curr_depth(&mut self, depth: u8) {
@@ -118,11 +117,19 @@ impl Search {
 
             // Get Best Line from current position and print info
 
-            let root_pv = self.tt.lock().unwrap().get_line(&mut self.board);
+            let root_pv = TT.read().unwrap().get_line(&mut self.board);
+
             if root_pv.len() > 0 {
-                best_mv = Some(root_pv[0]);
+                best_mv = Some(root_pv[0].mv);
             }
-            self.print_info(score, get_move_list(&root_pv, self.info.curr_depth));
+
+            self.board.s_pv.fill(None);
+            for idx in 0..root_pv.len() {
+                self.board.s_pv[idx] = Some(root_pv[idx].key);
+            }
+
+            let mv_list = root_pv.iter().map(|x| x.mv).collect::<Vec<_>>();
+            self.print_info(score, get_move_list(&mv_list, self.info.curr_depth));
             self.print_ordering_info();
             // search.tt.lock().unwrap().print_stats();
         }

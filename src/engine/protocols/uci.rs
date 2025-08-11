@@ -13,7 +13,7 @@ use crate::engine::board::structures::moves::Move;
 use crate::engine::misc::const_utility::FEN_START;
 use crate::engine::misc::print_utility::{from_move_notation, move_notation};
 use crate::engine::search::iter_deepening::Search;
-use crate::engine::search::transposition_table::TTTable;
+use crate::engine::search::transposition_table::{TTTable, TT};
 
 use super::time::set_time_limit;
 
@@ -52,16 +52,11 @@ impl NewUCI {
 pub struct UCI {
     pub board: Board,
     pub uci: Arc<RwLock<NewUCI>>,
-    pub tt: Arc<Mutex<TTTable>>,
 }
 
 impl UCI {
     pub fn init() -> UCI {
-        UCI {
-            board: Board::initialize(),
-            uci: Arc::new(RwLock::new(NewUCI::init())),
-            tt: Arc::new(Mutex::new(TTTable::init())),
-        }
+        UCI { board: Board::initialize(), uci: Arc::new(RwLock::new(NewUCI::init())) }
     }
 
     fn engine_metadata() {
@@ -144,7 +139,7 @@ impl UCI {
         self.abort_search();
 
         self.board.reset();
-        self.tt.lock().unwrap().clear();
+        TT.write().unwrap().clear();
     }
 
     fn position(&mut self, args: &[&str]) {
@@ -246,10 +241,9 @@ impl UCI {
         let stop_flag_clone = Arc::clone(&self.uci.read().unwrap().is_searching);
 
         let mut board_clone = self.board.clone();
-        let mut tt_clone = self.tt.clone();
         let mut uci_clone = self.uci.clone();
 
-        let mut search = Search::init(board_clone, tt_clone, uci_clone);
+        let mut search = Search::init(board_clone, uci_clone);
 
         let handle = thread::spawn(move || {
             let best_move: Option<Move> = search.iterative_deepening();

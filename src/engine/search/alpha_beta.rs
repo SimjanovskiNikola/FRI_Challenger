@@ -8,6 +8,7 @@ use crate::engine::board::structures::piece::KING;
 use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::protocols::time::time_over;
+use crate::engine::search::transposition_table::TT;
 
 impl Search {
     pub fn alpha_beta(
@@ -41,14 +42,11 @@ impl Search {
             depth += 1;
         }
 
-        let mut tt_guard = self.tt.lock().unwrap();
-        if let Some((score, rev)) =
-            tt_guard.probe(self.board.state.key, depth, alpha as i16, beta as i16)
+        if let Some((score, _)) =
+            TT.read().unwrap().probe(self.board.state.key, depth, alpha as i16, beta as i16)
         {
             return score as isize;
         }
-        self.board.tt_mv = tt_guard.get(self.board.key());
-        drop(tt_guard);
 
         let mut best_mv = None;
         let mut best_score = alpha;
@@ -80,7 +78,7 @@ impl Search {
                             self.board.s_killers[self.board.ply()][1];
                         self.board.s_killers[self.board.ply()][1] = Some(*mv);
                     }
-                    self.tt.lock().unwrap().set(
+                    TT.write().unwrap().set(
                         self.board.state.key,
                         *mv,
                         score as i16,
@@ -111,7 +109,7 @@ impl Search {
 
         if let Some(mv) = best_mv {
             let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
-            self.tt.lock().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
+            TT.write().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
         }
 
         alpha

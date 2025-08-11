@@ -9,6 +9,8 @@ use super::structures::piece;
 use super::structures::piece::*;
 use super::structures::square::get_rank;
 use super::structures::square::SqPos::*;
+use crate::engine::evaluation::eval_defs::CLR_SQ;
+use crate::engine::evaluation::eval_defs::PSQT;
 use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::bitboard::Iterator;
@@ -21,6 +23,7 @@ use crate::engine::move_generator::knight::*;
 use crate::engine::move_generator::pawn::*;
 use crate::engine::move_generator::queen::*;
 use crate::engine::move_generator::rook::*;
+use crate::engine::search::transposition_table::TT;
 
 pub trait BoardGenMoveTrait {
     // Generating -> Move as a struct
@@ -73,6 +76,21 @@ impl BoardGenMoveTrait for Board {
         self.add_ep_moves();
 
         self.gen_moves.sort_unstable_by_key(|&(_, score)| -score);
+
+        // println!("BEFORE PV: {:?}", self.s_pv);
+
+        // let gen_moves_cloned: Vec<_> = self.gen_moves.iter().cloned().collect();
+        // for mv in &gen_moves_cloned {
+        //     let mv_clone = mv.0.clone();
+        //     let mut key = 0;
+        //     if self.make_move(&mv_clone) {
+        //         key = self.key();
+        //         self.undo_move();
+        //     }
+        //     println!("{:?} {:?} {:?}", mv, key, self.key());
+        // }
+        // println!("-*------------------------------------");
+
         self.gen_moves.drain(..).map(|(mv, _)| mv).collect()
     }
 
@@ -154,8 +172,9 @@ impl BoardGenMoveTrait for Board {
             let mut two_mv = ((one_mv & RANK_BITBOARD[2]) << 8) & !both_occ;
 
             while let Some(to_sq) = one_mv.next() {
-                self.gen_moves
-                    .push((Move::init((to_sq - 8) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+                let mv = Move::init((to_sq - 8) as u8, to_sq as u8, piece, Flag::Quiet);
+                let eval = self.quiet_eval(&mv);
+                self.gen_moves.push((mv, eval));
             }
 
             while let Some(to_sq) = one_promo.next() {
@@ -163,8 +182,9 @@ impl BoardGenMoveTrait for Board {
             }
 
             while let Some(to_sq) = two_mv.next() {
-                self.gen_moves
-                    .push((Move::init((to_sq - 16) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+                let mv = Move::init((to_sq - 16) as u8, to_sq as u8, piece, Flag::Quiet);
+                let eval = self.quiet_eval(&mv);
+                self.gen_moves.push((mv, eval));
             }
         } else {
             let mv = (self.pawn_bb(self.color()) >> 8) & !both_occ;
@@ -173,8 +193,9 @@ impl BoardGenMoveTrait for Board {
             let mut two_mv = ((one_mv & RANK_BITBOARD[5]) >> 8) & !both_occ;
 
             while let Some(to_sq) = one_mv.next() {
-                self.gen_moves
-                    .push((Move::init((to_sq + 8) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+                let mv = Move::init((to_sq + 8) as u8, to_sq as u8, piece, Flag::Quiet);
+                let eval = self.quiet_eval(&mv);
+                self.gen_moves.push((mv, eval));
             }
 
             while let Some(to_sq) = one_promo.next() {
@@ -182,8 +203,9 @@ impl BoardGenMoveTrait for Board {
             }
 
             while let Some(to_sq) = two_mv.next() {
-                self.gen_moves
-                    .push((Move::init((to_sq + 16) as u8, to_sq as u8, piece, Flag::Quiet), 0));
+                let mv = Move::init((to_sq + 16) as u8, to_sq as u8, piece, Flag::Quiet);
+                let eval = self.quiet_eval(&mv);
+                self.gen_moves.push((mv, eval));
             }
         }
     }
@@ -198,15 +220,14 @@ impl BoardGenMoveTrait for Board {
             let mut left_promo = left & RANK_BITBOARD[7];
 
             while let Some(to_sq) = left_att.next() {
-                self.gen_moves.push((
-                    Move::init(
-                        (to_sq - 9) as u8,
-                        to_sq as u8,
-                        piece,
-                        Flag::Capture(self.cap_piece(to_sq)),
-                    ),
-                    0,
-                ));
+                let mv = Move::init(
+                    (to_sq - 9) as u8,
+                    to_sq as u8,
+                    piece,
+                    Flag::Capture(self.cap_piece(to_sq)),
+                );
+                let eval = self.capture_eval(&mv);
+                self.gen_moves.push((mv, eval));
             }
 
             while let Some(to_sq) = left_promo.next() {
@@ -218,15 +239,14 @@ impl BoardGenMoveTrait for Board {
             let mut right_promo = right & RANK_BITBOARD[7];
 
             while let Some(to_sq) = right_att.next() {
-                self.gen_moves.push((
-                    Move::init(
-                        (to_sq - 7) as u8,
-                        to_sq as u8,
-                        piece,
-                        Flag::Capture(self.cap_piece(to_sq)),
-                    ),
-                    0,
-                ));
+                let mv = Move::init(
+                    (to_sq - 7) as u8,
+                    to_sq as u8,
+                    piece,
+                    Flag::Capture(self.cap_piece(to_sq)),
+                );
+                let eval = self.capture_eval(&mv);
+                self.gen_moves.push((mv, eval));
             }
 
             while let Some(to_sq) = right_promo.next() {
@@ -238,15 +258,14 @@ impl BoardGenMoveTrait for Board {
             let mut left_promo = left & RANK_BITBOARD[0];
 
             while let Some(to_sq) = left_att.next() {
-                self.gen_moves.push((
-                    Move::init(
-                        (to_sq + 9) as u8,
-                        to_sq as u8,
-                        piece,
-                        Flag::Capture(self.cap_piece(to_sq)),
-                    ),
-                    0,
-                ));
+                let mv = Move::init(
+                    (to_sq + 9) as u8,
+                    to_sq as u8,
+                    piece,
+                    Flag::Capture(self.cap_piece(to_sq)),
+                );
+                let eval = self.capture_eval(&mv);
+                self.gen_moves.push((mv, eval));
             }
 
             while let Some(to_sq) = left_promo.next() {
@@ -258,15 +277,14 @@ impl BoardGenMoveTrait for Board {
             let mut right_promo = right & RANK_BITBOARD[0];
 
             while let Some(to_sq) = right_att.next() {
-                self.gen_moves.push((
-                    Move::init(
-                        (to_sq + 7) as u8,
-                        to_sq as u8,
-                        piece,
-                        Flag::Capture(self.cap_piece(to_sq)),
-                    ),
-                    0,
-                ));
+                let mv = Move::init(
+                    (to_sq + 7) as u8,
+                    to_sq as u8,
+                    piece,
+                    Flag::Capture(self.cap_piece(to_sq)),
+                );
+                let eval = self.capture_eval(&mv);
+                self.gen_moves.push((mv, eval));
             }
 
             while let Some(to_sq) = right_promo.next() {
@@ -355,32 +373,70 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn quiet_eval(&mut self, mv: &Move) -> isize {
-        // self.make_move(mv);
-        // let key = self.key();
-        // self.undo_move();
+        if self.make_move(mv) {
+            let key = self.key();
+            self.undo_move();
 
-        // if let Some(tt) = &self.tt {
-        //     if matches!(tt.lock().unwrap().get(key), Some(_)) {
-        //         return 95000;
-        //     }
-        // }
+            // println!("Key: {:?}", key);
+            // if key == 351165640174320788 {
+            //     println!("{:?}", "Key Match 351165640174320788");
+            // }
 
-        if matches!(self.tt_mv, Some(x) if x.mv == *mv) {
-            return 95000;
+            // println!("TT Move : {:?}", TT.read().unwrap().get(key));
+
+            // println!("{:?} {:?} {:?}", self.s_pv[0], self.s_pv[self.ply()], self.ply());
+
+            // Works
+            if let Some(bla) = self.s_pv[self.ply()] {
+                // println!("Keys: {:?} {:?}", bla, key);
+
+                if bla == key {
+                    // println!("{:?}", "Keys Match");
+                    return 95000;
+                }
+            }
+
+            // if let Some(_) = TT.read().unwrap().get(key) {
+            //     return 92500;
+            // }
+
+            // if matches!(self.s_pv[self.ply()], Some(pv_key) if pv_key == key) {
+            //     // println!("Keys: {:?}", key);
+            //     return 95000;
+            // }
         }
 
         if matches!(self.s_killers[self.ply()][0], Some(x) if x == *mv) {
-            90000
+            return 90000;
         } else if matches!(self.s_killers[self.ply()][1], Some(x) if x == *mv) {
-            80000
-        } else {
-            self.s_history[mv.piece.idx()][mv.to as usize] as isize
+            return 80000;
         }
+
+        // if self.s_history[mv.piece.idx()][mv.to as usize] as isize > 0 {
+        return self.s_history[mv.piece.idx()][mv.to as usize] as isize;
+        // } else {
+        //     let from_sq = CLR_SQ[mv.piece.color().idx()][mv.from as usize];
+        //     let to_sq = CLR_SQ[mv.piece.color().idx()][mv.to as usize];
+        //     return PSQT[mv.piece.arr_idx()][to_sq].0 + PSQT[mv.piece.arr_idx()][to_sq].1
+        //         - PSQT[mv.piece.arr_idx()][from_sq].0
+        //         - PSQT[mv.piece.arr_idx()][from_sq].1;
+        // }
     }
 
     fn capture_eval(&mut self, mv: &Move) -> isize {
-        if matches!(self.tt_mv, Some(x) if x.mv == *mv) {
-            return 95000;
+        if self.make_move(mv) {
+            let key = self.key();
+            self.undo_move();
+
+            if let Some(bla) = self.s_pv[self.ply()] {
+                if bla == key {
+                    return 95000;
+                }
+            }
+
+            // if let Some(_) = TT.read().unwrap().get(key) {
+            //     return 92500;
+            // }
         }
 
         match mv.flag {
