@@ -4,6 +4,7 @@ use super::structures::castling::*;
 use super::structures::color::ColorTrait;
 use super::structures::moves::*;
 use super::structures::piece::*;
+use crate::engine::board::structures::zobrist::ZobristKeysTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::print_utility::print_chess;
 use crate::engine::misc::print_utility::print_move_list;
@@ -51,10 +52,10 @@ impl BoardMoveTrait for Board {
             }
         }
 
+        self.make_state(mv);
+
         self.history.push(self.state);
         self.moves.push(*mv);
-
-        self.make_state(mv);
 
         if self.sq_attack(self.king_sq(self.color().opp()), mv.piece.color()) != 0 {
             self.undo_move();
@@ -69,8 +70,11 @@ impl BoardMoveTrait for Board {
             (None, None) => return,
             (_, _) => panic!("There is something wrong"),
         };
-
-        self.generate_pos_key();
+        // self.zb_reset_key();
+        // self.zb_clr();
+        // self.zb_castling();
+        // self.zb_ep();
+        // self.generate_pos_key();
         self.state = st;
 
         match mv.flag {
@@ -185,8 +189,11 @@ impl BoardMoveTrait for Board {
     }
 
     fn make_state(&mut self, mv: &Move) {
+        self.zb_reset_key();
+
         // Switch the color
         self.state.color.change_color();
+        self.zb_clr();
 
         //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
         for c in &CASTLE_DATA {
@@ -197,6 +204,7 @@ impl BoardMoveTrait for Board {
                 self.state.castling.clear(c.2);
             }
         }
+        self.zb_castling();
 
         // Setting the En passant
         if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {
@@ -204,6 +212,7 @@ impl BoardMoveTrait for Board {
         } else {
             self.state.ep = None
         }
+        self.zb_ep();
 
         // If the move is pawn or if there is a capture, reset the halfmove
         if mv.piece.is_pawn() || matches!(mv.flag, Flag::Capture(_)) {
@@ -217,7 +226,7 @@ impl BoardMoveTrait for Board {
             self.state.full_move += 1;
         }
 
-        self.generate_pos_key();
+        // self.generate_pos_key();
     }
 
     fn undo_state(&mut self) {

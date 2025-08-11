@@ -398,14 +398,14 @@ impl BoardGenMoveTrait for Board {
 
     #[inline(always)]
     fn is_repetition(&self) -> bool {
-        let his_len = self.history.len();
-        let half_move = self.half_move();
-        assert!(his_len >= half_move as usize, "It is Negative {:?} {:?}", his_len, half_move);
-        for i in (his_len - half_move as usize)..his_len {
-            if self.history[i].key == self.key() {
-                return true;
-            }
-        }
+        // let his_len = self.history.len();
+        // let half_move = self.half_move();
+        // assert!(his_len >= half_move as usize, "It is Negative {:?} {:?}", his_len, half_move);
+        // for i in (his_len - half_move as usize)..his_len {
+        //     if self.history[i].key == self.key() {
+        //         return true;
+        //     }
+        // }
 
         false
     }
