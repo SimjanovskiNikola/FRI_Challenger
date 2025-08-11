@@ -20,7 +20,6 @@ pub trait BoardMoveTrait {
     fn make_state(&mut self, mv: &Move);
     fn undo_state(&mut self);
 
-    fn generate_pos_key(&mut self);
     fn add_piece(&mut self, sq: usize, piece: Piece);
     fn clear_piece(&mut self, sq: usize);
     fn replace_piece(&mut self, from_sq: usize, to_sq: usize);
@@ -29,6 +28,9 @@ pub trait BoardMoveTrait {
 
 impl BoardMoveTrait for Board {
     fn make_move(&mut self, mv: &Move) -> bool {
+        self.history.push(self.state);
+        self.moves.push(*mv);
+
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece),
             Flag::Capture(_) => self.replace_piece(mv.from as usize, mv.to as usize),
@@ -54,9 +56,6 @@ impl BoardMoveTrait for Board {
 
         self.make_state(mv);
 
-        self.history.push(self.state);
-        self.moves.push(*mv);
-
         if self.sq_attack(self.king_sq(self.color().opp()), mv.piece.color()) != 0 {
             self.undo_move();
             return false;
@@ -75,7 +74,6 @@ impl BoardMoveTrait for Board {
         // self.zb_castling();
         // self.zb_ep();
         // self.generate_pos_key();
-        self.state = st;
 
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.to as usize, mv.from as usize, mv.piece),
@@ -108,6 +106,8 @@ impl BoardMoveTrait for Board {
                 self.quiet_mv(sq.1, sq.0, ROOK + mv.piece.color());
             }
         }
+
+        self.state = st;
     }
 
     #[inline(always)]
@@ -170,16 +170,6 @@ impl BoardMoveTrait for Board {
         self.add_piece(to_sq, piece);
     }
 
-    #[inline(always)]
-    fn generate_pos_key(&mut self) {
-        self.state.key ^=
-            (SIDE_KEY * self.state.color as u64) | CASTLE_KEYS[self.state.castling.idx()];
-
-        if let Some(idx) = self.state.ep {
-            self.state.key ^= EP_KEYS[idx as usize]
-        }
-    }
-
     fn make_null_move(&mut self) -> bool {
         todo!()
     }
@@ -232,5 +222,24 @@ impl BoardMoveTrait for Board {
     fn undo_state(&mut self) {
         assert!(self.history.len() > 0, "Can't Pop states from empty history");
         self.history.pop();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn key_test() {
+        let mut board = Board::initialize();
+        let key = board.state.key;
+        println!("{:?}", board.state.key);
+
+        let moves = board.gen_moves();
+        board.make_move(&moves[0]);
+        board.undo_move();
+
+        assert_eq!(board.state.key, key, "Key should be same after undoing the move");
     }
 }

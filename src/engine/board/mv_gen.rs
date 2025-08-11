@@ -49,8 +49,8 @@ pub trait BoardGenMoveTrait {
     fn get_mv_bb(piece: Piece, sq: usize, own_occ: u64, enemy_occ: u64) -> u64;
 
     // Move Ordering
-    fn quiet_eval(&self, mv: &Move) -> isize;
-    fn capture_eval(&self, mv: &Move) -> isize;
+    fn quiet_eval(&mut self, mv: &Move) -> isize;
+    fn capture_eval(&mut self, mv: &Move) -> isize;
 
     // Is square Attacked
     fn sq_attack(&self, sq: usize, color: Color) -> u64;
@@ -354,7 +354,17 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
-    fn quiet_eval(&self, mv: &Move) -> isize {
+    fn quiet_eval(&mut self, mv: &Move) -> isize {
+        // self.make_move(mv);
+        // let key = self.key();
+        // self.undo_move();
+
+        // if let Some(tt) = &self.tt {
+        //     if matches!(tt.lock().unwrap().get(key), Some(_)) {
+        //         return 95000;
+        //     }
+        // }
+
         if matches!(self.tt_mv, Some(x) if x.mv == *mv) {
             return 95000;
         }
@@ -368,7 +378,7 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
-    fn capture_eval(&self, mv: &Move) -> isize {
+    fn capture_eval(&mut self, mv: &Move) -> isize {
         if matches!(self.tt_mv, Some(x) if x.mv == *mv) {
             return 95000;
         }
