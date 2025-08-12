@@ -12,6 +12,7 @@ use super::structures::square::SqPos::*;
 use crate::engine::evaluation::eval_defs::CLR_SQ;
 use crate::engine::evaluation::eval_defs::PSQT;
 use crate::engine::misc::bit_pos_utility::*;
+use crate::engine::misc::bitboard::Bitboard;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::bitboard::Iterator;
 use crate::engine::misc::bitboard::Shift;
@@ -24,6 +25,12 @@ use crate::engine::move_generator::pawn::*;
 use crate::engine::move_generator::queen::*;
 use crate::engine::move_generator::rook::*;
 use crate::engine::search::transposition_table::TT;
+
+const PV_MV_SCORE: isize = 95000;
+const TT_MV_SCORE: isize = 80000;
+const CAP_MV_SCORE: isize = 2000;
+const KILLER_MV_SCORE: [isize; 2] = [2000, 1950];
+const HIS_MV_SCORE: isize = 1000;
 
 pub trait BoardGenMoveTrait {
     // Generating -> Move as a struct
@@ -54,6 +61,7 @@ pub trait BoardGenMoveTrait {
     // Move Ordering
     fn quiet_eval(&mut self, mv: &Move) -> isize;
     fn capture_eval(&mut self, mv: &Move) -> isize;
+    fn see(&mut self, from: usize, to: usize) -> isize;
 
     // Is square Attacked
     fn sq_attack(&self, sq: usize, color: Color) -> u64;
@@ -224,7 +232,7 @@ impl BoardGenMoveTrait for Board {
                     (to_sq - 9) as u8,
                     to_sq as u8,
                     piece,
-                    Flag::Capture(self.cap_piece(to_sq)),
+                    Flag::Capture(self.piece_sq(to_sq)),
                 );
                 let eval = self.capture_eval(&mv);
                 self.gen_moves.push((mv, eval));
@@ -243,7 +251,7 @@ impl BoardGenMoveTrait for Board {
                     (to_sq - 7) as u8,
                     to_sq as u8,
                     piece,
-                    Flag::Capture(self.cap_piece(to_sq)),
+                    Flag::Capture(self.piece_sq(to_sq)),
                 );
                 let eval = self.capture_eval(&mv);
                 self.gen_moves.push((mv, eval));
@@ -262,7 +270,7 @@ impl BoardGenMoveTrait for Board {
                     (to_sq + 9) as u8,
                     to_sq as u8,
                     piece,
-                    Flag::Capture(self.cap_piece(to_sq)),
+                    Flag::Capture(self.piece_sq(to_sq)),
                 );
                 let eval = self.capture_eval(&mv);
                 self.gen_moves.push((mv, eval));
@@ -281,7 +289,7 @@ impl BoardGenMoveTrait for Board {
                     (to_sq + 7) as u8,
                     to_sq as u8,
                     piece,
-                    Flag::Capture(self.cap_piece(to_sq)),
+                    Flag::Capture(self.piece_sq(to_sq)),
                 );
                 let eval = self.capture_eval(&mv);
                 self.gen_moves.push((mv, eval));
@@ -296,7 +304,7 @@ impl BoardGenMoveTrait for Board {
     #[inline(always)]
     fn add_capture_moves(&mut self, mut bb: u64, piece: Piece, from_sq: usize) {
         while let Some(to_sq) = bb.next() {
-            let flag = Flag::Capture(self.cap_piece(to_sq));
+            let flag = Flag::Capture(self.piece_sq(to_sq));
             let mv = Move::init(from_sq as u8, to_sq as u8, piece, flag);
             let eval = self.capture_eval(&mv);
             self.gen_moves.push((mv, eval));
@@ -327,7 +335,7 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn add_capture_promo_moves(&mut self, from_sq: u8, to_sq: u8, piece: Piece) {
-        let taken_piece = self.cap_piece(to_sq as usize); // squares[to_sq as usize];
+        let taken_piece = self.piece_sq(to_sq as usize); // squares[to_sq as usize];
         for promo_piece in &PROMO_PIECES {
             let eval = taken_piece.weight() - piece as isize + promo_piece.weight();
             let flag = Flag::Promotion(*promo_piece + piece.color(), Some(taken_piece));
@@ -443,6 +451,56 @@ impl BoardGenMoveTrait for Board {
             Flag::Capture(cap) => cap.weight() - mv.piece as isize,
             _ => unreachable!("There is no flag capture"),
         }
+    }
+
+    fn see(&mut self, from: usize, to: usize) -> isize {
+        let mut gain = [0isize; 32]; // exchange gain table
+        let mut occ = self.occ_bb(WHITE) | self.occ_bb(BLACK);
+        let mut clr = self.color();
+        let mut attackers = self.sq_attack(to, clr);
+        let mut depth = 0;
+
+        gain[0] = self.piece_sq(to).weight();
+
+        let mut from_sq = from;
+        let mut captured_piece = self.piece_sq(to);
+
+        loop {
+            depth += 1;
+            gain[depth] = self.piece_sq(from_sq).weight() - gain[depth - 1];
+
+            // remove attacking piece from occupancy
+            occ ^= Bitboard::init(from_sq);
+
+            // remove this side’s piece from attackers
+            attackers &= occ;
+
+            // find next least valuable attacker of the opposite side
+
+            let mut next_attacker = None;
+            let mut all_attackers = self.sq_attack(to, clr.opp());
+            for &piece in &PIECES {
+                let attackers: u64 =
+                    self.bb(piece + clr.opp()) & (all_attackers & self.bb(piece + clr));
+                if attackers != 0 {
+                    next_attacker = Some(attackers.get_lsb());
+                }
+            }
+
+            if next_attacker.is_none() {
+                break;
+            }
+
+            from_sq = next_attacker.unwrap();
+            clr.change_color();
+        }
+
+        while depth > 0 {
+            gain[depth - 1] = -gain[depth].max(-gain[depth - 1]);
+            depth -= 1;
+        }
+
+        gain[0]
     }
 
     #[inline(always)]
@@ -727,5 +785,68 @@ mod tests {
         let moves = test_mov_att(&fen_king, WHITE_KING, 0);
         let test_positions = vec![26, 27, 28, 34, 36, 42, 43, 44];
         assert_eq!(test_positions, moves);
+    }
+
+    #[test]
+    fn test_see_pos_1() {
+        let fen = "1k1r4/1pp4p/p7/4p3/8/P5P1/1PP4P/2K1R3 w - - 0 1";
+        let mut board = Board::read_fen(&fen);
+        print_chess(&board);
+        let see = board.see(4, 36);
+        assert_eq!(see, 100);
+    }
+
+    #[test]
+    fn test_see_pos_2() {
+        let fen = "1k1r3q/1ppn3p/p4b2/4p3/8/P2N2P1/1PP1R1BP/2K1Q3 w - - 0 1";
+        let mut board = Board::read_fen(&fen);
+        print_chess(&board);
+        let see = board.see(19, 36);
+        assert_eq!(see, -225);
+    }
+
+    #[test]
+    fn test_see_pos_3() {
+        let fen = "8/8/8/3b4/3B4/8/8/8 w - - 0 1";
+        let mut board = Board::read_fen(&fen);
+        print_chess(&board);
+        let see = board.see(27, 35);
+        assert_eq!(see, 0);
+    }
+
+    #[test]
+    fn test_see_pos_4() {
+        let fen = "2r4k/2r4p/p7/2b2p1b/4pP2/1BR5/P1R3PP/2Q4K w - - 0 1";
+        let mut board = Board::read_fen(&fen);
+        print_chess(&board);
+        let see = board.see(18, 34);
+        assert_eq!(see, 325);
+    }
+
+    #[test]
+    fn test_see_pos_5() {
+        let fen = "4q3/1p1pr1kb/1B2rp2/6p1/p3PP2/P3R1P1/1P2R1K1/4Q3 b - - 0 1";
+        let mut board = Board::read_fen(&fen);
+        print_chess(&board);
+        let see = board.see(55, 28);
+        assert_eq!(see, 100);
+    }
+
+    #[test]
+    fn test_see_pos_6() {
+        let fen = "2r2r1k/6bp/p7/2q2p1Q/3PpP2/1B6/P5PP/2RR3K b - - 0 1";
+        let mut board = Board::read_fen(&fen);
+        print_chess(&board);
+        let see = board.see(34, 2);
+        assert_eq!(see, 0);
+    }
+
+    #[test]
+    fn test_see_pos_7() {
+        let fen = "4R3/2r3p1/5bk1/1p1r3p/p2PR1P1/P1BK1P2/1P6/8 b - - 0 1";
+        let mut board = Board::read_fen(&fen);
+        print_chess(&board);
+        let see = board.see(39, 30);
+        assert_eq!(see, 0);
     }
 }

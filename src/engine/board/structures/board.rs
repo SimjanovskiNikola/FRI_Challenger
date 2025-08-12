@@ -175,7 +175,7 @@ impl Board {
     }
 
     #[inline(always)]
-    pub fn cap_piece(&self, sq: usize) -> Piece {
+    pub fn piece_sq(&self, sq: usize) -> Piece {
         match self.squares[sq] {
             Some(piece) => piece,
             None => unreachable!("There is no piece to be captured at this location"),
