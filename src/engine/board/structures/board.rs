@@ -27,6 +27,7 @@ pub struct Board {
     pub tt_mv: Option<TTEntry>,
     pub s_history: [[u64; 64]; 14],
     pub s_killers: [[Option<Move>; 2]; 64],
+    pub s_pv: [Option<u64>; 64],
     pub gen_moves: Vec<(Move, isize)>,
 
     pub eval: Evaluation,
@@ -50,6 +51,7 @@ impl Board {
             tt_mv: None,
             s_history: [[0u64; 64]; 14],
             s_killers: [[None; 2]; 64],
+            s_pv: [None; 64],
             gen_moves: Vec::with_capacity(256),
 
             eval: Evaluation::init(),
@@ -66,6 +68,7 @@ impl Board {
         self.tt_mv = None;
         self.s_history = [[0u64; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
+        self.s_pv = [None; 64];
         self.gen_moves.clear();
 
         self.eval.reset();
@@ -172,7 +175,7 @@ impl Board {
     }
 
     #[inline(always)]
-    pub fn cap_piece(&self, sq: usize) -> Piece {
+    pub fn piece_sq(&self, sq: usize) -> Piece {
         match self.squares[sq] {
             Some(piece) => piece,
             None => unreachable!("There is no piece to be captured at this location"),

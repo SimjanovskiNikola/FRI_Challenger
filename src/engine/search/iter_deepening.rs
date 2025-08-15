@@ -6,6 +6,7 @@ use crate::engine::misc::print_utility::get_pv_move_list;
 use crate::engine::protocols::time::safe_to_start_next_iter;
 use crate::engine::protocols::time::time_over;
 use crate::engine::protocols::uci::NewUCI;
+use crate::engine::search::transposition_table::TT;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::RwLock;
@@ -40,15 +41,14 @@ impl SearchInfo {
 #[derive(Debug)]
 pub struct Search {
     pub board: Board,
-    pub tt: Arc<Mutex<TTTable>>,
     pub uci: Arc<RwLock<NewUCI>>,
     pub info: SearchInfo,
 }
 
 // Common Search Function
 impl Search {
-    pub fn init(board: Board, tt: Arc<Mutex<TTTable>>, uci: Arc<RwLock<NewUCI>>) -> Self {
-        Self { board, tt, uci, info: SearchInfo::init() }
+    pub fn init(board: Board, uci: Arc<RwLock<NewUCI>>) -> Self {
+        Self { board, uci, info: SearchInfo::init() }
     }
 
     pub fn clear_search(&mut self) {
@@ -60,8 +60,7 @@ impl Search {
         self.info.curr_key = self.board.state.key;
         self.info.curr_depth = 0;
 
-        // self.tt.lock().unwrap().clear();
-        self.tt.lock().unwrap().clear_stats();
+        TT.write().unwrap().clear_stats();
     }
 
     pub fn set_curr_depth(&mut self, depth: u8) {
@@ -118,11 +117,19 @@ impl Search {
 
             // Get Best Line from current position and print info
 
-            let root_pv = self.tt.lock().unwrap().get_line(&mut self.board);
+            let root_pv = TT.read().unwrap().get_line(&mut self.board);
+
             if root_pv.len() > 0 {
-                best_mv = Some(root_pv[0]);
+                best_mv = Some(root_pv[0].mv);
             }
-            self.print_info(score, get_move_list(&root_pv, self.info.curr_depth));
+
+            self.board.s_pv.fill(None);
+            for idx in 0..root_pv.len() {
+                self.board.s_pv[idx] = Some(root_pv[idx].key);
+            }
+
+            let mv_list = root_pv.iter().map(|x| x.mv).collect::<Vec<_>>();
+            self.print_info(score, get_move_list(&mv_list, self.info.curr_depth));
             self.print_ordering_info();
             // search.tt.lock().unwrap().print_stats();
         }
@@ -143,20 +150,25 @@ impl Search {
 mod tests {
     use std::fs::File;
 
+    use crate::engine::board::fen::FenTrait;
+
     use super::*;
 
     // NOTE: Uncomment In Cargo.toml the pprof to see the performance.
-    //     #[test]
-    //     fn test_fen_bug_2_sq_pawn_dept_1() {
-    //         let mut board = Game::initialize();
-    //         let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
+    #[test]
+    fn test_search() {
+        let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
 
-    //         game.info.depth = Some(7);
-    //         iterative_deepening(&mut game);
+        let uci = Arc::new(RwLock::new(NewUCI::init()));
+        uci.write().unwrap().max_depth = 3;
+        let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
+        let mut search = Search::init(board, uci);
 
-    //         if let Ok(report) = guard.report().build() {
-    //             let file = File::create("flamegraph.svg").unwrap();
-    //             report.flamegraph(file).unwrap();
-    //         };
-    //     }
+        let mv = search.iterative_deepening();
+
+        if let Ok(report) = guard.report().build() {
+            let file = File::create("flamegraph.svg").unwrap();
+            report.flamegraph(file).unwrap();
+        };
+    }
 }

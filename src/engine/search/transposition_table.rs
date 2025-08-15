@@ -1,9 +1,12 @@
-use crate::engine::board::make_move::BoardMoveTrait;
 use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::moves::Move;
+use crate::engine::board::{make_move::BoardMoveTrait, structures::moves::ExtendedMove};
 
-use std::sync::{atomic::AtomicU64, Mutex};
+use once_cell::sync::Lazy;
+use std::sync::{atomic::AtomicU64, Mutex, RwLock};
+
+pub static TT: Lazy<RwLock<TTTable>> = Lazy::new(|| RwLock::new(TTTable::init()));
 
 const MAX_TT_ENTRIES: usize = 140211;
 
@@ -80,27 +83,21 @@ impl TTTable {
         }
     }
 
-    pub fn probe(
-        &mut self,
-        key: u64,
-        depth: u8,
-        mut alpha: i16,
-        mut beta: i16,
-    ) -> Option<(i16, Move)> {
-        self.lookups += 1;
+    pub fn probe(&self, key: u64, depth: u8, mut alpha: i16, mut beta: i16) -> Option<(i16, Move)> {
+        // self.lookups += 1;
         let idx = Self::idx(key);
         if let Some(e) = self.table[idx] {
             if e.key == key && (e.depth + e.age as u8) >= (depth + self.curr_age as u8) {
                 match e.category {
                     Bound::Lower => alpha = alpha.max(e.score),
                     Bound::Exact => {
-                        self.hits += 1;
+                        // self.hits += 1;
                         return Some((e.score, e.mv));
                     }
                     Bound::Upper => beta = beta.min(e.score),
                 }
                 if alpha >= beta {
-                    self.hits += 1;
+                    // self.hits += 1;
                     return Some((e.score, e.mv));
                 }
             }
@@ -143,8 +140,8 @@ impl TTTable {
         self.curr_age += 1;
     }
 
-    pub fn get_line(&self, board: &mut Board) -> Vec<Move> {
-        let mut line: Vec<Move> = Vec::with_capacity(64); // TODO: Max Depth Add as a constant
+    pub fn get_line(&self, board: &mut Board) -> Vec<ExtendedMove> {
+        let mut line: Vec<ExtendedMove> = Vec::with_capacity(64); // TODO: Max Depth Add as a constant
         let mut moves_made = 0;
 
         while let Some(entry) = self.get(board.state.key) {
@@ -153,8 +150,10 @@ impl TTTable {
             }
 
             if board.move_exists(&entry.mv) {
-                line.push(entry.mv);
+                // println!("Before Key: {:?}", board.state.key);
                 board.make_move(&entry.mv);
+                line.push(ExtendedMove { mv: entry.mv, key: board.state.key });
+                // println!("After Key: {:?}", board.state.key);
                 moves_made += 1;
             } else {
                 break;

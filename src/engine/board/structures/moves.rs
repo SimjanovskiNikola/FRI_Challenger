@@ -39,3 +39,8 @@ impl Move {
         Self { from, to, piece, flag }
     }
 }
+
+pub struct ExtendedMove {
+    pub mv: Move,
+    pub key: u64,
+}
