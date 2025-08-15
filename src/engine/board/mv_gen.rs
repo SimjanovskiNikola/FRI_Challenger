@@ -1,3 +1,5 @@
+use std::cmp;
+
 use super::make_move::BoardMoveTrait;
 use super::structures::board;
 use super::structures::board::Board;
@@ -17,6 +19,7 @@ use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::bitboard::Iterator;
 use crate::engine::misc::bitboard::Shift;
 use crate::engine::misc::const_utility::*;
+use crate::engine::misc::print_utility::print_bitboard;
 use crate::engine::move_generator::bishop::*;
 use crate::engine::move_generator::generated::knight;
 use crate::engine::move_generator::king::*;
@@ -28,7 +31,7 @@ use crate::engine::search::transposition_table::TT;
 
 const PV_MV_SCORE: isize = 95000;
 const TT_MV_SCORE: isize = 80000;
-const CAP_MV_SCORE: isize = 2000;
+const SEE_MV_SCORE: isize = 2000;
 const KILLER_MV_SCORE: [isize; 2] = [2000, 1950];
 const HIS_MV_SCORE: isize = 1000;
 
@@ -65,6 +68,7 @@ pub trait BoardGenMoveTrait {
 
     // Is square Attacked
     fn sq_attack(&self, sq: usize, color: Color) -> u64;
+    fn sq_attack_with_occ(&self, sq: usize, color: Color, occ: u64) -> u64;
 
     // Is repetition & does the move exist for current position
     fn is_repetition(&self) -> bool;
@@ -420,15 +424,16 @@ impl BoardGenMoveTrait for Board {
             return 80000;
         }
 
-        // if self.s_history[mv.piece.idx()][mv.to as usize] as isize > 0 {
-        return self.s_history[mv.piece.idx()][mv.to as usize] as isize;
-        // } else {
-        //     let from_sq = CLR_SQ[mv.piece.color().idx()][mv.from as usize];
-        //     let to_sq = CLR_SQ[mv.piece.color().idx()][mv.to as usize];
-        //     return PSQT[mv.piece.arr_idx()][to_sq].0 + PSQT[mv.piece.arr_idx()][to_sq].1
-        //         - PSQT[mv.piece.arr_idx()][from_sq].0
-        //         - PSQT[mv.piece.arr_idx()][from_sq].1;
-        // }
+        let his_score = self.s_history[mv.piece.idx()][mv.to as usize] as isize;
+        if his_score > 0 {
+            return his_score + HIS_MV_SCORE;
+        } else {
+            let from_sq = CLR_SQ[mv.piece.color().idx()][mv.from as usize];
+            let to_sq = CLR_SQ[mv.piece.color().idx()][mv.to as usize];
+            return PSQT[mv.piece.arr_idx()][to_sq].0 + PSQT[mv.piece.arr_idx()][to_sq].1
+                - PSQT[mv.piece.arr_idx()][from_sq].0
+                - PSQT[mv.piece.arr_idx()][from_sq].1;
+        }
     }
 
     fn capture_eval(&mut self, mv: &Move) -> isize {
@@ -447,58 +452,72 @@ impl BoardGenMoveTrait for Board {
             // }
         }
 
-        match mv.flag {
-            Flag::Capture(cap) => cap.weight() - mv.piece as isize,
-            _ => unreachable!("There is no flag capture"),
+        let see = self.see(mv.from as usize, mv.to as usize);
+        if see >= 0 {
+            return see + SEE_MV_SCORE;
+        } else {
+            match mv.flag {
+                Flag::Capture(cap) => cap.weight() - mv.piece as isize,
+                _ => unreachable!("There is no flag capture"),
+            }
         }
     }
 
     fn see(&mut self, from: usize, to: usize) -> isize {
-        let mut gain = [0isize; 32]; // exchange gain table
         let mut occ = self.occ_bb(WHITE) | self.occ_bb(BLACK);
+        let mut from_sq = from;
         let mut clr = self.color();
-        let mut attackers = self.sq_attack(to, clr);
+        // let mut clr = self.piece_sq(from).color();
+        let mut gain = [0isize; 32];
         let mut depth = 0;
 
-        gain[0] = self.piece_sq(to).weight();
+        let pce = self.piece_sq(to);
+        // println!("Piece: {:?}", pce);
+        gain[0] = pce.weight();
 
-        let mut from_sq = from;
-        let mut captured_piece = self.piece_sq(to);
+        // DEPRECATE:
+        // let mut attackers = self.sq_attack(to, clr) | self.sq_attack(to, clr.opp());
 
         loop {
             depth += 1;
+            clr.change_color();
+            occ.clear_bit(from_sq);
+
             gain[depth] = self.piece_sq(from_sq).weight() - gain[depth - 1];
 
-            // remove attacking piece from occupancy
-            occ ^= Bitboard::init(from_sq);
-
-            // remove this side’s piece from attackers
-            attackers &= occ;
-
-            // find next least valuable attacker of the opposite side
+            let attacks = self.sq_attack_with_occ(to, clr.opp(), occ);
 
             let mut next_attacker = None;
-            let mut all_attackers = self.sq_attack(to, clr.opp());
             for &piece in &PIECES {
-                let attackers: u64 =
-                    self.bb(piece + clr.opp()) & (all_attackers & self.bb(piece + clr));
+                let attackers: u64 = self.bb(piece + clr) & attacks & occ;
+                // println!("Attackers: {:?}", piece);
+                // print_bitboard(attackers, None);
+                // print_bitboard(attacks, None);
+                // print_bitboard(self.bb(piece + clr), None);
+                // print_bitboard(occ, None);
                 if attackers != 0 {
                     next_attacker = Some(attackers.get_lsb());
+                    break;
                 }
             }
 
             if next_attacker.is_none() {
                 break;
             }
-
             from_sq = next_attacker.unwrap();
-            clr.change_color();
         }
 
-        while depth > 0 {
-            gain[depth - 1] = -gain[depth].max(-gain[depth - 1]);
+        while {
             depth -= 1;
+            depth > 0
+        } {
+            gain[depth - 1] = -cmp::max(-gain[depth - 1], gain[depth]);
         }
+
+        // while depth > 0 {
+        //     gain[depth - 1] = -cmp::max(-gain[depth - 1], gain[depth]);
+        //     depth -= 1;
+        // }
 
         gain[0]
     }
@@ -518,6 +537,23 @@ impl BoardGenMoveTrait for Board {
             | (get_bishop_mv(sq, own_occ, enemy_occ, color) & op_bq)
             | (get_rook_mv(sq, own_occ, enemy_occ, color) & op_rq)
             | (get_king_mv(sq, own_occ, enemy_occ, color) & op_king)
+    }
+
+    #[inline(always)]
+    fn sq_attack_with_occ(&self, sq: usize, color: Color, occ: u64) -> u64 {
+        // let (own_occ, enemy_occ) = self.both_occ_bb(color);
+
+        let op_pawns = self.bb(BLACK_PAWN - color);
+        let op_knights = self.bb(BLACK_KNIGHT - color);
+        let op_rq = self.bb(BLACK_QUEEN - color) | self.bb(BLACK_ROOK - color);
+        let op_bq = self.bb(BLACK_QUEEN - color) | self.bb(BLACK_BISHOP - color);
+        let op_king = self.bb(BLACK_KING - color);
+
+        (get_pawn_att(sq, 0, occ, color) & op_pawns)
+            | (get_knight_mv(sq, 0, occ, color) & op_knights)
+            | (get_bishop_mv(sq, 0, occ, color) & op_bq)
+            | (get_rook_mv(sq, 0, occ, color) & op_rq)
+            | (get_king_mv(sq, 0, occ, color) & op_king)
     }
 
     #[inline(always)]
@@ -580,6 +616,8 @@ impl BoardGenMoveTrait for Board {
 
 #[cfg(test)]
 mod tests {
+
+    use core::panic;
 
     use crate::engine::board::fen::FenTrait;
     use crate::engine::misc::print_utility::print_bitboard;
@@ -806,12 +844,12 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn test_see_pos_3() {
         let fen = "8/8/8/3b4/3B4/8/8/8 w - - 0 1";
         let mut board = Board::read_fen(&fen);
         print_chess(&board);
-        let see = board.see(27, 35);
-        assert_eq!(see, 0);
+        let see = board.see(27, 36);
     }
 
     #[test]
@@ -820,7 +858,7 @@ mod tests {
         let mut board = Board::read_fen(&fen);
         print_chess(&board);
         let see = board.see(18, 34);
-        assert_eq!(see, 325);
+        assert_eq!(see, 350);
     }
 
     #[test]
@@ -838,7 +876,7 @@ mod tests {
         let mut board = Board::read_fen(&fen);
         print_chess(&board);
         let see = board.see(34, 2);
-        assert_eq!(see, 0);
+        assert_eq!(see, 100);
     }
 
     #[test]

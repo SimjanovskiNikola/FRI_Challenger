@@ -25,7 +25,7 @@ pub const BLACK_KING: Piece = BLACK | KING;
 
 pub const PIECES_WITHOUT_PAWN: [Piece; 5] = [KNIGHT, BISHOP, ROOK, QUEEN, KING];
 pub const PROMO_PIECES: [Piece; 4] = [KNIGHT, BISHOP, ROOK, QUEEN];
-pub const PIECES: [Piece; 6] = [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING];
+pub const PIECES: [Piece; 6] = [PAWN, KNIGHT, KING, BISHOP, ROOK, QUEEN];
 pub const CLR_PIECES: [Piece; 12] = [
     WHITE_PAWN,
     WHITE_KNIGHT,
@@ -130,7 +130,7 @@ impl PieceTrait for Piece {
 
     #[inline(always)]
     fn weight(&self) -> isize {
-        PIECE_WT[(self.kind() / 2).idx() - 1]
+        PIECE_WT[self.arr_idx()]
     }
 
     #[inline(always)]
