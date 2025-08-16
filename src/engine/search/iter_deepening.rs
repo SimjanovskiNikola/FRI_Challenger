@@ -155,20 +155,20 @@ mod tests {
     use super::*;
 
     // NOTE: Uncomment In Cargo.toml the pprof to see the performance.
-    #[test]
-    fn test_search() {
-        let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
+    // #[test]
+    // fn test_search() {
+    //     let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
 
-        let uci = Arc::new(RwLock::new(NewUCI::init()));
-        uci.write().unwrap().max_depth = 3;
-        let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
-        let mut search = Search::init(board, uci);
+    //     let uci = Arc::new(RwLock::new(NewUCI::init()));
+    //     uci.write().unwrap().max_depth = 3;
+    //     let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
+    //     let mut search = Search::init(board, uci);
 
-        let mv = search.iterative_deepening();
+    //     let mv = search.iterative_deepening();
 
-        if let Ok(report) = guard.report().build() {
-            let file = File::create("flamegraph.svg").unwrap();
-            report.flamegraph(file).unwrap();
-        };
-    }
+    //     if let Ok(report) = guard.report().build() {
+    //         let file = File::create("flamegraph.svg").unwrap();
+    //         report.flamegraph(file).unwrap();
+    //     };
+    // }
 }

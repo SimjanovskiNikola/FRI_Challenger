@@ -1,6 +1,7 @@
 use super::iter_deepening::Search;
 use super::transposition_table::Bound;
 use crate::engine::board::make_move::BoardMoveTrait;
+use crate::engine::board::mv_gen::next_move;
 use crate::engine::board::mv_gen::BoardGenMoveTrait;
 use crate::engine::board::structures::moves::Move;
 use crate::engine::board::structures::piece::PieceTrait;
@@ -53,15 +54,15 @@ impl Search {
         let mut legal_mv_num = 0;
         let old_alpha: isize = alpha;
 
-        let moves = self.board.gen_moves();
+        let mut moves = self.board.gen_moves();
 
-        for mv in &moves {
+        while let Some(mv) = next_move(&mut moves) {
             // Check Time every 2027 Nodes
             if (self.info.nodes & 2047) == 0 && time_over(&self) {
                 return 0;
             }
 
-            if !self.board.make_move(mv) {
+            if !self.board.make_move(&mv) {
                 continue;
             }
             legal_mv_num += 1;
@@ -76,11 +77,11 @@ impl Search {
                     if !mv.flag.is_capture() {
                         self.board.s_killers[self.board.ply()][0] =
                             self.board.s_killers[self.board.ply()][1];
-                        self.board.s_killers[self.board.ply()][1] = Some(*mv);
+                        self.board.s_killers[self.board.ply()][1] = Some(mv);
                     }
                     TT.write().unwrap().set(
                         self.board.state.key,
-                        *mv,
+                        mv,
                         score as i16,
                         depth,
                         Bound::Upper,
@@ -91,7 +92,7 @@ impl Search {
 
                 alpha = score;
                 best_score = score;
-                best_mv = Some(*mv);
+                best_mv = Some(mv);
 
                 if !mv.flag.is_capture() {
                     self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as u64;
