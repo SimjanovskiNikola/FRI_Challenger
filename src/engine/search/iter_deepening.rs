@@ -160,8 +160,10 @@ mod tests {
     //     let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
 
     //     let uci = Arc::new(RwLock::new(NewUCI::init()));
-    //     uci.write().unwrap().max_depth = 3;
+    //     uci.write().unwrap().max_depth = 6;
+    //     // let board = Board::read_fen("2kr3r/pppq1pp1/3np2p/8/2pP4/4P2P/PP1N1PP1/2RQK2R b K - 1 13");
     //     let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
+    //     // let board = Board::read_fen("5rk1/ppq3pp/2p1rn2/4p1Q1/8/2N4P/PP4P1/2KRR3 w - - 0 3");
     //     let mut search = Search::init(board, uci);
 
     //     let mv = search.iterative_deepening();
