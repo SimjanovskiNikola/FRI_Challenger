@@ -15,8 +15,11 @@ impl Search {
             return eval;
         }
 
-        if eval >= beta {
-            return beta;
+        if eval > alpha {
+            if eval >= beta {
+                return eval;
+            }
+            alpha = eval;
         }
 
         self.info.nodes += 1;
@@ -26,21 +29,11 @@ impl Search {
             return alpha;
         }
 
-        // NOTE: STANDARD PAT PRUNING
-        if eval > alpha {
-            if eval >= beta {
-                return eval;
-            }
-            alpha = eval;
-        }
-
         // if let Some((score, _)) =
         //     TT.read().unwrap().probe(self.board.state.key, 0, alpha as i16, beta as i16)
         // {
         //     return score as isize;
         // }
-
-        alpha = alpha.max(eval);
 
         let mut pos_rev = self.board.gen_captures();
 
@@ -55,11 +48,12 @@ impl Search {
             let score = -self.quiescence_search(-beta, -alpha);
             self.board.undo_move();
 
-            if score >= beta {
-                return beta;
+            if score > alpha {
+                if score >= beta {
+                    return score;
+                }
+                alpha = score;
             }
-
-            alpha = alpha.max(score);
         }
 
         alpha
