@@ -87,6 +87,7 @@ pub struct Evaluation {
     pub queen_diagonal: [Bitboard; 2],
     pub phase: (isize, isize),
     pub score: [(isize, isize); 2],
+    pub king_shelter: [(isize, isize, isize); 2],
 }
 
 impl Evaluation {
@@ -122,6 +123,7 @@ impl Evaluation {
             queen_diagonal: [0; 2],
             phase: (0, 0),
             score: [(0, 0); 2],
+            king_shelter: [(0, 0, 0); 2],
         }
     }
 
@@ -148,6 +150,7 @@ impl Evaluation {
         self.queen_diagonal.fill(0);
         self.phase = (0, 0);
         self.score.fill((0, 0));
+        self.king_shelter.fill((0, 0, 0));
 
         self.mg_test = [[0; 64]; 2];
         self.eg_test = [[0; 64]; 2];
@@ -433,6 +436,7 @@ impl EvaluationTrait for Board {
         for clr in COLORS {
             self.eval.king_ring[clr.idx()] = self.king_ring(clr);
             self.check(clr);
+            self.eval.king_shelter[clr.idx()] = self.shelter(clr);
         }
     }
 
@@ -1796,7 +1800,7 @@ impl EvaluationTrait for Board {
         let bonus = self.king_danger(clr);
         self.sum(clr, None, None, ((bonus * bonus) / 4096, bonus / 16));
 
-        let bonus = self.shelter(clr);
+        let bonus = self.eval.king_shelter[clr.idx()];
         self.sum(clr, None, None, (-bonus.0, 0)); // Shelter Strength
         self.sum(clr, None, None, (bonus.1, 0)); // Shelter Storm
 
@@ -1867,7 +1871,7 @@ impl EvaluationTrait for Board {
             - 4 * flank_def
             + (3 * flank_att * flank_att / 8)
             - 873 * no_queen
-            - (6 * (self.shelter(clr).0 - self.shelter(clr).1) / 8)
+            - (6 * (self.eval.king_shelter[clr.idx()].0 - self.eval.king_shelter[clr.idx()].1) / 8) //self.shelter(clr).0 - self.shelter(clr).1
             + self.eval.mobility[clr.idx()]
             - self.eval.mobility[clr.opp().idx()]
             + 37
@@ -1929,7 +1933,7 @@ impl EvaluationTrait for Board {
     }
 
     fn endgame_shelter(&mut self, clr: Color) -> isize {
-        self.shelter(clr).2
+        self.eval.king_shelter[clr.idx()].2
     }
 
     fn knight_defender(&mut self, clr: Color) -> u64 {
@@ -1940,22 +1944,12 @@ impl EvaluationTrait for Board {
 
     fn unsafe_checks(&mut self, clr: Color) -> u64 {
         let knight_unsafe =
-            (self.eval.checks[(KNIGHT + clr).idx()] & !self.safe_check(clr, KNIGHT + clr));
+            self.eval.checks[(KNIGHT + clr).idx()] & !self.safe_check(clr, KNIGHT + clr);
 
         let bishop_unsafe =
-            (self.eval.checks[(BISHOP + clr).idx()] & !self.safe_check(clr, BISHOP + clr));
+            self.eval.checks[(BISHOP + clr).idx()] & !self.safe_check(clr, BISHOP + clr);
 
-        let rook_unsafe =
-            (self.eval.checks[(ROOK + clr).idx()] & !self.safe_check(clr, ROOK + clr));
-
-        // println!("Knight Unsafe");
-        // print_bitboard(knight_unsafe, None);
-
-        // println!("Bishop Unsafe");
-        // print_bitboard(bishop_unsafe, None);
-
-        // println!("Rook Unsafe");
-        // print_bitboard(rook_unsafe, None);
+        let rook_unsafe = self.eval.checks[(ROOK + clr).idx()] & !self.safe_check(clr, ROOK + clr);
 
         return knight_unsafe | bishop_unsafe | rook_unsafe;
     }
@@ -1999,25 +1993,6 @@ impl EvaluationTrait for Board {
                     | self.eval.defended_by[(KING + clr.opp()).idx()]
                     | self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
                     | self.eval.defended_by[(QUEEN + clr.opp()).idx()]))
-
-        // self.eval.attack_map[clr.idx()]
-        //     & self.eval.attack_map[clr.idx()]
-        //     & !(!(self.eval.attacked_by_2[clr.opp().idx()]
-        //         | self.eval.defended_by_2[clr.opp().idx()])
-        //         | !(self.eval.attacked_by[(KING + clr.opp()).idx()]
-        //             | self.eval.defended_by[(KING + clr.opp()).idx()])
-        //         | !(self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
-        //             | self.eval.defended_by[(QUEEN + clr.opp()).idx()]))
-
-        // if (attack(pos, square)) {
-        //     var pos2 = colorflip(pos);
-        //     var attack = attack(pos2, {x:square.x,y:7-square.y});
-        //     if (attack >= 2) return 0;
-        //     if (attack == 0) return 1;
-        //     if (king_attack(pos2, {x:square.x,y:7-square.y})
-        //     || queen_attack(pos2, {x:square.x,y:7-square.y})) return 1;
-        // }
-        // return 0;
     }
 
     fn weak_bonus(&mut self, clr: Color) -> u64 {
@@ -2171,7 +2146,6 @@ impl EvaluationTrait for Board {
             } else {
                 score += WEAKNESS[get_file(square)][CLR_RANK[clr.idx()][us]];
             }
-            // println!("Sq: {:?}, Square: {:?}, Us: {:?}", sq, square, us);
         }
 
         return score;
