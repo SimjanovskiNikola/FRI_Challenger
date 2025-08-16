@@ -34,11 +34,11 @@ impl Search {
             alpha = eval;
         }
 
-        if let Some((score, _)) =
-            TT.read().unwrap().probe(self.board.state.key, 0, alpha as i16, beta as i16)
-        {
-            return score as isize;
-        }
+        // if let Some((score, _)) =
+        //     TT.read().unwrap().probe(self.board.state.key, 0, alpha as i16, beta as i16)
+        // {
+        //     return score as isize;
+        // }
 
         alpha = alpha.max(eval);
 
