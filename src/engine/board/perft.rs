@@ -94,12 +94,12 @@ pub fn perft(depth: usize, board: &mut Board, stats: &mut Stats) -> u64 {
 
     let mut moves = board.gen_moves();
     for mv in &mut moves {
-        if !board.make_move(mv) {
+        if !board.make_move(&mv.0) {
             continue;
         }
 
         if depth == 1 {
-            match mv.flag {
+            match mv.0.flag {
                 Flag::Quiet => stats.add_node(),
                 Flag::Capture(_) => stats.add_capture(),
                 Flag::EP => stats.add_ep(),

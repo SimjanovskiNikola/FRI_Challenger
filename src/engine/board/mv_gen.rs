@@ -37,8 +37,8 @@ const HIS_MV_SCORE: isize = 1000;
 
 pub trait BoardGenMoveTrait {
     // Generating -> Move as a struct
-    fn gen_moves(&mut self) -> Vec<Move>;
-    fn gen_captures(&mut self) -> Vec<Move>;
+    fn gen_moves(&mut self) -> Vec<(Move, isize)>;
+    fn gen_captures(&mut self) -> Vec<(Move, isize)>;
 
     // Converting Bitboard squares to Move struct
     fn add_quiet_moves(&mut self, bb: u64, piece: Piece, sq: usize);
@@ -77,7 +77,7 @@ pub trait BoardGenMoveTrait {
 
 impl BoardGenMoveTrait for Board {
     #[inline(always)]
-    fn gen_moves(&mut self) -> Vec<Move> {
+    fn gen_moves(&mut self) -> Vec<(Move, isize)> {
         self.pawn_moves();
 
         for piece in &PIECES_WITHOUT_PAWN {
@@ -87,27 +87,17 @@ impl BoardGenMoveTrait for Board {
         self.add_castling_moves();
         self.add_ep_moves();
 
-        self.gen_moves.sort_unstable_by_key(|&(_, score)| -score);
+        // self.gen_moves.sort_unstable_by_key(|&(_, score)| -score);
 
-        // println!("BEFORE PV: {:?}", self.s_pv);
-
-        // let gen_moves_cloned: Vec<_> = self.gen_moves.iter().cloned().collect();
-        // for mv in &gen_moves_cloned {
-        //     let mv_clone = mv.0.clone();
-        //     let mut key = 0;
-        //     if self.make_move(&mv_clone) {
-        //         key = self.key();
-        //         self.undo_move();
-        //     }
-        //     println!("{:?} {:?} {:?}", mv, key, self.key());
+        // for (i, score) in &self.gen_moves {
+        //     println!("{:?} {:?}", i, score);
         // }
-        // println!("-*------------------------------------");
 
-        self.gen_moves.drain(..).map(|(mv, _)| mv).collect()
+        self.gen_moves.drain(..).collect()
     }
 
     #[inline(always)]
-    fn gen_captures(&mut self) -> Vec<Move> {
+    fn gen_captures(&mut self) -> Vec<(Move, isize)> {
         self.pawn_capture_moves();
 
         for piece in &PIECES_WITHOUT_PAWN {
@@ -116,8 +106,7 @@ impl BoardGenMoveTrait for Board {
 
         self.add_ep_moves();
 
-        self.gen_moves.sort_unstable_by_key(|&(_, score)| -score);
-        self.gen_moves.drain(..).map(|(mv, _)| mv).collect()
+        self.gen_moves.drain(..).collect()
     }
 
     #[inline(always)]
@@ -333,7 +322,9 @@ impl BoardGenMoveTrait for Board {
                 get_pawn_att(mv as usize, own_occ, enemy_occ, color) & self.pawn_bb(color.opp());
 
             while let Some(sq) = attack.next() {
-                self.gen_moves.push((Move::init(sq as u8, mv, PAWN + color.opp(), Flag::EP), 100));
+                let mv = Move::init(sq as u8, mv, PAWN + color.opp(), Flag::EP);
+                let eval = self.quiet_eval(&mv);
+                self.gen_moves.push((mv, eval));
             }
         }
     }
@@ -341,17 +332,19 @@ impl BoardGenMoveTrait for Board {
     fn add_capture_promo_moves(&mut self, from_sq: u8, to_sq: u8, piece: Piece) {
         let taken_piece = self.piece_sq(to_sq as usize); // squares[to_sq as usize];
         for promo_piece in &PROMO_PIECES {
-            let eval = taken_piece.weight() - piece as isize + promo_piece.weight();
             let flag = Flag::Promotion(*promo_piece + piece.color(), Some(taken_piece));
-            self.gen_moves.push((Move::init(from_sq, to_sq, piece, flag), eval));
+            let mv = Move::init(from_sq, to_sq, piece, flag);
+            let eval = self.capture_eval(&mv);
+            self.gen_moves.push((mv, eval));
         }
     }
 
     fn add_quiet_promo_moves(&mut self, from_sq: u8, to_sq: u8, piece: Piece) {
         for promo_piece in &PROMO_PIECES {
-            let eval = promo_piece.weight();
             let flag = Flag::Promotion(*promo_piece + piece.color(), None);
-            self.gen_moves.push((Move::init(from_sq, to_sq, piece, flag), eval));
+            let mv = Move::init(from_sq, to_sq, piece, flag);
+            let eval = self.quiet_eval(&mv); // promo_piece.weight();
+            self.gen_moves.push((mv, eval));
         }
     }
 
@@ -362,22 +355,26 @@ impl BoardGenMoveTrait for Board {
         match self.color() {
             WHITE => {
                 if self.state.castling.valid(CastlingRights::WKINGSIDE, self, own, enemy) {
-                    self.gen_moves
-                        .push((Move::init(E1 as u8, G1 as u8, piece, Flag::KingCastle), 0));
+                    let mv = Move::init(E1 as u8, G1 as u8, piece, Flag::KingCastle);
+                    let eval = self.quiet_eval(&mv);
+                    self.gen_moves.push((mv, eval));
                 }
                 if self.state.castling.valid(CastlingRights::WQUEENSIDE, self, own, enemy) {
-                    self.gen_moves
-                        .push((Move::init(E1 as u8, C1 as u8, piece, Flag::QueenCastle), 0));
+                    let mv = Move::init(E1 as u8, C1 as u8, piece, Flag::QueenCastle);
+                    let eval = self.quiet_eval(&mv);
+                    self.gen_moves.push((mv, eval));
                 }
             }
             BLACK => {
                 if self.state.castling.valid(CastlingRights::BKINGSIDE, self, own, enemy) {
-                    self.gen_moves
-                        .push((Move::init(E8 as u8, G8 as u8, piece, Flag::KingCastle), 0));
+                    let mv = Move::init(E8 as u8, G8 as u8, piece, Flag::KingCastle);
+                    let eval = self.quiet_eval(&mv);
+                    self.gen_moves.push((mv, eval));
                 }
                 if self.state.castling.valid(CastlingRights::BQUEENSIDE, self, own, enemy) {
-                    self.gen_moves
-                        .push((Move::init(E8 as u8, C8 as u8, piece, Flag::QueenCastle), 0));
+                    let mv = Move::init(E8 as u8, C8 as u8, piece, Flag::QueenCastle);
+                    let eval = self.quiet_eval(&mv);
+                    self.gen_moves.push((mv, eval));
                 }
             }
             _ => panic!("Invalid Castling"),
@@ -389,51 +386,23 @@ impl BoardGenMoveTrait for Board {
             let key = self.key();
             self.undo_move();
 
-            // println!("Key: {:?}", key);
-            // if key == 351165640174320788 {
-            //     println!("{:?}", "Key Match 351165640174320788");
-            // }
-
-            // println!("TT Move : {:?}", TT.read().unwrap().get(key));
-
-            // println!("{:?} {:?} {:?}", self.s_pv[0], self.s_pv[self.ply()], self.ply());
-
-            // Works
-            if let Some(bla) = self.s_pv[self.ply()] {
-                // println!("Keys: {:?} {:?}", bla, key);
-
-                if bla == key {
-                    // println!("{:?}", "Keys Match");
-                    return 95000;
-                }
+            if matches!(self.s_pv[self.ply()], Some(k) if k == key) {
+                return PV_MV_SCORE;
             }
 
             // if let Some(_) = TT.read().unwrap().get(key) {
             //     return 92500;
             // }
-
-            // if matches!(self.s_pv[self.ply()], Some(pv_key) if pv_key == key) {
-            //     // println!("Keys: {:?}", key);
-            //     return 95000;
-            // }
         }
 
         if matches!(self.s_killers[self.ply()][0], Some(x) if x == *mv) {
-            return 90000;
+            return KILLER_MV_SCORE[0];
         } else if matches!(self.s_killers[self.ply()][1], Some(x) if x == *mv) {
-            return 80000;
+            return KILLER_MV_SCORE[1];
         }
 
         let his_score = self.s_history[mv.piece.idx()][mv.to as usize] as isize;
-        if his_score > 0 {
-            return his_score + HIS_MV_SCORE;
-        } else {
-            let from_sq = CLR_SQ[mv.piece.color().idx()][mv.from as usize];
-            let to_sq = CLR_SQ[mv.piece.color().idx()][mv.to as usize];
-            return PSQT[mv.piece.arr_idx()][to_sq].0 + PSQT[mv.piece.arr_idx()][to_sq].1
-                - PSQT[mv.piece.arr_idx()][from_sq].0
-                - PSQT[mv.piece.arr_idx()][from_sq].1;
-        }
+        return his_score + HIS_MV_SCORE;
     }
 
     fn capture_eval(&mut self, mv: &Move) -> isize {
@@ -441,10 +410,8 @@ impl BoardGenMoveTrait for Board {
             let key = self.key();
             self.undo_move();
 
-            if let Some(bla) = self.s_pv[self.ply()] {
-                if bla == key {
-                    return 95000;
-                }
+            if matches!(self.s_pv[self.ply()], Some(k) if k == key) {
+                return PV_MV_SCORE;
             }
 
             // if let Some(_) = TT.read().unwrap().get(key) {
@@ -575,7 +542,7 @@ impl BoardGenMoveTrait for Board {
         let mut moves = self.gen_moves();
 
         for temp_mv in &mut moves {
-            if mv == temp_mv {
+            if *mv == temp_mv.0 {
                 if self.make_move(mv) {
                     self.undo_move();
                     return true;
@@ -586,33 +553,18 @@ impl BoardGenMoveTrait for Board {
     }
 }
 
-// NOTE: DO NOT REMOVE THIS !!!!
-// fn eval_pos(mv: &Move, board: &Board) -> isize {
-// FIXME: I will need to update this based on pv table that should be located inside the game
-// if matches!(game.tt.get(game.key), Some(x) if x.rev == *pos) {
-//     return 95000;
-// }
+pub fn next_move(moves: &mut Vec<(Move, isize)>) -> Option<Move> {
+    if moves.len() == 0 {
+        return None;
+    }
 
-//     match mv.flag {
-//         Flag::Quiet => {
-//             if matches!(board.s_killers[board.ply()][0], Some(x) if x == *mv) {
-//                 90000
-//             } else if matches!(board.s_killers[board.ply()][1], Some(x) if x == *mv) {
-//                 80000
-//             } else {
-//                 board.s_history[mv.piece.idx()][mv.to as usize] as isize
-//             }
-//         }
-//         Flag::KingCastle => 20,
-//         Flag::QueenCastle => 20,
-//         Flag::Capture(cap) => cap.weight() - mv.piece as isize,
-//         Flag::EP => PAWN.weight(),
-//         Flag::Promotion(promo, Some(cap)) => cap.weight() - mv.piece as isize + promo.weight(),
-//         Flag::Promotion(promo, None) => promo.weight(),
-//     }
-// }
-
-//
+    for idx in 0..(moves.len() - 1) {
+        if moves[idx].1 > moves[idx + 1].1 {
+            moves.swap(idx, idx + 1);
+        }
+    }
+    moves.pop().map(|(mv, _)| mv)
+}
 
 #[cfg(test)]
 mod tests {

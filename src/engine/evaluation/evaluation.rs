@@ -111,6 +111,7 @@ impl Evaluation {
             attacked_by: [0; 14],
             defended_by: [0; 14],
             attacked_by_2: [0; 2],
+
             defended_by_2: [0; 2],
             king_att_weight: [0; 2],
             king_att_count: [0; 2],
@@ -321,46 +322,52 @@ impl EvaluationTrait for Board {
     }
 
     fn pawn_init(&mut self) {
-        for clr in &COLORS {
-            let (own, enemy) = self.both_occ_bb(*clr);
+        for &clr in &COLORS {
+            let (own, enemy) = self.both_occ_bb(clr);
             let piece = PAWN + clr;
             let mut bb = self.bb(piece);
+
             while let Some(sq) = bb.next() {
                 self.eval.pawn_behind_masks[clr.idx()] |=
                     PAWN_3_BEHIND_MASKS[clr.idx()][sq] & CLR_CENTER[clr.idx()];
 
-                if !self.backward_pawn(sq, *clr)
-                    && !self.blocked_pawn(sq, *clr, self.pawn_bb(clr.opp()))
+                if !self.backward_pawn(sq, clr)
+                    && !self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp()))
                 {
                     self.eval.pawn_att_span[clr.idx()] |=
-                        FORWARD_SPANS_LR[clr.idx()][sq] | get_pawn_att_mask(sq, own, enemy, *clr);
+                        FORWARD_SPANS_LR[clr.idx()][sq] | get_pawn_att_mask(sq, own, enemy, clr);
                 }
 
                 self.eval.king_pawn_dx[clr.idx()] =
-                    self.eval.king_pawn_dx[clr.idx()].min(self.king_dist(*clr, sq));
+                    self.eval.king_pawn_dx[clr.idx()].min(self.king_dist(clr, sq));
             }
+        }
+
+        for &clr in &COLORS {
             self.eval.outpost[clr.idx()] = self.eval.pawn_att_span[clr.opp().idx()]
                 & (RANK_BITBOARD[3] | RANK_BITBOARD[4] | RANK_BITBOARD[5])
-                & (get_all_pawn_left_att_mask(self.pawn_bb(*clr), *clr)
-                    | get_all_pawn_right_att_mask(self.pawn_bb(*clr), *clr));
+                & (get_all_pawn_left_att_mask(self.pawn_bb(clr), clr)
+                    | get_all_pawn_right_att_mask(self.pawn_bb(clr), clr));
         }
     }
 
     fn piece_init(&mut self) {
-        for clr in &COLORS {
-            let (own, enemy) = self.both_occ_bb(*clr);
-            let area = self.mobility_area(*clr);
-            for pce in &PIECES {
+        for &clr in &COLORS {
+            let (own, enemy) = self.both_occ_bb(clr);
+            let area = self.mobility_area(clr);
+            let king_sq = self.king_sq(clr.opp());
+            let king_ring = self.king_ring(clr.opp());
+
+            let opp_king_mask = get_king_mask(king_sq, 0, 0, clr.opp());
+
+            for &pce in &PIECES {
                 let piece = pce + clr;
                 let mut bb = self.bb(piece);
-                let king_ring = self.king_ring(clr.opp());
-                let king_sq = self.king_sq(clr.opp());
                 let mut attckers_count = 0;
+
                 while let Some(sq) = bb.next() {
                     let piece_mask = self.x_ray_mask(piece, sq);
-                    // self.eval.psqt[clr.idx()] += self.piece_psqt(piece, sq);
 
-                    // let fixed_sq = CLR_SQ[piece.color().idx()][sq];
                     self.eval.attacked_by_2[clr.idx()] |=
                         self.eval.attack_map[clr.idx()] & (piece_mask & !own);
 
@@ -371,60 +378,49 @@ impl EvaluationTrait for Board {
                     self.eval.defend_map[clr.idx()] |= piece_mask & own;
 
                     self.eval.attacked_by[piece.idx()] |= piece_mask;
-                    // self.eval.test_arr[sq] = self.piece_psqt(*piece + clr, sq).to_string();
 
-                    if piece.is_pawn() {
-                        if piece_mask & KING_RING[king_sq] != 0 {
-                            attckers_count += 1;
-                            self.eval.king_att_count[clr.idx()] +=
-                                (piece_mask & KING_RING[king_sq]).count();
-
-                            // self.eval.king_att[clr.idx()] +=
-                            //     (piece_mask & KING_RING[king_sq]).count();
-                            // self.eval.king_att_count[clr.idx()] |= piece_mask & KING_RING[king_sq];
-                            // self.eval.king_att_weight[clr.idx()] +=
-                            // KING_ATT_WEIGHT[piece.arr_idx()];
+                    match piece.kind() {
+                        PAWN => {
+                            if piece_mask & KING_RING[king_sq] != 0 {
+                                attckers_count += 1;
+                                self.eval.king_att_count[clr.idx()] +=
+                                    (piece_mask & KING_RING[king_sq]).count();
+                            }
                         }
-                    } else if !piece.is_king() {
-                        let safe_squares = (self.mobility_piece(sq, piece, *clr) & area).count();
-                        self.eval.mobility[clr.idx()] += self.mobility_bonus(piece, safe_squares).0;
+                        KING => {}
+                        _ => {
+                            let safe_squares = (self.mobility_piece(sq, piece, clr) & area).count();
+                            self.eval.mobility[clr.idx()] +=
+                                self.mobility_bonus(piece, safe_squares).0;
 
-                        if piece_mask & king_ring != 0 {
-                            attckers_count += 1;
-                            self.eval.king_att_count[clr.idx()] += 1;
-                            // self.eval.king_att[clr.idx()] += (piece_mask & king_ring).count();
-                            // self.eval.king_att_count[clr.idx()] |= piece_mask & king_ring;
-                            // self.eval.king_att_weight[clr.idx()] +=
-                            // KING_ATT_WEIGHT[piece.arr_idx()];
+                            if piece_mask & king_ring != 0 {
+                                attckers_count += 1;
+                                self.eval.king_att_count[clr.idx()] += 1;
+                            }
+
+                            self.eval.king_att[clr.idx()] += (piece_mask & opp_king_mask).count();
+
+                            self.eval.x_ray[piece.idx()] |= self.mobility_piece(sq, piece, clr);
                         }
-
-                        self.eval.king_att[clr.idx()] +=
-                            (piece_mask & get_king_mask(king_sq, 0, 0, clr.opp())).count();
                     }
 
                     if piece.is_queen() {
-                        self.eval.queen_diagonal[clr.idx()] |=
-                            get_bishop_mask(sq, own, enemy, *clr);
+                        self.eval.queen_diagonal[clr.idx()] |= get_bishop_mask(sq, own, enemy, clr);
                     }
 
-                    if !piece.is_king() && !piece.is_pawn() {
-                        self.eval.x_ray[piece.idx()] |= self.mobility_piece(sq, piece, *clr)
-                    }
-
-                    if piece.is_rook() {
-                        // OPEN AND SEMI-OPEN FILES
-                        if (self.pawn_bb(*clr) | self.pawn_bb(clr.opp()))
-                            & FILE_BITBOARD[get_file(sq)]
-                            == 0
-                        {
-                            self.eval.open_file[clr.idx()] |= Bitboard::init(sq);
-                            self.eval.semi_file[clr.idx()] |= Bitboard::init(sq);
-                        } else if self.pawn_bb(clr.opp()) & FILE_BITBOARD[get_file(sq)] == 0 {
-                            self.eval.semi_file[clr.idx()] |= Bitboard::init(sq);
-                        }
-                    }
-
-                    // if piece.is_king() {}
+                    // TODO: FIXME: This should be inside pawns
+                    // if piece.is_rook() {
+                    //     // OPEN AND SEMI-OPEN FILES
+                    //     if (self.pawn_bb(clr) | self.pawn_bb(clr.opp()))
+                    //         & FILE_BITBOARD[get_file(sq)]
+                    //         == 0
+                    //     {
+                    //         self.eval.open_file[clr.idx()].set_bit(sq);
+                    //         self.eval.semi_file[clr.idx()].set_bit(sq);
+                    //     } else if self.pawn_bb(clr.opp()) & FILE_BITBOARD[get_file(sq)] == 0 {
+                    //         self.eval.semi_file[clr.idx()].set_bit(sq);
+                    //     }
+                    // }
                 }
 
                 self.eval.king_att_weight[clr.idx()] +=
@@ -434,9 +430,9 @@ impl EvaluationTrait for Board {
     }
 
     fn king_init(&mut self) {
-        for clr in &COLORS {
-            self.eval.king_ring[clr.idx()] = self.king_ring(*clr);
-            self.check(*clr);
+        for clr in COLORS {
+            self.eval.king_ring[clr.idx()] = self.king_ring(clr);
+            self.check(clr);
         }
     }
 
@@ -666,7 +662,7 @@ impl EvaluationTrait for Board {
         self.space(WHITE);
         self.space(BLACK);
 
-        // 10. King
+        // // 10. King
         self.king_eval(WHITE);
         self.king_eval(BLACK);
 
@@ -686,9 +682,10 @@ impl EvaluationTrait for Board {
     //           1. MATERIAL EVALUATION               *
     // ************************************************
 
+    #[inline(always)]
     fn material_eval(&mut self, clr: Color) {
-        for pce in &PIECES {
-            let piece = *pce + clr;
+        for &pce in &PIECES {
+            let piece = pce + clr;
             let count = self.bb(piece).count() as isize;
             let (mg_sum, eg_sum) = self.piece_material(piece);
             self.sum(clr, None, Some(piece), (mg_sum * count, eg_sum * count));
@@ -697,8 +694,8 @@ impl EvaluationTrait for Board {
 
     fn non_pawn_material_eval(&mut self, clr: Color) -> isize {
         let mut score = 0;
-        for pce in &PIECES_WITHOUT_PAWN {
-            let piece = *pce + clr;
+        for &pce in &PIECES_WITHOUT_PAWN {
+            let piece = pce + clr;
             let count = self.bb(piece).count() as isize;
             score += self.piece_material(piece).0 * count;
         }
@@ -714,8 +711,8 @@ impl EvaluationTrait for Board {
     // ************************************************
 
     fn psqt_eval(&mut self, clr: Color) {
-        for pce in &PIECES {
-            let piece = *pce + clr;
+        for &pce in &PIECES {
+            let piece = pce + clr;
             let mut bb = self.bb(piece);
             while let Some(sq) = bb.next() {
                 let bonus = self.piece_psqt(piece, sq);
@@ -733,36 +730,56 @@ impl EvaluationTrait for Board {
     //            3. IMBALANCE EVALUATION             *
     // ************************************************
 
+    #[inline(always)]
     fn imbalance(&mut self, clr: Color) {
+        let ours: [isize; 6] = [
+            0,
+            self.pawn_bb(clr).count() as isize,
+            self.knight_bb(clr).count() as isize,
+            self.bishop_bb(clr).count() as isize,
+            self.rook_bb(clr).count() as isize,
+            self.queen_bb(clr).count() as isize,
+        ];
+        let theirs: [isize; 6] = [
+            0,
+            self.pawn_bb(clr.opp()).count() as isize,
+            self.knight_bb(clr.opp()).count() as isize,
+            self.bishop_bb(clr.opp()).count() as isize,
+            self.rook_bb(clr.opp()).count() as isize,
+            self.queen_bb(clr.opp()).count() as isize,
+        ];
         let mut bonus = 0;
+
+        let has_our_bishop_pair = has_bishop_pair(self.bishop_bb(clr));
+        let has_their_bishop_pair = has_bishop_pair(self.bishop_bb(clr.opp()));
+
         for pt1 in 0..6 {
-            let cnt = self.imb_piece_count(pt1, clr);
-            if cnt == 0 {
+            let cnt1 = ours[pt1];
+            if cnt1 == 0 {
                 continue;
             }
 
             let mut v = 0;
             for pt2 in 0..pt1 + 1 {
-                v += QUADRATIC_OURS[pt1][pt2] * self.imb_piece_count(pt2, clr);
-                v += QUADRATIC_THEIRS[pt1][pt2] * self.imb_piece_count(pt2, clr.opp());
+                v += QUADRATIC_OURS[pt1][pt2] * ours[pt2];
+                v += QUADRATIC_THEIRS[pt1][pt2] * theirs[pt2];
             }
 
-            if has_bishop_pair(self.bishop_bb(clr)) {
+            if has_our_bishop_pair {
                 v += QUADRATIC_OURS[pt1][0];
             }
-
-            if has_bishop_pair(self.bishop_bb(clr.opp())) {
+            if has_their_bishop_pair {
                 v += QUADRATIC_THEIRS[pt1][0];
             }
 
-            bonus += cnt * v;
+            bonus += cnt1 * v;
         }
 
         if has_bishop_pair(self.bishop_bb(clr)) {
             bonus += 1438;
         }
 
-        bonus = bonus / 16;
+        bonus /= 16;
         self.sum(clr, None, None, (bonus, bonus));
     }
 
@@ -2019,35 +2036,22 @@ impl EvaluationTrait for Board {
 
     fn check(&mut self, clr: Color) {
         let king_sq = self.king_sq(clr.opp());
-        let knight_checks = (self.eval.attacked_by[(KNIGHT + clr).idx()]
+        self.eval.checks[(KNIGHT + clr).idx()] = (self.eval.attacked_by[(KNIGHT + clr).idx()]
             | self.eval.defended_by[(KNIGHT + clr).idx()])
             & self.x_ray_mask(KNIGHT + clr.opp(), king_sq);
 
-        let bishop_checks = (self.eval.attacked_by[(BISHOP + clr).idx()]
+        self.eval.checks[(BISHOP + clr).idx()] = (self.eval.attacked_by[(BISHOP + clr).idx()]
             | self.eval.defended_by[(BISHOP + clr).idx()])
             & self.x_ray_mask(BISHOP + clr.opp(), king_sq);
 
-        let rook_checks = (self.eval.attacked_by[(ROOK + clr).idx()]
+        self.eval.checks[(ROOK + clr).idx()] = (self.eval.attacked_by[(ROOK + clr).idx()]
             | self.eval.defended_by[(ROOK + clr).idx()])
             & self.x_ray_mask(ROOK + clr.opp(), king_sq);
 
-        let queen_checks = (self.eval.attacked_by[(QUEEN + clr).idx()]
+        self.eval.checks[(QUEEN + clr).idx()] = (self.eval.attacked_by[(QUEEN + clr).idx()]
             | self.eval.defended_by[(QUEEN + clr).idx()])
             & self.x_ray_mask(QUEEN + clr.opp(), king_sq);
-
-        self.eval.checks[(KNIGHT + clr).idx()] = knight_checks;
-        self.eval.checks[(BISHOP + clr).idx()] = bishop_checks;
-        self.eval.checks[(ROOK + clr).idx()] = rook_checks;
-        self.eval.checks[(QUEEN + clr).idx()] = queen_checks;
     }
-    // fn king_pawn_distance(&mut self, clr: Color) {
-    //     todo!()
-    // }
-
-    // FIXME: DELETE
-    // fn shelter_storm(&mut self, clr: Color) {
-    //     todo!()
-    // }
 
     fn shelter(&mut self, clr: Color) -> (isize, isize, isize) {
         let king_sq = self.king_sq(clr.opp());
@@ -2485,9 +2489,9 @@ mod tests {
     #[test]
     fn material_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2510,9 +2514,9 @@ mod tests {
     #[test]
     fn psqt_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2534,9 +2538,9 @@ mod tests {
     #[test]
     fn imbalance_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2562,9 +2566,9 @@ mod tests {
     #[test]
     fn pawns_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2587,9 +2591,9 @@ mod tests {
     #[test]
     fn pieces_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2612,9 +2616,9 @@ mod tests {
     #[test]
     fn mobility_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2634,9 +2638,9 @@ mod tests {
     #[test]
     fn threats_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2659,9 +2663,9 @@ mod tests {
     #[test]
     fn passed_pawns_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2693,9 +2697,9 @@ mod tests {
     #[test]
     fn space_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2717,9 +2721,9 @@ mod tests {
     #[test]
     fn king_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
@@ -2743,21 +2747,21 @@ mod tests {
     #[test]
     fn tempo_test() {
         for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();
             board.tempo(board.color());
 
-            if board.calculate_score() != obj.tempo {
-                println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.tempo);
-            } else {
-                println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.tempo);
-                assert_eq!(board.calculate_score(), obj.tempo);
-            }
-            // assert_eq!(board.calculate_score(), obj.tempo);
+            // if board.calculate_score() != obj.tempo {
+            //     println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.tempo);
+            // } else {
+            //     println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.tempo);
+            //     assert_eq!(board.calculate_score(), obj.tempo);
+            // }
+            assert_eq!(board.calculate_score(), obj.tempo);
         }
     }
 

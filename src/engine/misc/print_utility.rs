@@ -6,6 +6,7 @@ use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::const_utility::*;
 use core::panic;
 use std::array;
+use std::isize;
 
 pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
     let chess_board: [String; 64] = array::from_fn(|idx| {
@@ -77,8 +78,8 @@ pub fn print_eval(chess_board: &[String; 64]) {
     println!();
 }
 
-pub fn print_move_list(moves: &[Move]) {
-    for (idx, mv) in moves.iter().enumerate() {
+pub fn print_move_list(moves: &[(Move, isize)]) {
+    for (idx, (mv, _)) in moves.iter().enumerate() {
         let promotion = match mv.flag {
             Flag::Promotion(piece, _) => Some(piece),
             _ => None,
@@ -146,7 +147,7 @@ pub fn from_move_notation(notation: &str, board: &mut Board) -> Move {
     let notation = notation.to_lowercase();
     let moves = board.gen_moves();
 
-    for rev in &moves {
+    for (rev, _) in &moves {
         let mv_notation =
             move_notation(rev.from, rev.to, rev.flag.get_promo_piece()).to_lowercase();
         if notation == mv_notation {

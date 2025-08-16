@@ -237,7 +237,7 @@ mod tests {
         println!("{:?}", board.state.key);
 
         let moves = board.gen_moves();
-        board.make_move(&moves[0]);
+        board.make_move(&moves[0].0);
         board.undo_move();
 
         assert_eq!(board.state.key, key, "Key should be same after undoing the move");
