@@ -38,17 +38,40 @@ impl SearchInfo {
     }
 }
 
+const MAX_PLY: usize = 64;
+
 #[derive(Debug)]
 pub struct Search {
     pub board: Board,
     pub uci: Arc<RwLock<NewUCI>>,
     pub info: SearchInfo,
+
+    pub pv_moves: [[Option<Move>; MAX_PLY]; MAX_PLY],
+    pub pv_len: [usize; MAX_PLY],
 }
 
 // Common Search Function
 impl Search {
     pub fn init(board: Board, uci: Arc<RwLock<NewUCI>>) -> Self {
-        Self { board, uci, info: SearchInfo::init() }
+        Self {
+            board,
+            uci,
+            info: SearchInfo::init(),
+            pv_moves: [[None; MAX_PLY]; MAX_PLY],
+            pv_len: [0; MAX_PLY],
+        }
+    }
+
+    #[inline(always)]
+    pub fn pv_clear(&mut self) {
+        self.pv_len.fill(0);
+        self.pv_moves.fill([None; MAX_PLY]);
+    }
+
+    #[inline(always)]
+    pub fn get_pv(&self) -> Vec<Move> {
+        let len = self.pv_len[0].min(MAX_PLY);
+        (0..len).filter_map(|i| self.pv_moves[0][i]).collect()
     }
 
     pub fn clear_search(&mut self) {
@@ -61,6 +84,7 @@ impl Search {
         self.info.curr_depth = 0;
 
         TT.write().unwrap().clear_stats();
+        self.pv_clear();
     }
 
     pub fn set_curr_depth(&mut self, depth: u8) {
@@ -113,23 +137,37 @@ impl Search {
             }
 
             // Adjust alpha and beta using aspiration window
-            (alpha, beta) = Self::aspiration_window(alpha, beta, score, depth);
+            // (alpha, beta) = Self::aspiration_window(alpha, beta, score, depth);
 
             // Get Best Line from current position and print info
 
-            let root_pv = TT.read().unwrap().get_line(&mut self.board);
-
-            if root_pv.len() > 0 {
-                best_mv = Some(root_pv[0].mv);
+            let pv_line = self.get_pv();
+            if !pv_line.is_empty() {
+                best_mv = Some(pv_line[0]);
             }
 
-            self.board.s_pv.fill(None);
-            for idx in 0..root_pv.len() {
-                self.board.s_pv[idx] = Some(root_pv[idx].key);
-            }
+            // if depth == 1 || depth == 2 || depth == 7 {
+            //     println!("Line: {:?}", pv_line);
+            //     println!("PV 0: {:?}", self.pv_moves[0]);
+            //     println!("PV 1: {:?}", self.pv_moves[1]);
 
-            let mv_list = root_pv.iter().map(|x| x.mv).collect::<Vec<_>>();
-            self.print_info(score, get_move_list(&mv_list, self.info.curr_depth));
+            //     // Print the principal variation (PV) for the current depth
+            //     println!("PV LEN 0: {:?}", self.pv_len[0]);
+            //     println!("PV LEN 1: {:?}", self.pv_len[1]);
+            // }
+            // let root_pv = TT.read().unwrap().get_line(&mut self.board);
+
+            // if root_pv.len() > 0 {
+            //     best_mv = Some(root_pv[0].mv);
+            // }
+
+            // self.board.s_pv.fill(None);
+            // for idx in 0..root_pv.len() {
+            //     self.board.s_pv[idx] = Some(root_pv[idx].key);
+            // }
+
+            // let mv_list = root_pv.iter().map(|x| x.mv).collect::<Vec<_>>();
+            self.print_info(score, get_move_list(&pv_line, self.info.curr_depth));
             self.print_ordering_info();
             // search.tt.lock().unwrap().print_stats();
         }
@@ -162,8 +200,11 @@ mod tests {
     //     let uci = Arc::new(RwLock::new(NewUCI::init()));
     //     uci.write().unwrap().max_depth = 6;
     //     // let board = Board::read_fen("2kr3r/pppq1pp1/3np2p/8/2pP4/4P2P/PP1N1PP1/2RQK2R b K - 1 13");
-    //     let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
+    //     // let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
+    //     // let board =
+    //     // Board::read_fen("2r1r3/ppqn1kp1/3b1n1p/3P1b2/Q2Pp1P1/7P/PP1N1PB1/R1B1R1K1 b - - 0 0");
     //     // let board = Board::read_fen("5rk1/ppq3pp/2p1rn2/4p1Q1/8/2N4P/PP4P1/2KRR3 w - - 0 3");
+    //     let board = Board::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     //     let mut search = Search::init(board, uci);
 
     //     let mv = search.iterative_deepening();
