@@ -9,6 +9,8 @@ const BIG_DELTA: isize = 900;
 
 impl Search {
     pub fn quiescence_search(&mut self, mut alpha: isize, beta: isize) -> isize {
+        self.info.nodes += 1;
+
         let eval = self.board.evaluation();
 
         if self.board.ply() > 63 {
@@ -22,8 +24,6 @@ impl Search {
             alpha = eval;
         }
 
-        self.info.nodes += 1;
-
         // NOTE: DELTA PRUNING
         if eval < alpha - BIG_DELTA {
             return alpha;
@@ -36,6 +36,8 @@ impl Search {
         // }
 
         let mut pos_rev = self.board.gen_captures();
+        // let ply = self.board.ply();
+        // self.pv_len[ply] = ply;
 
         while let Some(rev) = next_move(&mut pos_rev) {
             if (self.info.nodes & 2047) == 0 && time_over(&self) {
@@ -50,9 +52,14 @@ impl Search {
 
             if score > alpha {
                 if score >= beta {
-                    return score;
+                    return beta;
                 }
                 alpha = score;
+                // self.pv_moves[ply][ply] = Some(rev);
+                // for j in (ply + 1)..self.pv_len[ply + 1] {
+                //     self.pv_moves[ply][j] = self.pv_moves[ply + 1][j];
+                // }
+                // self.pv_len[ply] = self.pv_len[ply + 1];
             }
         }
 

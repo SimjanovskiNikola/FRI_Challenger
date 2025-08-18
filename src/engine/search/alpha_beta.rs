@@ -24,8 +24,6 @@ impl Search {
             return self.quiescence_search(alpha, beta);
         }
 
-        self.info.nodes += 1;
-
         // Check if the position happened before or is draw
         // TODO: There is some bug regarding repetition
         if self.board.state.half_move >= 100 || self.board.is_repetition() {
@@ -48,6 +46,7 @@ impl Search {
         {
             return score as isize;
         }
+        self.info.nodes += 1;
 
         let mut best_mv = None;
         let mut best_score = alpha;
@@ -55,9 +54,12 @@ impl Search {
         let old_alpha: isize = alpha;
 
         let mut moves = self.board.gen_moves();
+        let ply = self.board.ply();
+
+        self.pv_len[ply] = 0;
 
         while let Some(mv) = next_move(&mut moves) {
-            // Check Time every 2027 Nodes
+            // Check Time every 2047 Nodes
             if (self.info.nodes & 2047) == 0 && time_over(&self) {
                 return 0;
             }
@@ -87,12 +89,19 @@ impl Search {
                         Bound::Upper,
                     );
                     self.info.fail_hard += 1; // NOTE: ORDERING INFO
-                    return score;
+                    return beta;
                 }
 
                 alpha = score;
                 best_score = score;
                 best_mv = Some(mv);
+
+                self.pv_moves[ply][0] = Some(mv);
+                let child_len = self.pv_len.get(ply + 1).copied().unwrap_or(0);
+                for i in 0..child_len {
+                    self.pv_moves[ply][i + 1] = self.pv_moves[ply + 1][i];
+                }
+                self.pv_len[ply] = child_len + 1;
 
                 if !mv.flag.is_capture() {
                     self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as u64;

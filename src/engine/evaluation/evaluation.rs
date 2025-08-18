@@ -2779,10 +2779,12 @@ mod tests {
             }
         }
     }
+
     // #[test]
     // fn eval_random_test() {
     //     // let mut board = Board::read_fen("5rk1/ppq3pp/2p1rn2/4p1Q1/8/2N4P/PP4P1/2KRR3 w - - 0 3");
-    //     let mut board = Board::read_fen("r7/ppqP2kp/2p5/4p3/8/2N5/PP4PP/2K2r2 w - - 0 4");
+    //     let mut board =
+    //         Board::read_fen("rnbqkbnr/pppp1ppp/4p3/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
     //     assert_eq!(93, board.evaluation())
     // }
 }
