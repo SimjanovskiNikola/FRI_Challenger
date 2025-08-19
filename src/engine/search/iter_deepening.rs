@@ -23,6 +23,11 @@ pub struct SearchInfo {
 
     pub fail_hard: usize,
     pub fail_hard_first: usize,
+
+    pub beta_cut_count: [usize; 64],
+    pub beta_cut_index_sum: [usize; 64],
+    pub alpha_raise_count: [usize; 64],
+    pub alpha_raise_index_sum: [usize; 64],
 }
 
 impl SearchInfo {
@@ -34,44 +39,25 @@ impl SearchInfo {
             nodes: 0,
             fail_hard: 0,
             fail_hard_first: 0,
+            beta_cut_count: [0; 64],
+            beta_cut_index_sum: [0; 64],
+            alpha_raise_count: [0; 64],
+            alpha_raise_index_sum: [0; 64],
         }
     }
 }
-
-const MAX_PLY: usize = 64;
 
 #[derive(Debug)]
 pub struct Search {
     pub board: Board,
     pub uci: Arc<RwLock<NewUCI>>,
     pub info: SearchInfo,
-
-    pub pv_moves: [[Option<Move>; MAX_PLY]; MAX_PLY],
-    pub pv_len: [usize; MAX_PLY],
 }
 
 // Common Search Function
 impl Search {
     pub fn init(board: Board, uci: Arc<RwLock<NewUCI>>) -> Self {
-        Self {
-            board,
-            uci,
-            info: SearchInfo::init(),
-            pv_moves: [[None; MAX_PLY]; MAX_PLY],
-            pv_len: [0; MAX_PLY],
-        }
-    }
-
-    #[inline(always)]
-    pub fn pv_clear(&mut self) {
-        self.pv_len.fill(0);
-        self.pv_moves.fill([None; MAX_PLY]);
-    }
-
-    #[inline(always)]
-    pub fn get_pv(&self) -> Vec<Move> {
-        let len = self.pv_len[0].min(MAX_PLY);
-        (0..len).filter_map(|i| self.pv_moves[0][i]).collect()
+        Self { board, uci, info: SearchInfo::init() }
     }
 
     pub fn clear_search(&mut self) {
@@ -84,7 +70,7 @@ impl Search {
         self.info.curr_depth = 0;
 
         TT.write().unwrap().clear_stats();
-        self.pv_clear();
+        self.board.pv_clear();
     }
 
     pub fn set_curr_depth(&mut self, depth: u8) {
@@ -106,10 +92,17 @@ impl Search {
         );
     }
 
-    pub fn print_ordering_info(&self) {
+    pub fn print_ordering_info(&self, depth: u8) {
+        let avg_beta_idx = self.info.beta_cut_index_sum[depth as usize] as f64
+            / (self.info.beta_cut_count[depth as usize] + 1) as f64;
+
+        let avg_alpha_idx = self.info.alpha_raise_index_sum[depth as usize] as f64
+            / (self.info.alpha_raise_count[depth as usize] + 1) as f64;
+
+        let fhf = self.info.fail_hard_first as f64 / (self.info.fail_hard + 1) as f64;
         println!(
-            "Ordering: {:.4}",
-            ((self.info.fail_hard_first) as f64 / (self.info.fail_hard + 1) as f64)
+            "Depth: {:?}, Avg Beta Index: {:.4}, Avg Alpha Index: {:.4}, Fail Hard First: {:.4}",
+            depth, avg_beta_idx, avg_alpha_idx, fhf
         );
     }
 }
@@ -141,7 +134,7 @@ impl Search {
 
             // Get Best Line from current position and print info
 
-            let pv_line = self.get_pv();
+            let pv_line = self.board.get_pv();
             if !pv_line.is_empty() {
                 best_mv = Some(pv_line[0]);
             }
@@ -168,7 +161,7 @@ impl Search {
 
             // let mv_list = root_pv.iter().map(|x| x.mv).collect::<Vec<_>>();
             self.print_info(score, get_move_list(&pv_line, self.info.curr_depth));
-            self.print_ordering_info();
+            self.print_ordering_info(depth);
             // search.tt.lock().unwrap().print_stats();
         }
 
