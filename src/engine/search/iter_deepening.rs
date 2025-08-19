@@ -2,7 +2,6 @@ use super::transposition_table::TTTable;
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::moves::Move;
 use crate::engine::misc::print_utility::get_move_list;
-use crate::engine::misc::print_utility::get_pv_move_list;
 use crate::engine::protocols::time::safe_to_start_next_iter;
 use crate::engine::protocols::time::time_over;
 use crate::engine::protocols::uci::NewUCI;
@@ -129,51 +128,18 @@ impl Search {
                 break;
             }
 
-            // Adjust alpha and beta using aspiration window
-            // (alpha, beta) = Self::aspiration_window(alpha, beta, score, depth);
-
             // Get Best Line from current position and print info
-
             let pv_line = self.board.get_pv();
             if !pv_line.is_empty() {
                 best_mv = Some(pv_line[0]);
             }
 
-            // if depth == 1 || depth == 2 || depth == 7 {
-            //     println!("Line: {:?}", pv_line);
-            //     println!("PV 0: {:?}", self.pv_moves[0]);
-            //     println!("PV 1: {:?}", self.pv_moves[1]);
-
-            //     // Print the principal variation (PV) for the current depth
-            //     println!("PV LEN 0: {:?}", self.pv_len[0]);
-            //     println!("PV LEN 1: {:?}", self.pv_len[1]);
-            // }
-            // let root_pv = TT.read().unwrap().get_line(&mut self.board);
-
-            // if root_pv.len() > 0 {
-            //     best_mv = Some(root_pv[0].mv);
-            // }
-
-            // self.board.s_pv.fill(None);
-            // for idx in 0..root_pv.len() {
-            //     self.board.s_pv[idx] = Some(root_pv[idx].key);
-            // }
-
-            // let mv_list = root_pv.iter().map(|x| x.mv).collect::<Vec<_>>();
             self.print_info(score, get_move_list(&pv_line, self.info.curr_depth));
             self.print_ordering_info(depth);
             // search.tt.lock().unwrap().print_stats();
         }
 
         best_mv
-    }
-
-    pub fn aspiration_window(alpha: isize, beta: isize, score: isize, depth: u8) -> (isize, isize) {
-        match depth < MIN_ASP_WINDOW_DEPTH || (score <= alpha) || (score >= beta) {
-            true => (MIN_INF, MAX_INF),
-            false => (score - 30, score + 30),
-        }
-        // (MIN_INF, MAX_INF)
     }
 }
 
@@ -184,6 +150,20 @@ mod tests {
     use crate::engine::board::fen::FenTrait;
 
     use super::*;
+
+    #[test]
+    fn test_search() {
+        let depth = 6;
+        let uci = Arc::new(RwLock::new(NewUCI::init()));
+        uci.write().unwrap().max_depth = depth;
+        let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
+        let mut search = Search::init(board, uci);
+
+        search.iterative_deepening();
+        let pv_line = get_move_list(&search.board.get_pv(), depth);
+        assert_eq!(pv_line, " f1f6 f8f6 d1d7 f6g6 g5e7 c7a5");
+        // NOTE: Best Continuation after g5e7: c7c8 or c7b8
+    }
 
     // NOTE: Uncomment In Cargo.toml the pprof to see the performance.
     // #[test]
