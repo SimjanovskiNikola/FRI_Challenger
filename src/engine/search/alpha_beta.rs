@@ -56,7 +56,7 @@ impl Search {
         let mut moves = self.board.gen_moves();
         let ply = self.board.ply();
 
-        self.pv_len[ply] = 0;
+        self.board.pv_len[ply] = 0;
 
         while let Some(mv) = next_move(&mut moves) {
             // Check Time every 2047 Nodes
@@ -72,7 +72,13 @@ impl Search {
             self.board.undo_move();
 
             if score > alpha {
+                self.info.alpha_raise_count[depth as usize] += 1;
+                self.info.alpha_raise_index_sum[depth as usize] += legal_mv_num;
+
                 if score >= beta {
+                    // TODO: Implement Function for this
+                    self.info.beta_cut_count[depth as usize] += 1;
+                    self.info.beta_cut_index_sum[depth as usize] += legal_mv_num;
                     if legal_mv_num == 1 {
                         self.info.fail_hard_first += 1; // NOTE: ORDERING INFO
                     }
@@ -81,13 +87,13 @@ impl Search {
                             self.board.s_killers[self.board.ply()][1];
                         self.board.s_killers[self.board.ply()][1] = Some(mv);
                     }
-                    TT.write().unwrap().set(
-                        self.board.state.key,
-                        mv,
-                        score as i16,
-                        depth,
-                        Bound::Upper,
-                    );
+                    // TT.write().unwrap().set(
+                    //     self.board.state.key,
+                    //     mv,
+                    //     score as i16,
+                    //     depth,
+                    //     Bound::Upper,
+                    // );
                     self.info.fail_hard += 1; // NOTE: ORDERING INFO
                     return beta;
                 }
@@ -96,12 +102,13 @@ impl Search {
                 best_score = score;
                 best_mv = Some(mv);
 
-                self.pv_moves[ply][0] = Some(mv);
-                let child_len = self.pv_len.get(ply + 1).copied().unwrap_or(0);
+                // TODO: Create Function for this
+                self.board.pv_moves[ply][0] = Some(mv);
+                let child_len = self.board.pv_len.get(ply + 1).copied().unwrap_or(0);
                 for i in 0..child_len {
-                    self.pv_moves[ply][i + 1] = self.pv_moves[ply + 1][i];
+                    self.board.pv_moves[ply][i + 1] = self.board.pv_moves[ply + 1][i];
                 }
-                self.pv_len[ply] = child_len + 1;
+                self.board.pv_len[ply] = child_len + 1;
 
                 if !mv.flag.is_capture() {
                     self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as u64;
@@ -117,10 +124,10 @@ impl Search {
             };
         }
 
-        if let Some(mv) = best_mv {
-            let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
-            TT.write().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
-        }
+        // if let Some(mv) = best_mv {
+        //     let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
+        //     TT.write().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
+        // }
 
         alpha
     }

@@ -382,18 +382,13 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn quiet_eval(&mut self, mv: &Move) -> isize {
-        if self.make_move(mv) {
-            let key = self.key();
-            self.undo_move();
-
-            if matches!(self.s_pv[self.ply()], Some(k) if k == key) {
-                return PV_MV_SCORE;
-            }
-
-            // if let Some(_) = TT.read().unwrap().get(key) {
-            //     return 92500;
-            // }
+        if matches!(self.pv_moves[0][self.ply()], Some(pv_mv) if *mv == pv_mv) {
+            return PV_MV_SCORE;
         }
+
+        // if matches!(self.tt_mv, Some(tt_mv) if *mv == tt_mv.mv) {
+        //     return TT_MV_SCORE;
+        // }
 
         if matches!(self.s_killers[self.ply()][0], Some(x) if x == *mv) {
             return KILLER_MV_SCORE[0];
@@ -406,18 +401,13 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn capture_eval(&mut self, mv: &Move) -> isize {
-        if self.make_move(mv) {
-            let key = self.key();
-            self.undo_move();
-
-            if matches!(self.s_pv[self.ply()], Some(k) if k == key) {
-                return PV_MV_SCORE;
-            }
-
-            // if let Some(_) = TT.read().unwrap().get(key) {
-            //     return 92500;
-            // }
+        if matches!(self.pv_moves[0][self.ply()], Some(pv_mv) if *mv == pv_mv) {
+            return PV_MV_SCORE;
         }
+
+        // if matches!(self.tt_mv, Some(tt_mv) if *mv == tt_mv.mv) {
+        //     return TT_MV_SCORE;
+        // }
 
         let see = self.see(mv.from as usize, mv.to as usize);
         if see >= 0 {

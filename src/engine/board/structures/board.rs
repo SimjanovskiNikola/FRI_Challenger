@@ -11,6 +11,7 @@ use crate::engine::{
     board::fen::FenTrait,
     misc::{bitboard::Bitboard, const_utility::FEN_START},
 };
+const MAX_PLY: usize = 64;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Board {
@@ -23,11 +24,12 @@ pub struct Board {
     pub history: Vec<BoardState>,
     pub state: BoardState,
 
-    // TODO: Add This to Move Gen Struct
+    // TODO: Add This to Move Ordering Structure
     pub tt_mv: Option<TTEntry>,
     pub s_history: [[u64; 64]; 14],
     pub s_killers: [[Option<Move>; 2]; 64],
-    pub s_pv: [Option<u64>; 64],
+    pub pv_moves: [[Option<Move>; MAX_PLY]; MAX_PLY],
+    pub pv_len: [usize; MAX_PLY],
     pub gen_moves: Vec<(Move, isize)>,
 
     pub eval: Evaluation,
@@ -48,10 +50,13 @@ impl Board {
             history: Vec::with_capacity(1024),
             state: BoardState::init(),
 
+            // Move Ordering
             tt_mv: None,
             s_history: [[0u64; 64]; 14],
             s_killers: [[None; 2]; 64],
-            s_pv: [None; 64],
+            pv_moves: [[None; 64]; 64],
+            pv_len: [0; 64],
+
             gen_moves: Vec::with_capacity(256),
 
             eval: Evaluation::init(),
@@ -68,10 +73,22 @@ impl Board {
         self.tt_mv = None;
         self.s_history = [[0u64; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
-        self.s_pv = [None; 64];
+                                          // self.s_pv = [None; 64];
         self.gen_moves.clear();
 
         self.eval.reset();
+    }
+
+    #[inline(always)]
+    pub fn pv_clear(&mut self) {
+        self.pv_len.fill(0);
+        self.pv_moves.fill([None; MAX_PLY]);
+    }
+
+    #[inline(always)]
+    pub fn get_pv(&self) -> Vec<Move> {
+        let len = self.pv_len[0].min(MAX_PLY);
+        (0..len).filter_map(|i| self.pv_moves[0][i]).collect()
     }
 
     #[inline(always)]
@@ -182,6 +199,7 @@ impl Board {
         }
     }
 
+    // FIXME: IS THIS REALLY NEEDED HERE ??????????
     #[inline(always)]
     pub fn is_repetition(board: &Board) -> bool {
         let his_len = board.history.len();
@@ -197,12 +215,14 @@ impl Board {
         false
     }
 
+    // FIXME: IS THIS REALLY NEEDED AND USED SOMEWHERE ???????
     #[inline(always)]
     pub fn get_killer(&self, idx: usize) -> Option<Move> {
         assert!(idx == 0 || idx == 1, "Index is nor 0 nor 1: {idx}");
         self.s_killers[self.ply()][idx]
     }
 
+    // FIXME: Is this really needed here ?
     #[inline(always)]
     pub fn mirror(&mut self) {
         for idx in 0..(self.squares.len() / 2) {

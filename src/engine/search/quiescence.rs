@@ -25,9 +25,9 @@ impl Search {
         }
 
         // NOTE: DELTA PRUNING
-        if eval < alpha - BIG_DELTA {
-            return alpha;
-        }
+        // if eval < alpha - BIG_DELTA {
+        //     return alpha;
+        // }
 
         // if let Some((score, _)) =
         //     TT.read().unwrap().probe(self.board.state.key, 0, alpha as i16, beta as i16)
@@ -37,7 +37,7 @@ impl Search {
 
         let mut pos_rev = self.board.gen_captures();
         // let ply = self.board.ply();
-        // self.pv_len[ply] = ply;
+        // self.board.pv_len[ply] = ply;
 
         while let Some(rev) = next_move(&mut pos_rev) {
             if (self.info.nodes & 2047) == 0 && time_over(&self) {
@@ -55,11 +55,11 @@ impl Search {
                     return beta;
                 }
                 alpha = score;
-                // self.pv_moves[ply][ply] = Some(rev);
-                // for j in (ply + 1)..self.pv_len[ply + 1] {
-                //     self.pv_moves[ply][j] = self.pv_moves[ply + 1][j];
+                // self.board.pv_moves[ply][ply] = Some(rev);
+                // for j in (ply + 1)..self.board.pv_len[ply + 1] {
+                //     self.board.pv_moves[ply][j] = self.board.pv_moves[ply + 1][j];
                 // }
-                // self.pv_len[ply] = self.pv_len[ply + 1];
+                // self.board.pv_len[ply] = self.board.pv_len[ply + 1];
             }
         }
 
