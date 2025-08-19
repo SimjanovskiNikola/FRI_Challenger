@@ -18,6 +18,13 @@ impl Flag {
         }
     }
 
+    pub fn is_promo(&self) -> bool {
+        match *self {
+            Flag::Promotion(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn get_promo_piece(&self) -> Option<Piece> {
         match *self {
             Flag::Promotion(piece, _) => Some(piece),

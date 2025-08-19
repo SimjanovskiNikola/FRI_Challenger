@@ -92,6 +92,8 @@ pub fn print_move_list(moves: &[(Move, isize)]) {
 pub fn get_move_list(moves: &[Move], depth: u8) -> String {
     let mut move_list_resp: String = String::new();
     for (idx, mv) in moves.iter().enumerate() {
+        // FIXME: When refactoring decide if this should be removed
+        // NOTE: By Doing that you enable PV also from quiescence search
         if idx >= depth as usize {
             break;
         }

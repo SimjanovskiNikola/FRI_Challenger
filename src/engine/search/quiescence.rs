@@ -5,7 +5,7 @@ use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::protocols::time::time_over;
 use crate::engine::search::transposition_table::TT;
 
-const BIG_DELTA: isize = 900;
+const BIG_DELTA: isize = 1800;
 
 impl Search {
     pub fn quiescence_search(&mut self, mut alpha: isize, beta: isize) -> isize {
@@ -24,10 +24,17 @@ impl Search {
             alpha = eval;
         }
 
+        // NOTE: Add + 2400 if there is a optimistic promotion + capturing queen
+        let mut delta = 2600;
+        if matches!(self.board.moves.last(), Some(mv) if mv.flag.is_promo()) {
+            delta += 2400;
+        }
+
+        // FIXME: NOTE: Note tested yet
         // NOTE: DELTA PRUNING
-        // if eval < alpha - BIG_DELTA {
-        //     return alpha;
-        // }
+        if eval < alpha - delta {
+            return alpha;
+        }
 
         // if let Some((score, _)) =
         //     TT.read().unwrap().probe(self.board.state.key, 0, alpha as i16, beta as i16)
