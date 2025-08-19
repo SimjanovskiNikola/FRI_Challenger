@@ -153,13 +153,14 @@ mod tests {
 
     #[test]
     fn test_search() {
+        let depth = 6;
         let uci = Arc::new(RwLock::new(NewUCI::init()));
-        uci.write().unwrap().max_depth = 6;
+        uci.write().unwrap().max_depth = depth;
         let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
         let mut search = Search::init(board, uci);
 
         search.iterative_deepening();
-        let pv_line = get_move_list(&search.board.get_pv(), 0);
+        let pv_line = get_move_list(&search.board.get_pv(), depth);
         assert_eq!(pv_line, " f1f6 f8f6 d1d7 f6g6 g5e7 c7a5");
         // NOTE: Best Continuation after g5e7: c7c8 or c7b8
     }
