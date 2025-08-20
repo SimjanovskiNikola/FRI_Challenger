@@ -11,6 +11,7 @@ use super::structures::piece;
 use super::structures::piece::*;
 use super::structures::square::get_rank;
 use super::structures::square::SqPos::*;
+use crate::engine::board::structures::state;
 use crate::engine::evaluation::eval_defs::CLR_SQ;
 use crate::engine::evaluation::eval_defs::PSQT;
 use crate::engine::misc::bit_pos_utility::*;
@@ -514,14 +515,15 @@ impl BoardGenMoveTrait for Board {
 
     #[inline(always)]
     fn is_repetition(&self) -> bool {
-        // let his_len = self.history.len();
-        // let half_move = self.half_move();
-        // assert!(his_len >= half_move as usize, "It is Negative {:?} {:?}", his_len, half_move);
-        // for i in (his_len - half_move as usize)..his_len {
-        //     if self.history[i].key == self.key() {
-        //         return true;
-        //     }
-        // }
+        let his_len = self.history.len();
+        let half_move = self.half_move();
+        let start = his_len.abs_diff(half_move as usize);
+        let end = his_len.min(0);
+        for i in start..end {
+            if self.history[i].key == self.key() {
+                return true;
+            }
+        }
 
         false
     }

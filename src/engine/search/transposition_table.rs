@@ -8,7 +8,7 @@ use std::sync::{atomic::AtomicU64, Mutex, RwLock};
 
 pub static TT: Lazy<RwLock<TTTable>> = Lazy::new(|| RwLock::new(TTTable::init()));
 
-const MAX_TT_ENTRIES: usize = 140211;
+const MAX_TT_ENTRIES: usize = 1040211;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Bound {
@@ -67,20 +67,15 @@ impl TTTable {
 
         if let Some(entry) = self.table[Self::idx(key)] {
             self.collisions += 1;
-            if entry.age < self.curr_age || entry.depth < depth {
+            if (entry.age < self.curr_age) || (entry.depth <= depth) {
                 self.table[Self::idx(key)] =
                     Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
-            } else {
-                // println!(
-                //     "Curr Pos: {:?}, Age: {:?}, Depth: {:?}",
-                //     entry.key, entry.age, entry.depth
-                // );
-                // println!(" New Pos: {:?}, Age: {:?}, Depth: {:?}", key, self.curr_age, depth);
             }
-        } else {
-            self.table[Self::idx(key)] =
-                Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
+            return;
         }
+
+        self.table[Self::idx(key)] =
+            Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
     }
 
     pub fn probe(&self, key: u64, depth: u8, mut alpha: i16, mut beta: i16) -> Option<(i16, Move)> {
