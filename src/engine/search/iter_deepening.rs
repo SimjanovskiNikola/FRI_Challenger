@@ -1,16 +1,14 @@
-use super::transposition_table::TTTable;
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::moves::Move;
 use crate::engine::misc::display::display_moves::get_move_list;
+use crate::engine::misc::display::display_stats::DisplayStatsTrait;
 use crate::engine::protocols::time::safe_to_start_next_iter;
 use crate::engine::protocols::time::time_over;
 use crate::engine::protocols::uci::NewUCI;
 use crate::engine::search::transposition_table::TT;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::RwLock;
 
-const MIN_ASP_WINDOW_DEPTH: u8 = 6;
 const MAX_INF: isize = isize::MAX / 2;
 const MIN_INF: isize = isize::MIN / 2;
 
@@ -62,8 +60,7 @@ impl Search {
     pub fn clear_search(&mut self) {
         self.board.s_killers.iter_mut().for_each(|arr| arr.fill(None));
         self.board.s_history.iter_mut().for_each(|arr| arr.fill(0));
-        // game.info.start_time = Instant::now();
-        // game.info.stopped = false;
+
         self.info.nodes = 0;
         self.info.curr_key = self.board.state.key;
         self.info.curr_depth = 0;
@@ -75,35 +72,6 @@ impl Search {
     pub fn set_curr_depth(&mut self, depth: u8) {
         self.info.curr_depth = depth;
     }
-
-    pub fn print_info(&self, score: isize, line: String) {
-        let time = self.uci.read().unwrap().start_time.elapsed().as_millis();
-        println!(
-            "info depth {} nodes {} time {} score cp {} pv{}",
-            self.info.curr_depth, self.info.nodes, time, score, line
-        );
-    }
-
-    pub fn print_pruning_info(&self, score: isize) {
-        println!(
-            "Fail Hard First: {:?}, Fail Hard: {:?}",
-            self.info.fail_hard_first, self.info.fail_hard
-        );
-    }
-
-    pub fn print_ordering_info(&self, depth: u8) {
-        let avg_beta_idx = self.info.beta_cut_index_sum[depth as usize] as f64
-            / (self.info.beta_cut_count[depth as usize] + 1) as f64;
-
-        let avg_alpha_idx = self.info.alpha_raise_index_sum[depth as usize] as f64
-            / (self.info.alpha_raise_count[depth as usize] + 1) as f64;
-
-        let fhf = self.info.fail_hard_first as f64 / (self.info.fail_hard + 1) as f64;
-        println!(
-            "Depth: {:?}, Avg Beta Index: {:.4}, Avg Alpha Index: {:.4}, Fail Hard First: {:.4}",
-            depth, avg_beta_idx, avg_alpha_idx, fhf
-        );
-    }
 }
 
 // Iterative Deepening
@@ -112,8 +80,8 @@ impl Search {
         self.clear_search();
 
         let max_depth = self.uci.read().unwrap().max_depth;
-        let mut alpha = MIN_INF;
-        let mut beta = MAX_INF;
+        let alpha = MIN_INF;
+        let beta = MAX_INF;
         let mut best_mv = None;
 
         for depth in 1..max_depth + 1 {
