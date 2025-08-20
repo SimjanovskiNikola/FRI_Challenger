@@ -119,18 +119,60 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn test_search() {
-        let depth = 6;
+    fn test_search(fen: &str, depth: u8, expected_pv: &str) {
         let uci = Arc::new(RwLock::new(NewUCI::init()));
         uci.write().unwrap().max_depth = depth;
-        let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
+        let board = Board::read_fen(fen);
         let mut search = Search::init(board, uci);
 
         search.iterative_deepening();
         let pv_line = get_move_list(&search.board.get_pv(), depth);
-        assert_eq!(pv_line, " f1f6 f8f6 d1d7 f6g6 g5e7 c7a5");
+        assert_eq!(pv_line, expected_pv);
+    }
+
+    #[test]
+    fn test_iter_deep_passed_pawn() {
+        let depth = 6;
+        let fen = "r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1";
+        let expected_pv = " f1f6 f8f6 d1d7 f6g6 g5e7 c7a5";
         // NOTE: Best Continuation after g5e7: c7c8 or c7b8
+        test_search(fen, depth, expected_pv);
+    }
+
+    #[test]
+    fn test_iter_deep_exchange() {
+        let depth = 7;
+        let fen = "8/2P1P3/b1B2p2/1pPRp3/2k3P1/P4pK1/nP3p1p/N7 w - - 0 1";
+        // NOTE: Best Continuation after h2h1n: b5b4 or c3b2
+        // let expected_pv = " b2b3 c4c3 d5d1 f2f1q d1f1 h2h1n"; // Depth 6
+        let expected_pv = " d5d1 a2c3 b2c3 h2h1q d1h1"; // Depth 7
+        test_search(fen, depth, expected_pv);
+    }
+
+    // NOTE: FIXME: Engine should look deeper before uncommenting the test
+    // #[test]
+    // fn test_iter_deep_fortress() {
+    //     let depth = 8;
+    //     let fen = "8/8/8/8/4kp2/1R6/P2q1PPK/8 w - - 0 1";
+    //     let expected_pv = " b2b3 c4c3 d5d1 f2f1q d1f1 h2h1n";
+    //     // NOTE: Best Continuation after h2h1n: b5b4 or c3b2
+    //     test_search(fen, depth, expected_pv);
+    // }
+
+    #[test]
+    fn test_iter_deep_fortress() {
+        let depth = 6;
+        let fen = "1r4k1/1nq3pp/pp1pp1r1/8/PPP2P2/6P1/5N1P/2RQR1K1 w - - 0 1";
+        let expected_pv = " f4f5 e6f5 d1d5 c7f7 e1e7 f7d5";
+        test_search(fen, depth, expected_pv);
+    }
+
+    #[test]
+    fn test_iter_deep_queen_sac() {
+        let depth = 6;
+        let fen = "2k2Br1/p6b/Pq1r4/1p2p1b1/1Ppp2p1/Q1P3N1/5RPP/R3N1K1 b - - 0 1";
+        let expected_pv = " g5e3 f8d6 e3f2 g1f2 b6d6 f2g1";
+        test_search(fen, depth, expected_pv);
     }
 
     // NOTE: Uncomment In Cargo.toml the pprof to see the performance.
