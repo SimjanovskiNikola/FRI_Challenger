@@ -265,7 +265,6 @@ mod tests {
     use crate::engine::misc::const_utility::{
         FEN_CASTLE_ONE, FEN_MATE_IN_5, FEN_POS_FIVE, FEN_POS_FOUR, FEN_POS_THREE,
     };
-    use crate::engine::misc::print_utility::{print_bitboard, print_chess};
 
     #[test]
     fn test_reset_board() {

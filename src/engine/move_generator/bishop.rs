@@ -1,5 +1,4 @@
 use crate::engine::board::structures::color::Color;
-use crate::engine::misc::print_utility::print_bitboard;
 
 use super::generated::bishop::{BISHOP_BASE, BISHOP_LOOKUP, BISHOP_MASKS};
 use super::utility::pext;

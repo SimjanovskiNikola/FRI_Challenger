@@ -29,7 +29,7 @@ pub fn blocked_ray_att(dir: Dir, ray_family: &[u64; 64], ray: u64, own: u64, ene
 mod tests {
     use crate::engine::misc::bit_pos_utility::*;
     use crate::engine::misc::bitboard::BitboardTrait;
-    use crate::engine::misc::print_utility::print_bitboard;
+    use crate::engine::misc::display::display_board::print_bitboard;
     use crate::engine::move_generator::generated::rays::RAYS_LOOKUP;
 
     use super::*;

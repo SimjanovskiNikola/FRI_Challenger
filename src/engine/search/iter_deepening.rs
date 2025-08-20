@@ -1,7 +1,7 @@
 use super::transposition_table::TTTable;
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::moves::Move;
-use crate::engine::misc::print_utility::get_move_list;
+use crate::engine::misc::display::display_moves::get_move_list;
 use crate::engine::protocols::time::safe_to_start_next_iter;
 use crate::engine::protocols::time::time_over;
 use crate::engine::protocols::uci::NewUCI;
