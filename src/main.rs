@@ -10,7 +10,6 @@ use crate::engine::{
         },
     },
     evaluation::evaluation::EvaluationTrait,
-    misc::print_utility::print_bitboard,
     move_generator::{
         bishop::{has_bishop_pair, BLACK_SQUARES, WHITE_SQUARES},
         generated::king::KING_RING,

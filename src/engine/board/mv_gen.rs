@@ -19,7 +19,6 @@ use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::bitboard::Iterator;
 use crate::engine::misc::bitboard::Shift;
 use crate::engine::misc::const_utility::*;
-use crate::engine::misc::print_utility::print_bitboard;
 use crate::engine::move_generator::bishop::*;
 use crate::engine::move_generator::generated::knight;
 use crate::engine::move_generator::king::*;
@@ -562,9 +561,8 @@ mod tests {
     use core::panic;
 
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::misc::print_utility::print_bitboard;
-    use crate::engine::misc::print_utility::print_chess;
-    use crate::engine::misc::print_utility::print_move_list;
+    use crate::engine::misc::display::display_board::*;
+    use crate::engine::misc::display::display_moves::*;
 
     use super::*;
 

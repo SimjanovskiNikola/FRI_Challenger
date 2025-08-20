@@ -6,9 +6,6 @@ use super::structures::moves::*;
 use super::structures::piece::*;
 use crate::engine::board::structures::zobrist::ZobristKeysTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
-use crate::engine::misc::print_utility::print_chess;
-use crate::engine::misc::print_utility::print_move_list;
-use crate::engine::misc::print_utility::sq_notation;
 use crate::engine::move_generator::generated::zobrist_keys::*;
 use core::panic;
 
@@ -136,12 +133,12 @@ impl BoardMoveTrait for Board {
     fn clear_piece(&mut self, sq: usize) {
         match self.squares[sq] {
             None => {
-                println!("Square to remove peace: {:?}", sq_notation(sq as u8));
-                print_chess(&self);
-                print_move_list(&self.gen_moves());
-                self.undo_move();
-                print_chess(&self);
-                print_move_list(&self.gen_moves());
+                // println!("Square to remove peace: {:?}", sq_notation(sq as u8));
+                // print_chess(&self);
+                // print_move_list(&self.gen_moves());
+                // self.undo_move();
+                // print_chess(&self);
+                // print_move_list(&self.gen_moves());
                 panic!("Clearing a Peace that does not exist")
             }
             Some(piece) => {
@@ -157,7 +154,7 @@ impl BoardMoveTrait for Board {
     fn replace_piece(&mut self, from_sq: usize, to_sq: usize) {
         let piece = match self.squares[from_sq] {
             None => {
-                print_chess(self);
+                // print_chess(self);
                 panic!(
                     "There is no piece on square: {:#?}, \n other data: {:#?}",
                     from_sq, self.squares[from_sq]
