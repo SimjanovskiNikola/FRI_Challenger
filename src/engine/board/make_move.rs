@@ -114,7 +114,8 @@ impl BoardMoveTrait for Board {
 
         self.bitboard[piece.idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
         self.bitboard[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
-        self.state.key ^= PIECE_KEYS[to_sq][piece.idx()] | PIECE_KEYS[from_sq][piece.idx()];
+        self.state.key ^= PIECE_KEYS[from_sq][piece.idx()];
+        self.state.key ^= PIECE_KEYS[to_sq][piece.idx()];
     }
 
     #[inline(always)]
@@ -202,7 +203,7 @@ impl BoardMoveTrait for Board {
         self.zb_ep();
 
         // If the move is pawn or if there is a capture, reset the halfmove
-        if mv.piece.is_pawn() || matches!(mv.flag, Flag::Capture(_)) {
+        if mv.piece.is_pawn() || mv.flag.is_capture() || mv.flag.is_promo() {
             self.state.half_move = 0
         } else {
             self.state.half_move += 1;

@@ -518,7 +518,7 @@ impl BoardGenMoveTrait for Board {
         let his_len = self.history.len();
         let half_move = self.half_move();
         let start = his_len.abs_diff(half_move as usize);
-        let end = his_len.min(0);
+        let end = his_len.max(0);
         for i in start..end {
             if self.history[i].key == self.key() {
                 return true;
@@ -563,6 +563,7 @@ mod tests {
     use core::panic;
 
     use crate::engine::board::fen::FenTrait;
+    use crate::engine::board::structures::zobrist::ZobristKeysTrait;
     use crate::engine::misc::display::display_board::*;
     use crate::engine::misc::display::display_moves::*;
 
@@ -828,5 +829,58 @@ mod tests {
         print_chess(&board);
         let see = board.see(39, 30);
         assert_eq!(see, 0);
+    }
+
+    #[test]
+    fn test_is_repetition() {
+        let mut board = Board::read_fen(&FEN_START);
+        let moves = ["b1c3", "b8c6", "c3b1", "c6b8"];
+
+        for i in moves.iter() {
+            let mv = from_move_notation(i, &mut board);
+            board.make_move(&mv);
+        }
+
+        for i in board.history.iter() {
+            println!("History: {:?}", i.key);
+        }
+
+        println!("Curr Key: {:?}", board.key());
+        print_chess(&board);
+
+        assert_eq!(board.is_repetition(), true);
+    }
+
+    #[test]
+    fn test_is_repetition_v2() {
+        let mut board = Board::read_fen(&FEN_START);
+        let moves = ["e2e4", "e7e5", "b1c3", "b8c6", "c3b1", "c6b8"];
+
+        println!("{:?}", board.key());
+
+        for (idx, notation) in moves.iter().enumerate() {
+            let mv = from_move_notation(&notation, &mut board);
+            board.make_move(&mv);
+            println!("{:?}", board.key());
+        }
+
+        assert_eq!(board.is_repetition(), true);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_is_repetition_v3() {
+        let mut board = Board::read_fen(&FEN_START);
+        let moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "d7d6", "e1g1", 
+                    "c8g4", "a2a4", "d8d7", "a4a5", "e8c8", "d1e2", "b7b5", "a5b6", 
+                    "g4f3", "b6a7", "f3e2", "a7a8Q", "c6b8", "c4e2", "h7h5", "e2a6"  ];
+       
+      
+
+        for (idx, notation) in moves.iter().enumerate() {
+            assert_eq!(board.is_repetition(), false);
+            let mv = from_move_notation(&notation, &mut board);
+            board.make_move(&mv);
+        }
     }
 }
