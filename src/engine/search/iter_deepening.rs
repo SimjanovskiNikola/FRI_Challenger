@@ -145,7 +145,7 @@ mod tests {
         let fen = "8/2P1P3/b1B2p2/1pPRp3/2k3P1/P4pK1/nP3p1p/N7 w - - 0 1";
         // NOTE: Best Continuation after h2h1n: b5b4 or c3b2
         // let expected_pv = " b2b3 c4c3 d5d1 f2f1q d1f1 h2h1n"; // Depth 6
-        let expected_pv = " d5d1 a2c3 b2c3 h2h1q d1h1"; // Depth 7
+        let expected_pv = " d5d1 a2c3 b2c3 h2h1q d1h1 f2f1q h1f1"; // Depth 7
         test_search(fen, depth, expected_pv);
     }
 
@@ -174,6 +174,17 @@ mod tests {
         let expected_pv = " g5e3 f8d6 e3f2 g1f2 b6d6 f2g1";
         test_search(fen, depth, expected_pv);
     }
+
+    // TODO: FIXME: WHEN THE ENGINE SEES MORE THAN 10 MOVES
+    // #[test]
+    // fn test_iter_deep_mate_10() {
+    //     let depth = 5;
+    //     let fen = "2Q5/8/4K1q1/8/3Q4/8/6k1/8 w - - 1 2";
+    //     // let board = Board::read_fen(fen);
+    //     // print_chess(&board);
+    //     let expected_pv = " e6d5 g6g5 e7d6 g1f2 b6d6 f2g1";
+    //     test_search(fen, depth, expected_pv);
+    // }
 
     // NOTE: Uncomment In Cargo.toml the pprof to see the performance.
     // #[test]
