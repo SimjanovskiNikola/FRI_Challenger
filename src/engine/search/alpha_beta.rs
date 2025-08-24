@@ -15,9 +15,10 @@ impl Search {
     pub fn alpha_beta(
         &mut self,
         mut alpha: isize,
-        mut beta: isize,
+        beta: isize,
         mut depth: u8,
         take_null: bool,
+        is_pvs: bool,
     ) -> isize {
         // If we reached the final depth than make sure there is no horizon effect
         if depth == 0 {
@@ -41,11 +42,11 @@ impl Search {
             depth += 1;
         }
 
-        // if let Some((score, _)) =
-        //     TT.read().unwrap().probe(self.board.state.key, depth, alpha as i16, beta as i16)
-        // {
-        //     return score as isize;
-        // }
+        if let Some((score, _)) =
+            TT.read().unwrap().probe(self.board.state.key, depth, alpha as i16, beta as i16)
+        {
+            return score as isize;
+        }
         self.info.nodes += 1;
 
         let mut best_mv = None;
@@ -68,7 +69,18 @@ impl Search {
                 continue;
             }
             legal_mv_num += 1;
-            let score = -self.alpha_beta(-beta, -alpha, depth - 1, true);
+            let mut score: isize;
+            if legal_mv_num == 1 {
+                score = -self.alpha_beta(-beta, -alpha, depth - 1, true, true);
+            } else {
+                score = -self.alpha_beta(-alpha - 1, -alpha, depth - 1, true, false);
+
+                if alpha < score && score < beta {
+                    score = -self.alpha_beta(-beta, -alpha, depth - 1, true, false);
+                }
+            }
+
+            // let score = -self.alpha_beta(-beta, -alpha, depth - 1, true);
             self.board.undo_move();
 
             if score > alpha {
@@ -87,13 +99,15 @@ impl Search {
                             self.board.s_killers[self.board.ply()][1];
                         self.board.s_killers[self.board.ply()][1] = Some(mv);
                     }
-                    // TT.write().unwrap().set(
-                    //     self.board.state.key,
-                    //     mv,
-                    //     score as i16,
-                    //     depth,
-                    //     Bound::Lower,
-                    // );
+                    if !is_pvs {
+                        TT.write().unwrap().set(
+                            self.board.state.key,
+                            mv,
+                            score as i16,
+                            depth,
+                            Bound::Lower,
+                        );
+                    }
                     self.info.fail_hard += 1; // NOTE: ORDERING INFO
                     return beta;
                 }
@@ -124,10 +138,12 @@ impl Search {
             };
         }
 
-        // if let Some(mv) = best_mv {
-        //     let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
-        //     TT.write().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
-        // }
+        if !is_pvs {
+            if let Some(mv) = best_mv {
+                let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
+                TT.write().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
+            }
+        }
 
         alpha
     }
