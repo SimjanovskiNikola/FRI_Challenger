@@ -38,7 +38,7 @@ impl NewUCI {
             time_limit: None,
             moves_togo: 0,
             infinite: false,
-            max_depth: 64,
+            max_depth: 63,
             moves_played: 0,
             quit: false,
             stopped: false,
@@ -217,7 +217,7 @@ impl UCI {
 
         self.uci.write().unwrap().start_time = Instant::now();
         self.uci.write().unwrap().infinite = infinite;
-        self.uci.write().unwrap().max_depth = depth.unwrap_or(64);
+        self.uci.write().unwrap().max_depth = depth.unwrap_or(63);
 
         if !infinite && matches!(time_limit, None) && self.board.state.color.is_white() {
             self.uci.write().unwrap().time_limit = Some(set_time_limit(
