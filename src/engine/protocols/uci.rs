@@ -23,7 +23,7 @@ pub struct NewUCI {
     pub time_limit: Option<Duration>,
     pub moves_togo: usize,
     pub infinite: bool,
-    pub max_depth: u8,
+    pub max_depth: i8,
     pub moves_played: usize,
     pub quit: bool,
     pub stopped: bool,
@@ -176,7 +176,7 @@ impl UCI {
     fn go(&mut self, args: &[&str]) {
         self.abort_search();
 
-        let mut depth: Option<u8> = None;
+        let mut depth: Option<i8> = None;
         let mut infinite = false;
         let mut time_limit: Option<Duration> = None;
 

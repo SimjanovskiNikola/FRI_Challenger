@@ -15,7 +15,7 @@ const MIN_INF: isize = isize::MIN / 2;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SearchInfo {
     pub nodes: usize,
-    pub curr_depth: u8,
+    pub curr_depth: i8,
     pub curr_key: u64,
 
     pub fail_hard: usize,
@@ -69,7 +69,7 @@ impl Search {
         self.board.pv_clear();
     }
 
-    pub fn set_curr_depth(&mut self, depth: u8) {
+    pub fn set_curr_depth(&mut self, depth: i8) {
         self.info.curr_depth = depth;
     }
 }
@@ -122,7 +122,7 @@ mod tests {
 
     use super::*;
 
-    fn test_search(fen: &str, depth: u8, expected_pv: &str) {
+    fn test_search(fen: &str, depth: i8, expected_pv: &str) {
         let uci = Arc::new(RwLock::new(NewUCI::init()));
         uci.write().unwrap().max_depth = depth;
         let board = Board::read_fen(fen);

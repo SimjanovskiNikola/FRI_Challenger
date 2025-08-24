@@ -16,13 +16,13 @@ impl Search {
         &mut self,
         mut alpha: isize,
         beta: isize,
-        mut depth: u8,
+        mut depth: i8,
         take_null: bool,
         is_pvs: bool,
     ) -> isize {
         // If we reached the final depth than make sure there is no horizon effect
         if depth == 0 {
-            return self.quiescence_search(alpha, beta);
+            return self.quiescence_search(alpha, beta, depth);
         }
 
         // Check if the position happened before or is draw
