@@ -3,7 +3,7 @@ use crate::engine::search::iter_deepening::Search;
 pub trait DisplayStatsTrait {
     fn print_info(&self, score: isize, line: String);
     fn print_pruning_info(&self, score: isize);
-    fn print_ordering_info(&self, depth: u8);
+    fn print_ordering_info(&self, depth: i8);
 }
 
 impl DisplayStatsTrait for Search {
@@ -22,7 +22,7 @@ impl DisplayStatsTrait for Search {
         );
     }
 
-    fn print_ordering_info(&self, depth: u8) {
+    fn print_ordering_info(&self, depth: i8) {
         let avg_beta_idx = self.info.beta_cut_index_sum[depth as usize] as f64
             / (self.info.beta_cut_count[depth as usize] + 1) as f64;
 

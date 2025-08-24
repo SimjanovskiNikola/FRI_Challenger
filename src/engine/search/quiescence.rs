@@ -3,12 +3,12 @@ use crate::engine::board::make_move::BoardMoveTrait;
 use crate::engine::board::mv_gen::{next_move, BoardGenMoveTrait};
 use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::protocols::time::time_over;
-use crate::engine::search::transposition_table::TT;
+use crate::engine::search::transposition_table::{Bound, TT};
 
 const BIG_DELTA: isize = 1800;
 
 impl Search {
-    pub fn quiescence_search(&mut self, mut alpha: isize, beta: isize) -> isize {
+    pub fn quiescence_search(&mut self, mut alpha: isize, beta: isize, depth: i8) -> isize {
         self.info.nodes += 1;
 
         let eval = self.board.evaluation();
@@ -36,32 +36,44 @@ impl Search {
             return alpha;
         }
 
-        // if let Some((score, _)) =
-        //     TT.read().unwrap().probe(self.board.state.key, 0, alpha as i16, beta as i16)
-        // {
-        //     return score as isize;
-        // }
+        if let Some((score, _)) =
+            TT.read().unwrap().probe(self.board.state.key, depth, alpha as i16, beta as i16)
+        {
+            return score as isize;
+        }
 
-        let mut pos_rev = self.board.gen_captures();
+        let mut best_mv = None;
+        let mut best_score = alpha;
+        let old_alpha: isize = alpha;
+        let mut moves = self.board.gen_captures();
         // let ply = self.board.ply();
         // self.board.pv_len[ply] = ply;
 
-        while let Some(rev) = next_move(&mut pos_rev) {
+        while let Some(mv) = next_move(&mut moves) {
             if (self.info.nodes & 2047) == 0 && time_over(&self) {
                 break;
             }
 
-            if !self.board.make_move(&rev) {
+            if !self.board.make_move(&mv) {
                 continue;
             }
-            let score = -self.quiescence_search(-beta, -alpha);
+            let score = -self.quiescence_search(-beta, -alpha, depth - 1);
             self.board.undo_move();
 
             if score > alpha {
                 if score >= beta {
+                    TT.write().unwrap().set(
+                        self.board.state.key,
+                        mv,
+                        score as i16,
+                        depth,
+                        Bound::Lower,
+                    );
                     return beta;
                 }
                 alpha = score;
+                best_score = score;
+                best_mv = Some(mv);
                 // self.board.pv_moves[ply][ply] = Some(rev);
                 // for j in (ply + 1)..self.board.pv_len[ply + 1] {
                 //     self.board.pv_moves[ply][j] = self.board.pv_moves[ply + 1][j];
@@ -70,6 +82,10 @@ impl Search {
             }
         }
 
+        if let Some(mv) = best_mv {
+            let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
+            TT.write().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
+        }
         alpha
     }
 }

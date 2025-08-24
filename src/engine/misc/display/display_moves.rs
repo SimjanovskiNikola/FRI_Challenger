@@ -18,7 +18,7 @@ pub fn print_move_list(moves: &[(Move, isize)]) {
     }
 }
 
-pub fn get_move_list(moves: &[Move], depth: u8) -> String {
+pub fn get_move_list(moves: &[Move], depth: i8) -> String {
     let mut move_list_resp: String = String::new();
     for (idx, mv) in moves.iter().enumerate() {
         // FIXME: When refactoring decide if this should be removed

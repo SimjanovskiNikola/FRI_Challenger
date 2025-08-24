@@ -37,10 +37,9 @@ impl ZobristKeysTrait for Board {
     }
 
     fn zb_ep(&mut self) {
-        // FIXME: This is wrong, it should be fixed
-        // if let Some(idx) = self.state.ep {
-        //     self.state.key ^= EP_KEYS[idx as usize]
-        // }
+        if let Some(idx) = self.state.ep {
+            self.state.key ^= EP_KEYS[idx as usize]
+        }
     }
 }
 

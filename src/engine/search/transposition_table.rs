@@ -25,13 +25,13 @@ pub struct TTEntry {
     pub key: u64,
     pub mv: Move,
     pub score: i16,
-    pub depth: u8,
+    pub depth: i8,
     pub category: Bound,
-    pub age: u16,
+    pub age: i16,
 }
 
 impl TTEntry {
-    pub fn init(key: u64, mv: Move, score: i16, depth: u8, category: Bound, age: u16) -> Self {
+    pub fn init(key: u64, mv: Move, score: i16, depth: i8, category: Bound, age: i16) -> Self {
         Self { key, mv, score, depth, category, age }
     }
 }
@@ -43,7 +43,7 @@ pub struct TTTable {
     pub inserts: u64,
     pub hits: u64,
     pub collisions: u64,
-    pub curr_age: u16,
+    pub curr_age: i16,
 }
 
 impl TTTable {
@@ -62,7 +62,7 @@ impl TTTable {
         return (key % MAX_TT_ENTRIES as u64) as usize;
     }
 
-    pub fn set(&mut self, key: u64, mv: Move, score: i16, depth: u8, category: Bound) {
+    pub fn set(&mut self, key: u64, mv: Move, score: i16, depth: i8, category: Bound) {
         self.inserts += 1;
 
         if let Some(entry) = self.table[Self::idx(key)] {
@@ -78,11 +78,11 @@ impl TTTable {
             Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
     }
 
-    pub fn probe(&self, key: u64, depth: u8, mut alpha: i16, mut beta: i16) -> Option<(i16, Move)> {
+    pub fn probe(&self, key: u64, depth: i8, mut alpha: i16, mut beta: i16) -> Option<(i16, Move)> {
         // self.lookups += 1;
         let idx = Self::idx(key);
         if let Some(e) = self.table[idx] {
-            if e.key == key && (e.depth + e.age as u8) >= (depth + self.curr_age as u8) {
+            if e.key == key && (e.depth as i16 + e.age) >= (depth as i16 + self.curr_age) {
                 match e.category {
                     Bound::Lower => alpha = alpha.max(e.score),
                     Bound::Exact => {

@@ -27,6 +27,7 @@ impl BoardMoveTrait for Board {
     fn make_move(&mut self, mv: &Move) -> bool {
         self.history.push(self.state);
         self.moves.push(*mv);
+        self.zb_reset_key();
 
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece),
@@ -177,8 +178,6 @@ impl BoardMoveTrait for Board {
     }
 
     fn make_state(&mut self, mv: &Move) {
-        self.zb_reset_key();
-
         // Switch the color
         self.state.color.change_color();
         self.zb_clr();

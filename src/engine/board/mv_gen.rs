@@ -846,7 +846,6 @@ mod tests {
         }
 
         println!("Curr Key: {:?}", board.key());
-        print_chess(&board);
 
         assert_eq!(board.is_repetition(), true);
     }
@@ -855,6 +854,22 @@ mod tests {
     fn test_is_repetition_v2() {
         let mut board = Board::read_fen(&FEN_START);
         let moves = ["e2e4", "e7e5", "b1c3", "b8c6", "c3b1", "c6b8"];
+
+        println!("{:?}", board.key());
+
+        for (idx, notation) in moves.iter().enumerate() {
+            let mv = from_move_notation(&notation, &mut board);
+            board.make_move(&mv);
+            println!("{:?}", board.key());
+        }
+
+        assert_eq!(board.is_repetition(), false);
+    }
+
+    #[test]
+    fn test_is_repetition_v4() {
+        let mut board = Board::read_fen(&FEN_START);
+        let moves = ["e2e4", "e7e5", "b1c3", "b8c6", "c3b1", "c6b8", "b1c3"];
 
         println!("{:?}", board.key());
 
