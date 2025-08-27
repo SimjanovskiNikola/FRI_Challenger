@@ -16,9 +16,16 @@ use crate::engine::{
     },
 };
 
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
+
 pub mod engine;
 
 fn main() {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
     // FIXME: Needed to backtrace the call stack
     env::set_var("RUST_BACKTRACE", "1");
     let mut uci = UCI::init();
