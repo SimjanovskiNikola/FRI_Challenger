@@ -102,7 +102,7 @@ impl Search {
                 best_mv = Some(pv_line[0]);
             }
 
-            // if depth > 6 {
+            // if depth > 6{
             //     println!("{:?}", self.board.pv_moves);
             //     println!("{:?}", self.board.pv_len);
             // }
