@@ -102,7 +102,7 @@ impl Search {
                 best_mv = Some(pv_line[0]);
             }
 
-            // if depth > 6 {
+            // if depth > 6{
             //     println!("{:?}", self.board.pv_moves);
             //     println!("{:?}", self.board.pv_len);
             // }
@@ -192,7 +192,7 @@ mod tests {
     // NOTE: Uncomment In Cargo.toml the pprof to see the performance.
     // #[test]
     // fn test_search() {
-    //     let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).build().unwrap();
+    //     let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).blocklist(&["libc", "libgcc", "pthread", "vdso"]).build().unwrap();
 
     //     let uci = Arc::new(RwLock::new(NewUCI::init()));
     //     uci.write().unwrap().max_depth = 6;

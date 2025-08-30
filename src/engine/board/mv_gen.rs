@@ -515,17 +515,18 @@ impl BoardGenMoveTrait for Board {
 
     #[inline(always)]
     fn is_repetition(&self) -> bool {
+        let mut threefold = 2;
         let his_len = self.history.len();
         let half_move = self.half_move();
         let start = his_len.abs_diff(half_move as usize);
         let end = his_len.max(0);
         for i in start..end {
             if self.history[i].key == self.key() {
-                return true;
+                threefold -= 1;
             }
         }
 
-        false
+        threefold <= 0
     }
 
     #[inline(always)]
@@ -869,7 +870,9 @@ mod tests {
     #[test]
     fn test_is_repetition_v4() {
         let mut board = Board::read_fen(&FEN_START);
-        let moves = ["e2e4", "e7e5", "b1c3", "b8c6", "c3b1", "c6b8", "b1c3"];
+        let moves = [
+            "e2e4", "e7e5", "b1c3", "b8c6", "c3b1", "c6b8", "b1c3", "b8c6", "c3b1", "c6b8", "b1c3",
+        ];
 
         println!("{:?}", board.key());
 
@@ -897,5 +900,37 @@ mod tests {
             let mv = from_move_notation(&notation, &mut board);
             board.make_move(&mv);
         }
+    }
+
+    #[test]
+    fn test_mv_gen_v2() {
+        let mut board = Board::read_fen(&FEN_START);
+        let moves = [
+            "e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6", "b5a4", "g8f6", "d2d3", "d7d6", "c2c3",
+            "g7g6", "c1e3", "c8d7", "b1d2", "f8e7", "e1g1", "e8g8", "h2h3", "f8e8", "a4b3", "d8c8",
+            "d3d4", "e5d4", "c3d4", "c6b4", "a2a3", "b4c6", "e4e5", "d6e5", "d4e5", "f6h5", "d2e4",
+            "h5g7", "e4f6", "e7f6", "e5f6", "g7f5", "f3g5", "c6d8", "d1d2", "f5e3", "f2e3", "d8e6",
+            "g5f3", "d7c6", "f3e5", "c6e4", "a1c1", "e8d8", "d2b4", "e4d5", "b3c2", "c7c5", "b4e1",
+            "c8c7", "e1c3", "e6g5", "c1d1", "b7b6", "h3h4", "g5e4", "c2e4", "d5e4", "d1d4", "c7b7",
+            "d4d2", "d8d2", "c3d2", "b7c7", "e5g4", "a8d8", "g4h6", "g8f8", "d2e1", "f8e8", "f1f4",
+            "c7c6", "e1e2", "c6b7", "g1h2", "e4d3", "e2g4", "b7d5", "f4f2", "d3e4", "a3a4", "d5d6",
+            "f2f4", "e4c6", "a4a5", "b6a5", "g4g5", "c6a8", "h6f7", "e8f7", "g5h6", "f7e6", "h6h7",
+            "a8e4", "h7e7", "d6e7", "f6e7", "e6e7", "f4e4", "e7f6", "e4c4", "d8c8", "g2g4", "f6e6",
+            "h2g3", "e6e5", "h4h5", "e5d5", "c4a4", "g6h5", "g4h5", "c8g8", "g3f4", "g8f8", "f4g5",
+            "f8b8", "h5h6", "b8b2", "h6h7", "b2b8", "a4h4", "b8h8", "g5f6", "c5c4", "f6g7", "h8c8",
+            "e3e4", "d5e5", "h7h8Q", "c8h8", "h4h8", "e5e4", "h8h5", "c4c3", "h5h3", "e4d4",
+            "h3h4", "d4d3", "h4h8", "c3c2", "h8d8", "d3c3", "d8c8", "c3d2", "c8d8", "d2c3",
+        ];
+
+        for (idx, notation) in moves.iter().enumerate() {
+            let mv = from_move_notation(&notation, &mut board);
+            board.make_move(&mv);
+            board.moves.clear();
+        }
+
+        println!("{:?}", board.ply());
+
+        let moves = board.gen_moves();
+        println!("{:?}", moves);
     }
 }
