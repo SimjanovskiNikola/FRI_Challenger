@@ -17,9 +17,8 @@ pub trait BoardMoveTrait {
     fn make_state(&mut self, mv: &Move);
     fn undo_state(&mut self);
 
+    fn clear_piece(&mut self, sq: usize, piece: Piece);
     fn add_piece(&mut self, sq: usize, piece: Piece);
-    fn clear_piece(&mut self, sq: usize);
-    fn replace_piece(&mut self, from_sq: usize, to_sq: usize);
     fn quiet_mv(&mut self, from_sq: usize, to_sq: usize, piece: Piece);
 }
 
@@ -31,14 +30,23 @@ impl BoardMoveTrait for Board {
 
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece),
-            Flag::Capture(_) => self.replace_piece(mv.from as usize, mv.to as usize),
-            Flag::EP => {
-                self.replace_piece(mv.from as usize, mv.to as usize);
-                self.clear_piece((mv.to + 16 * mv.piece.color() - 8) as usize);
+            Flag::Capture(piece) => {
+                self.clear_piece(mv.to as usize, piece);
+                self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece);
             }
-            Flag::Promotion(piece, _) => {
-                self.clear_piece(mv.from as usize);
-                self.add_piece(mv.to as usize, piece);
+            Flag::EP => {
+                self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece);
+                self.clear_piece(
+                    (mv.to + 16 * mv.piece.color() - 8) as usize,
+                    PAWN + mv.piece.color().opp(),
+                );
+            }
+            Flag::Promotion(promotion, cap_piece) => {
+                self.clear_piece(mv.from as usize, mv.piece);
+                if let Some(piece) = cap_piece {
+                    self.clear_piece(mv.to as usize, piece)
+                }
+                self.add_piece(mv.to as usize, promotion);
             }
             Flag::KingCastle => {
                 let sq = &ROOK_SQ[mv.piece.color().idx()][0];
@@ -67,27 +75,22 @@ impl BoardMoveTrait for Board {
             (None, None) => return,
             (_, _) => panic!("There is something wrong"),
         };
-        // self.zb_reset_key();
-        // self.zb_clr();
-        // self.zb_castling();
-        // self.zb_ep();
-        // self.generate_pos_key();
 
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.to as usize, mv.from as usize, mv.piece),
             Flag::Capture(piece) => {
-                self.replace_piece(mv.to as usize, mv.from as usize);
+                self.quiet_mv(mv.to as usize, mv.from as usize, mv.piece);
                 self.add_piece(mv.to as usize, piece);
             }
             Flag::EP => {
-                self.replace_piece(mv.to as usize, mv.from as usize);
+                self.quiet_mv(mv.to as usize, mv.from as usize, mv.piece);
                 self.add_piece(
                     (mv.to + 16 * mv.piece.color() - 8) as usize,
                     PAWN + mv.piece.color().opp(),
                 );
             }
-            Flag::Promotion(_, cap_piece) => {
-                self.clear_piece(mv.to as usize);
+            Flag::Promotion(promotion, cap_piece) => {
+                self.clear_piece(mv.to as usize, promotion);
                 if let Some(piece) = cap_piece {
                     self.add_piece(mv.to as usize, piece)
                 }
@@ -110,8 +113,8 @@ impl BoardMoveTrait for Board {
 
     #[inline(always)]
     fn quiet_mv(&mut self, from_sq: usize, to_sq: usize, piece: Piece) {
-        self.squares[from_sq] = None;
-        self.squares[to_sq] = Some(piece);
+        self.squares[from_sq] = 0;
+        self.squares[to_sq] = piece;
 
         self.bitboard[piece.idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
         self.bitboard[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
@@ -121,52 +124,20 @@ impl BoardMoveTrait for Board {
 
     #[inline(always)]
     fn add_piece(&mut self, sq: usize, piece: Piece) {
-        match self.squares[sq] {
-            None => (),
-            Some(_) => self.clear_piece(sq),
-        }
-        self.squares[sq] = Some(piece);
+        assert!(self.squares[sq] == 0, "Adding a Piece on a square, where a peace already exists");
+        self.squares[sq] = piece;
         self.bitboard[piece.idx()].set_bit(sq);
         self.bitboard[piece.color().idx()].set_bit(sq);
         self.state.key ^= PIECE_KEYS[sq][piece.idx()];
     }
 
     #[inline(always)]
-    fn clear_piece(&mut self, sq: usize) {
-        match self.squares[sq] {
-            None => {
-                // println!("Square to remove peace: {:?}", sq_notation(sq as u8));
-                // print_chess(&self);
-                // print_move_list(&self.gen_moves());
-                // self.undo_move();
-                // print_chess(&self);
-                // print_move_list(&self.gen_moves());
-                panic!("Clearing a Peace that does not exist")
-            }
-            Some(piece) => {
-                self.squares[sq] = None;
-                self.bitboard[piece.idx()].clear_bit(sq);
-                self.bitboard[piece.color().idx()].clear_bit(sq);
-                self.state.key ^= PIECE_KEYS[sq][piece.idx()];
-            }
-        }
-    }
-
-    #[inline(always)]
-    fn replace_piece(&mut self, from_sq: usize, to_sq: usize) {
-        let piece = match self.squares[from_sq] {
-            None => {
-                // print_chess(self);
-                panic!(
-                    "There is no piece on square: {:#?}, \n other data: {:#?}",
-                    from_sq, self.squares[from_sq]
-                )
-            }
-            Some(piece) => piece,
-        };
-
-        self.clear_piece(from_sq);
-        self.add_piece(to_sq, piece);
+    fn clear_piece(&mut self, sq: usize, piece: Piece) {
+        assert!(self.squares[sq] != 0, "Clearing a Peace that does not exist");
+        self.squares[sq] = 0;
+        self.bitboard[piece.idx()].clear_bit(sq);
+        self.bitboard[piece.color().idx()].clear_bit(sq);
+        self.state.key ^= PIECE_KEYS[sq][piece.idx()];
     }
 
     fn make_null_move(&mut self) -> bool {
@@ -184,9 +155,9 @@ impl BoardMoveTrait for Board {
 
         //If the castleRight is set, and if the king is on place and rook is on place than retain otherwise clear
         for c in &CASTLE_DATA {
-            if !self.state.castling.is_set(c.2)
-                || !self.bitboard[(ROOK + c.3) as usize].is_set(c.0)
-                || !self.bitboard[(KING + c.3) as usize].is_set(c.1)
+            if !(self.state.castling.is_set(c.2)
+                && self.bitboard[(ROOK + c.3) as usize].is_set(c.0)
+                && self.bitboard[(KING + c.3) as usize].is_set(c.1))
             {
                 self.state.castling.clear(c.2);
             }
@@ -202,18 +173,12 @@ impl BoardMoveTrait for Board {
         self.zb_ep();
 
         // If the move is pawn or if there is a capture, reset the halfmove
-        if mv.piece.is_pawn() || mv.flag.is_capture() || mv.flag.is_promo() {
-            self.state.half_move = 0
-        } else {
-            self.state.half_move += 1;
-        }
+        let keep_half_move =
+            !(mv.piece.is_pawn() || mv.flag.is_capture() || mv.flag.is_promo()) as u8;
+        self.state.half_move = (self.state.half_move + 1) * keep_half_move;
 
         // Full Move should be half of the moves
-        if self.history.len() % 2 == 0 {
-            self.state.full_move += 1;
-        }
-
-        // self.generate_pos_key();
+        self.state.full_move = self.history.len() as u16 / 2 + 1;
     }
 
     fn undo_state(&mut self) {

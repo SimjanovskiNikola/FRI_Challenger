@@ -186,8 +186,7 @@ impl PieceTrait for Piece {
             BLACK_ROOK => "♖".to_string(),
             BLACK_QUEEN => "♕".to_string(),
             BLACK_KING => "♔".to_string(),
-            EMPTY => ' '.to_string(),
-            _ => '?'.to_string(),
+            _ => panic!("Invalid Piece: {:?}", *self),
         }
     }
 }

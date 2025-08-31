@@ -1,8 +1,10 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use engine::engine::board::perft::init_test_func;
 use engine::engine::misc::const_utility::FEN_POS_FIVE;
+use engine::engine::misc::const_utility::FEN_POS_FOUR;
 use engine::engine::misc::const_utility::FEN_POS_SIX;
 use engine::engine::misc::const_utility::FEN_START;
+use std::hint::black_box;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("FEN_START -> DEPTH: 1", |b| {
@@ -20,7 +22,15 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("FEN_POS_SIX -> DEPTH: 3", |b| {
         b.iter(|| init_test_func(&FEN_POS_SIX, black_box(3), false))
     });
+
+    c.bench_function("FEN_POS_FOUR -> DEPTH: 5", |b| {
+        b.iter(|| black_box(init_test_func(&FEN_POS_FOUR, 5, false)))
+    });
 }
 
-criterion_group!(benches, criterion_benchmark);
+criterion_group! {
+    name = benches;
+    config = Criterion::default().sample_size(10);
+    targets = criterion_benchmark
+}
 criterion_main!(benches);
