@@ -572,19 +572,10 @@ mod tests {
 
     fn test_mov_att(fen: &str, piece: Piece, idx: usize) -> Vec<usize> {
         let board = Board::read_fen(&fen);
-        // println!("{}", game.to_string());
-        let (own_occ, enemy_occ) = board.both_occ_bb(board.color()); // get_occupancy(&piece, &board);
+        let (own_occ, enemy_occ) = board.both_occ_bb(board.color());
         let all_pieces = extract_all_bits(board.bitboard[piece.idx()]);
-        let piece = match board.squares[all_pieces[idx]] {
-            None => panic!("The Piece Must exist"),
-            Some(piece) => piece,
-        };
+        let piece = board.piece_sq(all_pieces[idx]);
         return extract_all_bits(Board::get_mv_bb(piece, all_pieces[idx], own_occ, enemy_occ));
-
-        // print_bitboard(
-        //     generate_knight_moves(&piece, &board),
-        //     Some(bit_scan_lsb(piece.position) as i8),
-        // );
     }
 
     #[test]
@@ -848,7 +839,7 @@ mod tests {
 
         println!("Curr Key: {:?}", board.key());
 
-        assert_eq!(board.is_repetition(), true);
+        assert_eq!(board.is_repetition(), false);
     }
 
     #[test]

@@ -21,8 +21,8 @@ pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
 
 pub fn print_chess(board: &Board) {
     let chess_board: [String; 64] = array::from_fn(|idx| match board.squares[idx] {
-        None => " ".to_string(),
-        Some(piece) => piece.to_figure(),
+        0 => " ".to_string(),
+        piece => piece.to_figure(),
     });
 
     print_board(&chess_board);

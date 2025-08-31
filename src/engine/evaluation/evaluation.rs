@@ -1365,10 +1365,8 @@ impl EvaluationTrait for Board {
             & (self.eval.attacked_by[bishop.idx()] | self.eval.attacked_by[knight.idx()]);
 
         while let Some(sq) = bb.next() {
-            match self.squares[sq] {
-                Some(p) => self.sum(clr, Some(sq), Some(p), MINOR_THREAT[p.arr_idx()]),
-                None => panic!("Something is wrong here"),
-            }
+            let piece = self.piece_sq(sq);
+            self.sum(clr, Some(sq), Some(piece), MINOR_THREAT[piece.arr_idx()]);
         }
     }
 
@@ -1378,10 +1376,8 @@ impl EvaluationTrait for Board {
         let mut bb = self.weak_enemy(clr) & self.eval.attacked_by[piece.idx()];
 
         while let Some(sq) = bb.next() {
-            match self.squares[sq] {
-                Some(p) => self.sum(clr, Some(sq), Some(p), ROOK_THREAT[p.arr_idx()]),
-                None => panic!("Something is wrong here"),
-            }
+            let piece = self.piece_sq(sq);
+            self.sum(clr, Some(sq), Some(piece), ROOK_THREAT[piece.arr_idx()]);
         }
     }
 

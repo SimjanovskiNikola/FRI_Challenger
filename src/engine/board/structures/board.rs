@@ -16,7 +16,7 @@ const MAX_PLY: usize = 64;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Board {
     // Peace Occupancy (Bitboard Representation)
-    pub squares: [Option<Piece>; 64],
+    pub squares: [Piece; 64],
     pub bitboard: [Bitboard; 14],
 
     // Position Vectors (Moves until now)
@@ -43,7 +43,7 @@ impl Board {
     #[inline(always)]
     pub fn create() -> Self {
         Self {
-            squares: [None; 64],
+            squares: [0; 64],
             bitboard: [0 as Bitboard; 14],
 
             moves: Vec::with_capacity(1024),
@@ -65,7 +65,7 @@ impl Board {
 
     #[inline(always)]
     pub fn reset(&mut self) {
-        self.squares = [None; 64];
+        self.squares = [0; 64];
         self.bitboard = [0 as Bitboard; 14];
         self.moves = Vec::with_capacity(1024);
         self.history = Vec::with_capacity(1024);
@@ -193,10 +193,8 @@ impl Board {
 
     #[inline(always)]
     pub fn piece_sq(&self, sq: usize) -> Piece {
-        match self.squares[sq] {
-            Some(piece) => piece,
-            None => unreachable!("There is no piece to be captured at this location"),
-        }
+        assert!(self.squares[sq] != 0, "There is no piece at this square");
+        self.squares[sq]
     }
 
     // FIXME: IS THIS REALLY NEEDED HERE ??????????
@@ -226,14 +224,8 @@ impl Board {
     #[inline(always)]
     pub fn mirror(&mut self) {
         for idx in 0..(self.squares.len() / 2) {
-            let first_piece = match self.squares[idx] {
-                Some(p) => Some(p.opp()),
-                None => None,
-            };
-            let second_piece = match self.squares[CLR_SQ[1][idx]] {
-                Some(p) => Some(p.opp()),
-                None => None,
-            };
+            let first_piece = self.squares[idx];
+            let second_piece = self.squares[CLR_SQ[1][idx]];
             self.squares[idx] = second_piece;
             self.squares[CLR_SQ[1][idx]] = first_piece;
         }
@@ -271,7 +263,7 @@ mod tests {
         let mut board = Board::initialize();
         board.reset();
 
-        assert_eq!(board.squares, [None; 64]);
+        assert_eq!(board.squares, [0; 64]);
         assert_eq!(board.bitboard, [0; 14]);
         assert_eq!(board.state.color, WHITE);
         assert_eq!(board.state.castling, CastlingRights::NONE);
