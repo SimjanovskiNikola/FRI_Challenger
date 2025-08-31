@@ -8,6 +8,7 @@ use crate::engine::board::structures::piece::PieceTrait;
 use crate::engine::board::structures::piece::KING;
 use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
+use crate::engine::misc::display::display_board::print_chess;
 use crate::engine::protocols::time::time_over;
 use crate::engine::search::transposition_table::TT;
 
@@ -17,10 +18,12 @@ impl Search {
         mut alpha: isize,
         beta: isize,
         mut depth: i8,
-        take_null: bool,
+        is_nmp: bool,
         is_pvs: bool,
     ) -> isize {
         // If we reached the final depth than make sure there is no horizon effect
+        assert!(depth >= 0, "Depth is smaller than 0");
+
         if depth == 0 {
             return self.quiescence_search(alpha, beta, depth);
         }
@@ -47,7 +50,26 @@ impl Search {
         // {
         //     return score as isize;
         // }
+
+        // Null move Pruning
         self.info.nodes += 1;
+        let color = self.board.color();
+        let is_pawn_ending = self.board.occ_bb(color)
+            & !(self.board.pawn_bb(color) | self.board.king_bb(color))
+            == 0;
+        let nmp_allowed = !in_check && !is_nmp && !is_pawn_ending && !is_pvs;
+
+        if nmp_allowed {
+            let r = (depth - 1).min(3 + depth / 4);
+            let mv = Move::null_move();
+
+            self.board.make_move(&mv);
+            let score = -self.alpha_beta(-beta, -beta + 1, depth - 1 - r, true, is_pvs);
+            self.board.undo_move();
+            if score >= beta {
+                return beta;
+            }
+        }
 
         let mut best_mv = None;
         let mut best_score = alpha;
@@ -71,16 +93,17 @@ impl Search {
             legal_mv_num += 1;
             let mut score: isize;
             if legal_mv_num == 1 {
-                score = -self.alpha_beta(-beta, -alpha, depth - 1, true, true);
+                score = -self.alpha_beta(-beta, -alpha, depth - 1, false, true);
             } else {
-                score = -self.alpha_beta(-alpha - 1, -alpha, depth - 1, true, false);
+                // FIXME: TEST: Shouldn't the above true for pvs be in this line here ????
+                score = -self.alpha_beta(-alpha - 1, -alpha, depth - 1, false, false);
 
                 if alpha < score && score < beta {
-                    score = -self.alpha_beta(-beta, -alpha, depth - 1, true, false);
+                    score = -self.alpha_beta(-beta, -alpha, depth - 1, false, false);
                 }
             }
 
-            // let score = -self.alpha_beta(-beta, -alpha, depth - 1, true);
+            // let score = -self.alpha_beta(-beta, -alpha, depth - 1, false, false);
             self.board.undo_move();
 
             if score > alpha {

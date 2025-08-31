@@ -105,6 +105,7 @@ pub fn perft(depth: usize, board: &mut Board, stats: &mut Stats) -> u64 {
                 Flag::EP => stats.add_ep(),
                 Flag::Promotion(_, _) => stats.add_promotion(),
                 Flag::KingCastle | Flag::QueenCastle => stats.add_castle(),
+                Flag::NullMove => {}
             }
         }
 
