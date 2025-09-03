@@ -664,8 +664,8 @@ impl EvaluationTrait for Board {
         self.space(BLACK);
 
         // // 10. King
-        // self.king_eval(WHITE);
-        // self.king_eval(BLACK);
+        self.king_eval(WHITE);
+        self.king_eval(BLACK);
 
         // 11. Tempo NOTE: DONE
         self.tempo(self.color());
