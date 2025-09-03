@@ -640,24 +640,24 @@ impl EvaluationTrait for Board {
         self.imbalance(BLACK);
 
         // 4. Pawns
-        // self.pawns_eval(WHITE);
-        // self.pawns_eval(BLACK);
+        self.pawns_eval(WHITE);
+        self.pawns_eval(BLACK);
 
         // 5. Pieces
-        // self.piece_eval(WHITE);
-        // self.piece_eval(BLACK);
+        self.piece_eval(WHITE);
+        self.piece_eval(BLACK);
 
         // 6. Mobility
-        // self.mobility_eval(WHITE);
-        // self.mobility_eval(BLACK);
+        self.mobility_eval(WHITE);
+        self.mobility_eval(BLACK);
 
         // 7. Threats
-        // self.threats_eval(WHITE);
-        // self.threats_eval(BLACK);
+        self.threats_eval(WHITE);
+        self.threats_eval(BLACK);
 
         // 8. Passed Pawns
-        // self.passed_pawn(WHITE);
-        // self.passed_pawn(BLACK);
+        self.passed_pawn(WHITE);
+        self.passed_pawn(BLACK);
 
         // 9. Space
         self.space(WHITE);
