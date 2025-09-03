@@ -90,6 +90,7 @@ impl Search {
             }
 
             self.set_curr_depth(depth);
+            // NOTE: Don't allow Null move if it doesn't made any move
             let score = self.alpha_beta(alpha, beta, depth, true, false);
 
             if time_over(&self) {
@@ -148,7 +149,7 @@ mod tests {
         let fen = "8/2P1P3/b1B2p2/1pPRp3/2k3P1/P4pK1/nP3p1p/N7 w - - 0 1";
         // NOTE: Best Continuation after h2h1n: b5b4 or c3b2
         let expected_pv = " d5d1 a2c3 b2c3 h2h1q d1h1 f2f1q h1f1"; // Depth 7
-        // let expected_pv = " b2b3 c4c3 d5d1 f2f1q d1f1 h2h1n"; // Depth 6
+                                                                   // let expected_pv = " b2b3 c4c3 d5d1 f2f1q d1f1 h2h1n"; // Depth 6
         test_search(fen, depth, expected_pv);
     }
 

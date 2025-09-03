@@ -6,16 +6,15 @@ use super::structures::moves::*;
 use super::structures::piece::*;
 use crate::engine::board::structures::zobrist::ZobristKeysTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
+use crate::engine::misc::display::display_board::print_bitboard;
+use crate::engine::misc::display::display_board::print_chess;
 use crate::engine::move_generator::generated::zobrist_keys::*;
 use core::panic;
 
 pub trait BoardMoveTrait {
     fn make_move(&mut self, mv: &Move) -> bool;
     fn undo_move(&mut self);
-    fn make_null_move(&mut self) -> bool;
-    fn undo_null_move(&mut self);
     fn make_state(&mut self, mv: &Move);
-    fn undo_state(&mut self);
 
     fn clear_piece(&mut self, sq: usize, piece: Piece);
     fn add_piece(&mut self, sq: usize, piece: Piece);
@@ -58,11 +57,12 @@ impl BoardMoveTrait for Board {
                 self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece);
                 self.quiet_mv(sq.0, sq.1, ROOK + mv.piece.color());
             }
+            Flag::NullMove => (),
         }
 
         self.make_state(mv);
 
-        if self.sq_attack(self.king_sq(self.color().opp()), mv.piece.color()) != 0 {
+        if self.sq_attack(self.king_sq(self.color().opp()), self.color().opp()) != 0 {
             self.undo_move();
             return false;
         }
@@ -106,6 +106,7 @@ impl BoardMoveTrait for Board {
                 self.quiet_mv(mv.to as usize, mv.from as usize, mv.piece);
                 self.quiet_mv(sq.1, sq.0, ROOK + mv.piece.color());
             }
+            Flag::NullMove => {}
         }
 
         self.state = st;
@@ -140,14 +141,6 @@ impl BoardMoveTrait for Board {
         self.state.key ^= PIECE_KEYS[sq][piece.idx()];
     }
 
-    fn make_null_move(&mut self) -> bool {
-        todo!()
-    }
-
-    fn undo_null_move(&mut self) {
-        todo!()
-    }
-
     fn make_state(&mut self, mv: &Move) {
         // Switch the color
         self.state.color.change_color();
@@ -179,11 +172,6 @@ impl BoardMoveTrait for Board {
 
         // Full Move should be half of the moves
         self.state.full_move = self.history.len() as u16 / 2 + 1;
-    }
-
-    fn undo_state(&mut self) {
-        assert!(self.history.len() > 0, "Can't Pop states from empty history");
-        self.history.pop();
     }
 }
 

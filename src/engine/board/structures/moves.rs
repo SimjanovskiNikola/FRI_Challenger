@@ -8,6 +8,7 @@ pub enum Flag {
     Capture(Piece),
     EP,
     Promotion(Piece, Option<Piece>),
+    NullMove,
 }
 
 impl Flag {
@@ -44,6 +45,10 @@ pub struct Move {
 impl Move {
     pub fn init(from: u8, to: u8, piece: Piece, flag: Flag) -> Self {
         Self { from, to, piece, flag }
+    }
+
+    pub fn null_move() -> Self {
+        Self { from: 0, to: 0, piece: 0, flag: Flag::NullMove }
     }
 }
 

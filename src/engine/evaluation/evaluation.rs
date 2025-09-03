@@ -624,7 +624,6 @@ impl EvaluationTrait for Board {
     //                MAIN EVALUATION                 *
     // ************************************************
 
-    #[inline(always)]
     fn evaluation(&mut self) -> isize {
         self.init();
 
@@ -736,7 +735,6 @@ impl EvaluationTrait for Board {
     //            3. IMBALANCE EVALUATION             *
     // ************************************************
 
-    #[inline(always)]
     fn imbalance(&mut self, clr: Color) {
         let ours: [isize; 6] = [
             0,
@@ -756,35 +754,26 @@ impl EvaluationTrait for Board {
         ];
         let mut bonus = 0;
 
-        let has_our_bishop_pair = has_bishop_pair(self.bishop_bb(clr));
-        let has_their_bishop_pair = has_bishop_pair(self.bishop_bb(clr.opp()));
+        let has_our_bishop_pair = has_bishop_pair(self.bishop_bb(clr)) as isize;
+        let has_their_bishop_pair = has_bishop_pair(self.bishop_bb(clr.opp())) as isize;
 
-        for pt1 in 0..6 {
-            let cnt1 = ours[pt1];
-            if cnt1 == 0 {
-                continue;
-            }
-
-            let mut v = 0;
-            for pt2 in 0..pt1 + 1 {
-                v += QUADRATIC_OURS[pt1][pt2] * ours[pt2];
-                v += QUADRATIC_THEIRS[pt1][pt2] * theirs[pt2];
-            }
-
-            if has_our_bishop_pair {
-                v += QUADRATIC_OURS[pt1][0];
-            }
-            if has_their_bishop_pair {
-                v += QUADRATIC_THEIRS[pt1][0];
-            }
-
-            bonus += cnt1 * v;
+        for pt1 in 1..6 {
+            bonus += (QUADRATIC_OURS[pt1][0] * has_our_bishop_pair
+                + QUADRATIC_OURS[pt1][1] * ours[1]
+                + QUADRATIC_OURS[pt1][2] * ours[2]
+                + QUADRATIC_OURS[pt1][3] * ours[3]
+                + QUADRATIC_OURS[pt1][4] * ours[4]
+                + QUADRATIC_OURS[pt1][5] * ours[5]
+                + QUADRATIC_THEIRS[pt1][0] * has_their_bishop_pair
+                + QUADRATIC_THEIRS[pt1][1] * theirs[1]
+                + QUADRATIC_THEIRS[pt1][2] * theirs[2]
+                + QUADRATIC_THEIRS[pt1][3] * theirs[3]
+                + QUADRATIC_THEIRS[pt1][4] * theirs[4]
+                + QUADRATIC_THEIRS[pt1][5] * theirs[5])
+                * ours[pt1];
         }
 
-        if has_bishop_pair(self.bishop_bb(clr)) {
-            bonus += 1438;
-        }
-
+        bonus += 1438 * has_our_bishop_pair;
         bonus /= 16;
         self.sum(clr, None, None, (bonus, bonus));
     }
