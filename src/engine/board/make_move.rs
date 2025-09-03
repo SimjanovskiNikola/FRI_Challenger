@@ -14,10 +14,7 @@ use core::panic;
 pub trait BoardMoveTrait {
     fn make_move(&mut self, mv: &Move) -> bool;
     fn undo_move(&mut self);
-    // fn make_null_move(&mut self) -> bool;
-    // fn undo_null_move(&mut self);
     fn make_state(&mut self, mv: &Move);
-    fn undo_state(&mut self);
 
     fn clear_piece(&mut self, sq: usize, piece: Piece);
     fn add_piece(&mut self, sq: usize, piece: Piece);
@@ -175,11 +172,6 @@ impl BoardMoveTrait for Board {
 
         // Full Move should be half of the moves
         self.state.full_move = self.history.len() as u16 / 2 + 1;
-    }
-
-    fn undo_state(&mut self) {
-        assert!(self.history.len() > 0, "Can't Pop states from empty history");
-        self.history.pop();
     }
 }
 

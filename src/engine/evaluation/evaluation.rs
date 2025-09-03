@@ -735,61 +735,6 @@ impl EvaluationTrait for Board {
     //            3. IMBALANCE EVALUATION             *
     // ************************************************
 
-    // #[inline(always)]
-    // fn imbalance(&mut self, clr: Color) {
-    //     let ours: [isize; 6] = [
-    //         0,
-    //         self.pawn_bb(clr).count() as isize,
-    //         self.knight_bb(clr).count() as isize,
-    //         self.bishop_bb(clr).count() as isize,
-    //         self.rook_bb(clr).count() as isize,
-    //         self.queen_bb(clr).count() as isize,
-    //     ];
-    //     let theirs: [isize; 6] = [
-    //         0,
-    //         self.pawn_bb(clr.opp()).count() as isize,
-    //         self.knight_bb(clr.opp()).count() as isize,
-    //         self.bishop_bb(clr.opp()).count() as isize,
-    //         self.rook_bb(clr.opp()).count() as isize,
-    //         self.queen_bb(clr.opp()).count() as isize,
-    //     ];
-    //     let mut bonus = 0;
-
-    //     let has_our_bishop_pair = has_bishop_pair(self.bishop_bb(clr));
-    //     let has_their_bishop_pair = has_bishop_pair(self.bishop_bb(clr.opp()));
-
-    //     for pt1 in 1..6 {
-    //         let cnt1 = ours[pt1];
-
-    //         // NOTE: Can be safetly removed
-    //         if cnt1 == 0 {
-    //             continue;
-    //         }
-
-    //         let mut v = 0;
-    //         for pt2 in 1..pt1 + 1 {
-    //             v += QUADRATIC_OURS[pt1][pt2] * ours[pt2];
-    //             v += QUADRATIC_THEIRS[pt1][pt2] * theirs[pt2];
-    //         }
-
-    //         if has_our_bishop_pair {
-    //             v += QUADRATIC_OURS[pt1][0];
-    //         }
-    //         if has_their_bishop_pair {
-    //             v += QUADRATIC_THEIRS[pt1][0];
-    //         }
-
-    //         bonus += cnt1 * v;
-    //     }
-
-    //     if has_bishop_pair(self.bishop_bb(clr)) {
-    //         bonus += 1438;
-    //     }
-
-    //     bonus /= 16;
-    //     self.sum(clr, None, None, (bonus, bonus));
-    // }
-
     fn imbalance(&mut self, clr: Color) {
         let ours: [isize; 6] = [
             0,

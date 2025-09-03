@@ -25,7 +25,6 @@ pub struct SearchInfo {
     pub beta_cut_index_sum: [usize; 64],
     pub alpha_raise_count: [usize; 64],
     pub alpha_raise_index_sum: [usize; 64],
-    // pub null_move_enabled: bool,
 }
 
 impl SearchInfo {
@@ -41,7 +40,6 @@ impl SearchInfo {
             beta_cut_index_sum: [0; 64],
             alpha_raise_count: [0; 64],
             alpha_raise_index_sum: [0; 64],
-            // null_move_enabled: true,
         }
     }
 }
@@ -69,7 +67,6 @@ impl Search {
 
         TT.write().unwrap().clear_stats();
         self.board.pv_clear();
-        // self.info.null_move_enabled = true;
     }
 
     pub fn set_curr_depth(&mut self, depth: i8) {
