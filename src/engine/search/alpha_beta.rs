@@ -91,15 +91,38 @@ impl Search {
                 continue;
             }
             legal_mv_num += 1;
+
             let mut score: isize;
             if legal_mv_num == 1 {
                 score = -self.alpha_beta(-beta, -alpha, depth - 1, false, true);
             } else {
-                // FIXME: TEST: Shouldn't the above true for pvs be in this line here ????
-                score = -self.alpha_beta(-alpha - 1, -alpha, depth - 1, false, false);
+                // Late Move Reductions, ADD CONDITION TO NOT REDUCE
+                if legal_mv_num >= 5
+                    && !in_check
+                    && depth >= 3
+                    && !mv.flag.is_capture()
+                    && !mv.flag.is_promo()
+                {
+                    // Base Reduction: Etherial
+                    let mut reduction: i8 = (0.7844
+                        + ((depth as f32).ln() * (legal_mv_num as f32).ln() / 2.4696))
+                        as i8;
+                    reduction = reduction.max(1).min(depth - 2);
+                    // let reduction = 1;
+                    score =
+                        -self.alpha_beta(-alpha - 1, -alpha, depth - 1 - reduction, false, false);
+                } else {
+                    score = alpha + 1; // To enter the PVS search
+                }
+                // NOTE: LMR Ends Here
 
-                if alpha < score && score < beta {
-                    score = -self.alpha_beta(-beta, -alpha, depth - 1, false, false);
+                // FIXME: TEST: Shouldn't the above true for pvs be in this line here ????
+                if score > alpha {
+                    score = -self.alpha_beta(-alpha - 1, -alpha, depth - 1, false, false);
+
+                    if alpha < score && score < beta {
+                        score = -self.alpha_beta(-beta, -alpha, depth - 1, false, false);
+                    }
                 }
             }
 
