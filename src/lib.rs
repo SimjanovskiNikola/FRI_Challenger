@@ -32,9 +32,23 @@ pub mod engine {
     }
 
     pub mod evaluation {
+        pub mod common_eval;
         pub mod eval_defs;
         pub mod evaluation;
-        pub mod new_evaluation;
+        pub mod imbalance_eval;
+        pub mod init_eval;
+        pub mod king_eval;
+        pub mod material_eval;
+        pub mod mobility_eval;
+        pub mod passed_pawn_eval;
+        pub mod pawn_eval;
+        pub mod piece_eval;
+        pub mod psqt_eval;
+        pub mod space_eval;
+        pub mod tempo_eval;
+        pub mod test_evaluation;
+        pub mod threats_eval;
+        pub mod trace_eval;
     }
     pub mod misc {
         pub mod bit_pos_utility;

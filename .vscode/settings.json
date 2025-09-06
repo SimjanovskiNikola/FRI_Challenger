@@ -6,6 +6,7 @@
         "bitboard",
         "perft",
         "PSQT",
+        "stockfish",
         "zobrist"
     ],
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
