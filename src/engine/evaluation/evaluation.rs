@@ -513,7 +513,7 @@ impl EvaluationTrait for Board {
         piece: Option<Piece>,
         value: (isize, isize),
     ) {
-        self.trace(color, square, piece, value);
+        // self.trace(color, square, piece, value);
 
         self.eval.score[color.idx()].0 += value.0;
         self.eval.score[color.idx()].1 += value.1;
