@@ -65,13 +65,18 @@ mod tests {
     use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::SF_EVAL;
+    use crate::engine::evaluation::trace_eval::TraceEvalTrait;
 
     use super::*;
 
-    // NOTE: 9. SPACE [FIXME: WORKS]
     #[test]
     fn space_test() {
         for obj in &SF_EVAL {
+            // 4 and 7
+            if obj.fen != SF_EVAL[4].fen {
+                continue;
+            }
+
             let mut board = Board::read_fen(obj.fen);
             board.init();
             board.space(WHITE);
@@ -82,7 +87,8 @@ mod tests {
             } else {
                 println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.space);
             }
-            // assert_eq!(board.calculate_score(), obj.space);
+            board.print_trace_log("");
+            assert_eq!(board.calculate_score(), obj.space);
 
             // assert_eq!(board.calculate_score(), obj.space);
         }
