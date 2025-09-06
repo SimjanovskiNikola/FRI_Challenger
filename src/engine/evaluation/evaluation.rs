@@ -513,7 +513,7 @@ impl EvaluationTrait for Board {
         piece: Option<Piece>,
         value: (isize, isize),
     ) {
-        // self.trace(color, square, piece, value);
+        self.trace(color, square, piece, value);
 
         self.eval.score[color.idx()].0 += value.0;
         self.eval.score[color.idx()].1 += value.1;
@@ -1576,16 +1576,13 @@ impl EvaluationTrait for Board {
     #[inline(always)]
     fn passed_leverable(&mut self, sq: usize, clr: Color) -> bool {
         if !self.candidate_passed(sq, clr) {
+            // println!("Candidate Not Passed on sq: {:?}", sq);
             return false;
         }
-
-        // println!("Candidate Passed : {:?}", sq);
 
         if !self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp())) {
             return true;
         }
-
-        // println!("Is not blocked pawn : {:?}", sq);
 
         let mut bb = PAWN_ATTACK_LOOKUP[clr.opp().idx()][sq] & self.pawn_bb(clr);
 
@@ -1715,7 +1712,9 @@ impl EvaluationTrait for Board {
             return true;
         }
 
-        if FORWARD_SPANS_LR[clr.idx()][self.front_sq(sq, clr)] & their_pawns != 0
+        let one_forward = self.front_sq(sq, clr);
+        let double_forward = self.front_sq(one_forward, clr);
+        if (double_forward < 64 && FORWARD_SPANS_LR[clr.idx()][double_forward] & their_pawns != 0)
             || PAWN_FORWARD_SPANS[clr.idx()][self.front_sq(sq, clr)] & their_pawns != 0
         {
             return false;
@@ -2627,7 +2626,7 @@ mod tests {
     #[test]
     fn passed_pawns_test() {
         for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            // if obj.fen != "4rrk1/Rpp3pp/6q1/2PPn3/4p3/2N5/1P2QPPP/5RK1 w - - 0 0" {
             //     continue;
             // }
 
