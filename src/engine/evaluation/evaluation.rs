@@ -664,8 +664,8 @@ impl EvaluationTrait for Board {
         self.space(BLACK);
 
         // // 10. King
-        // self.king_eval(WHITE);
-        // self.king_eval(BLACK);
+        self.king_eval(WHITE);
+        self.king_eval(BLACK);
 
         // 11. Tempo NOTE: DONE
         self.tempo(self.color());
@@ -758,6 +758,10 @@ impl EvaluationTrait for Board {
         let has_their_bishop_pair = has_bishop_pair(self.bishop_bb(clr.opp())) as isize;
 
         for pt1 in 1..6 {
+            if ours[pt1] == 0 {
+                continue;
+            }
+
             bonus += (QUADRATIC_OURS[pt1][0] * has_our_bishop_pair
                 + QUADRATIC_OURS[pt1][1] * ours[1]
                 + QUADRATIC_OURS[pt1][2] * ours[2]
