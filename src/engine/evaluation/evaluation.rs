@@ -224,82 +224,6 @@ mod tests {
 
     use super::*;
 
-    // NOTE: 2. PSQT [TEST: WORKS]
-    #[test]
-    fn psqt_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.psqt_eval(WHITE);
-            board.psqt_eval(BLACK);
-
-            // if board.calculate_score() != obj.psqt {
-            //     println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.psqt);
-            // } else {
-            //     println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.psqt);
-            // }
-
-            assert_eq!(board.calculate_score(), obj.psqt);
-        }
-    }
-
-    // NOTE: 3. IMBALANCE [TEST: WORKS]
-    #[test]
-    fn imbalance_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.imbalance(WHITE);
-            board.imbalance(BLACK);
-
-            if board.calculate_score() != obj.imbalance {
-                println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.imbalance);
-            } else {
-                println!(
-                    "assertion `{:?} == {:?}` success",
-                    board.calculate_score(),
-                    obj.imbalance
-                );
-                assert_eq!(board.calculate_score(), obj.imbalance);
-            }
-
-            // assert_eq!(board.calculate_score(), obj.imbalance);
-        }
-    }
-
-    // NOTE: 4. PAWNS [TEST: WORKS]
-    #[test]
-    fn pawns_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.pawns_eval(WHITE);
-            board.pawns_eval(BLACK);
-            assert_eq!(board.calculate_score(), obj.pawns);
-
-            if board.calculate_score() != obj.pawns {
-                println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.pawns);
-            } else {
-                println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.pawns);
-                assert_eq!(board.calculate_score(), obj.pawns);
-            }
-
-            // board.print_trace_board("");
-        }
-    }
-
     // NOTE: 5. PIECES FIXME:
     #[test]
     fn pieces_test() {
@@ -406,30 +330,6 @@ mod tests {
         }
     }
 
-    // NOTE: 9. SPACE [TEST: WORKS]
-    #[test]
-    fn space_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.space(WHITE);
-            board.space(BLACK);
-
-            if board.calculate_score() != obj.space {
-                println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.space);
-            } else {
-                println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.space);
-                assert_eq!(board.calculate_score(), obj.space);
-            }
-
-            // assert_eq!(board.calculate_score(), obj.space);
-        }
-    }
-
     // NOTE: 10. KING FIXME:
     #[test]
     fn king_test() {
@@ -453,28 +353,6 @@ mod tests {
 
             // board.print_trace_log("");
             // board.print_trace_score("");
-        }
-    }
-
-    // NOTE: 11. TEMPO [TEST: WORKS]
-    #[test]
-    fn tempo_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.tempo(board.color());
-
-            // if board.calculate_score() != obj.tempo {
-            //     println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.tempo);
-            // } else {
-            //     println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.tempo);
-            //     assert_eq!(board.calculate_score(), obj.tempo);
-            // }
-            assert_eq!(board.calculate_score(), obj.tempo);
         }
     }
 

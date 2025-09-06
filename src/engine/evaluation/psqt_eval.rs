@@ -99,7 +99,32 @@ impl PSQTEvalTrait for Board {
 mod tests {
 
     use crate::engine::board::fen::FenTrait;
+    use crate::engine::board::structures::color::{BLACK, WHITE};
+    use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::SF_EVAL;
 
     use super::*;
+
+    // NOTE: 2. PSQT [TEST: WORKS]
+    #[test]
+    fn psqt_test() {
+        for obj in &SF_EVAL {
+            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            //     continue;
+            // }
+
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.psqt_eval(WHITE);
+            board.psqt_eval(BLACK);
+
+            // if board.calculate_score() != obj.psqt {
+            //     println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.psqt);
+            // } else {
+            //     println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.psqt);
+            // }
+
+            assert_eq!(board.calculate_score(), obj.psqt);
+        }
+    }
 }

@@ -203,7 +203,22 @@ impl PawnEvalTrait for Board {
 mod tests {
 
     use crate::engine::board::fen::FenTrait;
+    use crate::engine::board::structures::color::{BLACK, WHITE};
+    use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::SF_EVAL;
 
     use super::*;
+
+    // NOTE: 4. PAWNS [TEST: WORKS]
+    #[test]
+    fn pawns_test() {
+        for obj in &SF_EVAL {
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.pawns_eval(WHITE);
+            board.pawns_eval(BLACK);
+
+            assert_eq!(board.calculate_score(), obj.pawns);
+        }
+    }
 }
