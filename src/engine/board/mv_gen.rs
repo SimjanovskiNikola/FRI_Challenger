@@ -1,27 +1,16 @@
 use std::cmp;
 
 use super::make_move::BoardMoveTrait;
-use super::structures::board;
 use super::structures::board::Board;
 use super::structures::castling::*;
-use super::structures::color;
 use super::structures::color::*;
 use super::structures::moves::*;
-use super::structures::piece;
 use super::structures::piece::*;
-use super::structures::square::get_rank;
 use super::structures::square::SqPos::*;
-use crate::engine::board::structures::state;
-use crate::engine::evaluation::eval_defs::CLR_SQ;
-use crate::engine::evaluation::eval_defs::PSQT;
-use crate::engine::misc::bit_pos_utility::*;
-use crate::engine::misc::bitboard::Bitboard;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::bitboard::Iterator;
-use crate::engine::misc::bitboard::Shift;
 use crate::engine::misc::const_utility::*;
 use crate::engine::move_generator::bishop::*;
-use crate::engine::move_generator::generated::knight;
 use crate::engine::move_generator::king::*;
 use crate::engine::move_generator::knight::*;
 use crate::engine::move_generator::pawn::*;
@@ -331,7 +320,7 @@ impl BoardGenMoveTrait for Board {
 
     fn add_capture_promo_moves(&mut self, from_sq: u8, to_sq: u8, piece: Piece) {
         let taken_piece = self.piece_sq(to_sq as usize); // squares[to_sq as usize];
-        for promo_piece in &PROMO_PIECES {
+        for promo_piece in &PIECES_WITHOUT_PAWN_KING {
             let flag = Flag::Promotion(*promo_piece + piece.color(), Some(taken_piece));
             let mv = Move::init(from_sq, to_sq, piece, flag);
             let eval = self.capture_eval(&mv);
@@ -340,7 +329,7 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn add_quiet_promo_moves(&mut self, from_sq: u8, to_sq: u8, piece: Piece) {
-        for promo_piece in &PROMO_PIECES {
+        for promo_piece in &PIECES_WITHOUT_PAWN_KING {
             let flag = Flag::Promotion(*promo_piece + piece.color(), None);
             let mv = Move::init(from_sq, to_sq, piece, flag);
             let eval = self.quiet_eval(&mv); // promo_piece.weight();
@@ -565,6 +554,7 @@ mod tests {
 
     use crate::engine::board::fen::FenTrait;
     use crate::engine::board::structures::zobrist::ZobristKeysTrait;
+    use crate::engine::misc::bit_pos_utility::extract_all_bits;
     use crate::engine::misc::display::display_board::*;
     use crate::engine::misc::display::display_moves::*;
 
