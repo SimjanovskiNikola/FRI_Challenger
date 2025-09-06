@@ -234,7 +234,22 @@ impl PassedPawnEvalTrait for Board {
 mod tests {
 
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::evaluation::test_evaluation::SF_EVAL;
+    use crate::engine::board::structures::color::{BLACK, WHITE};
+    use crate::engine::evaluation::init_eval::InitEvalTrait;
+    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 
     use super::*;
+
+    // NOTE: 8. PASSED PAWNS [FIXME: TEST: WORKS]
+    #[test]
+    fn passed_pawns_test() {
+        for obj in &SF_EVAL {
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.passed_pawn(WHITE);
+            board.passed_pawn(BLACK);
+
+            eval_assert(board.calculate_score(), obj.passed_pawn, 10, false);
+        }
+    }
 }

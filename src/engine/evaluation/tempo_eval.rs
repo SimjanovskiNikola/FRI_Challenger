@@ -21,7 +21,7 @@ mod tests {
 
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::SF_EVAL;
+    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 
     use super::*;
 
@@ -32,7 +32,7 @@ mod tests {
             board.init();
             board.tempo(board.color());
 
-            assert_eq!(board.calculate_score(), obj.tempo);
+            eval_assert(board.calculate_score(), obj.tempo, 0, false);
         }
     }
 }

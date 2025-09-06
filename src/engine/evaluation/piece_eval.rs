@@ -276,7 +276,20 @@ impl PieceEvalTrait for Board {
 mod tests {
 
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::evaluation::test_evaluation::SF_EVAL;
+    use crate::engine::board::structures::color::{BLACK, WHITE};
+    use crate::engine::evaluation::init_eval::InitEvalTrait;
+    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 
     use super::*;
+
+    #[test]
+    fn pieces_test() {
+        for obj in &SF_EVAL {
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.piece_eval(WHITE);
+            board.piece_eval(BLACK);
+            eval_assert(board.calculate_score(), obj.piece, 45, false); // FIXME: The diff is quite high here
+        }
+    }
 }

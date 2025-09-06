@@ -237,7 +237,22 @@ impl ThreatsEvalTrait for Board {
 mod tests {
 
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::evaluation::test_evaluation::SF_EVAL;
+    use crate::engine::board::structures::color::{BLACK, WHITE};
+    use crate::engine::evaluation::init_eval::InitEvalTrait;
+    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 
     use super::*;
+
+    // NOTE: 7. THREATS [TEST: WORKS]
+    #[test]
+    fn threats_test() {
+        for obj in &SF_EVAL {
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.threats_eval(WHITE);
+            board.threats_eval(BLACK);
+
+            eval_assert(board.calculate_score(), obj.threats, 0, false);
+        }
+    }
 }

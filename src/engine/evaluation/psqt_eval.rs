@@ -101,7 +101,7 @@ mod tests {
     use crate::engine::board::fen::FenTrait;
     use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::SF_EVAL;
+    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 
     use super::*;
 
@@ -123,8 +123,7 @@ mod tests {
             // } else {
             //     println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.psqt);
             // }
-
-            assert_eq!(board.calculate_score(), obj.psqt);
+            eval_assert(board.calculate_score(), obj.psqt, 0, false);
         }
     }
 }

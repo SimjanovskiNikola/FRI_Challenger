@@ -1,6 +1,6 @@
 use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, ColorTrait, BLACK, COLORS, WHITE};
-use crate::engine::board::structures::piece::{PieceTrait, PAWN, PIECES};
+use crate::engine::board::structures::color::{ColorTrait, BLACK, COLORS, WHITE};
+use crate::engine::board::structures::piece::{PieceTrait, KING, PAWN, PIECES};
 use crate::engine::board::structures::square::get_file;
 use crate::engine::evaluation::common_eval::{CommonEvalTrait, KING_ATT_WEIGHT};
 use crate::engine::evaluation::eval_defs::CLR_CENTER;

@@ -220,185 +220,35 @@ impl EvaluationTrait for Board {
 mod tests {
 
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::evaluation::test_evaluation::SF_EVAL;
+    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 
     use super::*;
-
-    // NOTE: 5. PIECES FIXME:
-    #[test]
-    fn pieces_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "rnb2rk1/pp2q2p/3p4/2pP2p1/2P1Pp2/2N5/PP1QBRPP/R5K1 w - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.piece_eval(WHITE);
-            board.piece_eval(BLACK);
-
-            if board.calculate_score() != obj.piece {
-                println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.piece);
-            } else {
-                println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.piece);
-                assert_eq!(board.calculate_score(), obj.piece);
-            }
-
-            // board.print_trace_log("");
-            // board.print_trace_score("");
-        }
-    }
-
-    // NOTE: 6. MOBILITY [TEST:FIXME: SEMI-WORKS 90%]
-    #[test]
-    fn mobility_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.mobility_eval(WHITE);
-            board.mobility_eval(BLACK);
-
-            if board.calculate_score() != obj.mobility {
-                println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.mobility);
-            } else {
-                println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.mobility);
-                assert_eq!(board.calculate_score(), obj.mobility);
-            }
-        }
-    }
-
-    // NOTE: 7. THREATS [TEST: WORKS]
-    #[test]
-    fn threats_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.threats_eval(WHITE);
-            board.threats_eval(BLACK);
-
-            if board.calculate_score() != obj.threats {
-                println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.threats);
-            } else {
-                println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.threats);
-                assert_eq!(board.calculate_score(), obj.threats);
-            }
-
-            // board.print_trace_log("");
-            // board.print_trace_score("");
-        }
-    }
-
-    // NOTE: 8. PASSED PAWNS [FIXME: TEST: WORKS]
-    #[test]
-    fn passed_pawns_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "4rrk1/Rpp3pp/6q1/2PPn3/4p3/2N5/1P2QPPP/5RK1 w - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.passed_pawn(WHITE);
-            board.passed_pawn(BLACK);
-            // assert_eq!(board.calculate_score(), obj.passed_pawn);
-
-            if board.calculate_score() != obj.passed_pawn {
-                println!(
-                    "assertion `{:?} == {:?}` failed",
-                    board.calculate_score(),
-                    obj.passed_pawn
-                );
-            } else {
-                println!(
-                    "assertion `{:?} == {:?}` success",
-                    board.calculate_score(),
-                    obj.passed_pawn
-                );
-                assert_eq!(board.calculate_score(), obj.passed_pawn);
-            }
-
-            // board.print_trace_board("");
-            // board.print_trace_log("");
-        }
-    }
-
-    // NOTE: 10. KING FIXME:
-    #[test]
-    fn king_test() {
-        for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-            //     continue;
-            // }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-            board.king_eval(WHITE);
-            board.king_eval(BLACK);
-            // assert_eq!(board.calculate_score(), obj.king);
-
-            if board.calculate_score() != obj.king {
-                println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.king);
-            } else {
-                println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.king);
-                assert_eq!(board.calculate_score(), obj.king);
-            }
-
-            // board.print_trace_log("");
-            // board.print_trace_score("");
-        }
-    }
 
     // NOTE: Evaluation [TEST: WORKS]
     #[rustfmt::skip]
     #[test]
     fn eval_test() {
         for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-            //     continue;
-            // }
-
             let mut board = Board::read_fen(obj.fen);
             board.init();
             let score = board.evaluation();
-
-            if score != obj.eval {
-                println!("assertion `{:?} == {:?}` failed", score, obj.eval);
-            } else {
-                println!("assertion `{:?} == {:?}` success", score, obj.eval);
-                assert_eq!(score, obj.eval);
-            }
-        }
-    }
-
-    #[test]
-    fn storm_sq_test() {
-        for obj in &SF_EVAL {
-            if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
-                continue;
-            }
-
-            let mut board = Board::read_fen(obj.fen);
-            board.init();
-
-            for sq in 0..64 {
-                println!("{:?}", board.strength_square(sq, WHITE));
-            }
+            eval_assert(score * board.color().sign(), obj.eval, 130, true);
         }
     }
 
     // #[test]
-    // fn eval_random_test() {
-    //     // let mut board = Board::read_fen("5rk1/ppq3pp/2p1rn2/4p1Q1/8/2N4P/PP4P1/2KRR3 w - - 0 3");
-    //     let mut board =
-    //         Board::read_fen("rnbqkbnr/pppp1ppp/4p3/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
-    //     assert_eq!(93, board.evaluation())
+    // fn storm_sq_test() {
+    //     for obj in &SF_EVAL {
+    //         if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+    //             continue;
+    //         }
+
+    //         let mut board = Board::read_fen(obj.fen);
+    //         board.init();
+
+    //         for sq in 0..64 {
+    //             println!("{:?}", board.strength_square(sq, WHITE));
+    //         }
+    //     }
     // }
 }

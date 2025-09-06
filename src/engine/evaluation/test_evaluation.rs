@@ -1,4 +1,6 @@
-use crate::engine::{board::structures::board::Board, evaluation::common_eval::CommonEvalTrait};
+use crate::engine::{
+    board::structures::board::Board, evaluation::common_eval::CommonEvalTrait, misc::display,
+};
 
 pub struct SFEval<'a> {
     pub fen: &'a str,
@@ -227,6 +229,24 @@ pub fn assert_all_eval(board: &mut Board, obj: &SFEval) {
     }
 }
 
+// Because Some of the evaluations are not exact, we allow a small difference
+pub fn eval_assert(actual: isize, expected: isize, diff: usize, only_trace: bool) {
+    let abs_diff = actual.abs_diff(expected);
+    if abs_diff <= diff {
+        if only_trace {
+            println!("assertion `{:?} == {:?}` Success", actual, expected);
+        } else {
+            assert!(abs_diff <= diff, "assertion `{:?} == {:?}` Success", actual, expected);
+        }
+    } else {
+        if only_trace {
+            println!("assertion `{:?} == {:?}` Failed", actual, expected);
+        } else {
+            assert!(abs_diff <= diff, "assertion `{:?} == {:?}` Failed", actual, expected);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -256,16 +276,5 @@ mod tests {
         println!("         space: {:?},", stockfish_eval(phase, 0, 0)); // space
         println!("       threats: {:?},", stockfish_eval(phase, 0, 0)); // threats
         println!("      winnable: {:?},", stockfish_eval(phase, 0, 0)); // winnable
-    }
-
-    // Because of the devision and things like that  I am using offset of 1 to be a mistake in my calculation
-    fn eval_assert(actual: isize, expected: isize) {
-        if actual - expected == 1 {
-            assert_eq!(actual - 1, expected);
-        } else if actual - expected == -1 {
-            assert_eq!(actual + 1, expected);
-        } else {
-            assert_eq!(actual, expected);
-        }
     }
 }

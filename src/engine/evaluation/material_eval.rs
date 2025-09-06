@@ -55,7 +55,7 @@ mod tests {
     use crate::engine::board::fen::FenTrait;
     use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::SF_EVAL;
+    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 
     use super::*;
 
@@ -72,16 +72,7 @@ mod tests {
             board.material_eval(WHITE);
             board.material_eval(BLACK);
 
-            assert_eq!(board.calculate_score(), obj.material);
-
-            // if board.calculate_score() != obj.material {
-            //     println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.material);
-            // } else {
-            //     println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.material);
-            // }
-
-            // board.calculate_score();
-            // assert_eq!(board.calculate_score(), obj.material);
+            eval_assert(board.calculate_score(), obj.material, 0, false);
         }
     }
 }

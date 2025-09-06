@@ -458,7 +458,21 @@ impl KingEvalTrait for Board {
 mod tests {
 
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::evaluation::test_evaluation::SF_EVAL;
+    use crate::engine::board::structures::color::{BLACK, WHITE};
+    use crate::engine::evaluation::init_eval::InitEvalTrait;
+    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 
     use super::*;
+
+    #[test]
+    fn king_test() {
+        for obj in &SF_EVAL {
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.king_eval(WHITE);
+            board.king_eval(BLACK);
+
+            eval_assert(board.calculate_score(), obj.king, 34, false); // FIXME: The Difference is too high
+        }
+    }
 }

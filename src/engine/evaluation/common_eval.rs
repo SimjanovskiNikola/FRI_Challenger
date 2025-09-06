@@ -1,11 +1,8 @@
 use crate::engine::board::structures::board::Board;
 use crate::engine::board::structures::color::{Color, ColorTrait, BLACK, WHITE};
-use crate::engine::board::structures::piece::{
-    Piece, PieceTrait, BLACK_BISHOP, BLACK_KING, BLACK_KNIGHT, WHITE_BISHOP, WHITE_KING,
-    WHITE_KNIGHT,
-};
+use crate::engine::board::structures::piece::*;
 use crate::engine::board::structures::square::{get_file, get_rank};
-use crate::engine::evaluation::evaluation::EvaluationTrait;
+use crate::engine::evaluation::trace_eval::TraceEvalTrait;
 use crate::engine::move_generator::bishop::get_bishop_mask;
 use crate::engine::move_generator::generated::between::BETWEEN_BB;
 use crate::engine::move_generator::generated::king::KING_RING;
