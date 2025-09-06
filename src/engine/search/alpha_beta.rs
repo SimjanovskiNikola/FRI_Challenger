@@ -19,7 +19,6 @@ impl Search {
         beta: isize,
         mut depth: i8,
         is_nmp: bool,
-        is_pvs: bool,
     ) -> isize {
         // If we reached the final depth than make sure there is no horizon effect
         assert!(depth >= 0, "Depth is smaller than 0");
@@ -45,6 +44,8 @@ impl Search {
             depth += 1;
         }
 
+        let is_pvs = alpha != beta - 1;
+
         // if let Some((score, _)) =
         //     TT.read().unwrap().probe(self.board.state.key, depth, alpha as i16, beta as i16)
         // {
@@ -64,7 +65,7 @@ impl Search {
             let mv = Move::null_move();
 
             self.board.make_move(&mv);
-            let score = -self.alpha_beta(-beta, -beta + 1, depth - 1 - r, true, is_pvs);
+            let score = -self.alpha_beta(-beta, -beta + 1, depth - 1 - r, true);
             self.board.undo_move();
             if score >= beta {
                 return beta;
@@ -94,14 +95,16 @@ impl Search {
 
             let mut score: isize;
             if legal_mv_num == 1 {
-                score = -self.alpha_beta(-beta, -alpha, depth - 1, false, true);
+                score = -self.alpha_beta(-beta, -alpha, depth - 1, false);
             } else {
-                // Late Move Reductions, ADD CONDITION TO NOT REDUCE
+                // Late Move Reductions, Add if enemy king is in check
                 if legal_mv_num >= 5
-                    && !in_check
                     && depth >= 3
+                    && !is_pvs
+                    && !in_check
                     && !mv.flag.is_capture()
                     && !mv.flag.is_promo()
+                    && !mv.piece.is_pawn()
                 {
                     // Base Reduction: Etherial
                     let mut reduction: i8 = (0.7844
@@ -109,8 +112,7 @@ impl Search {
                         as i8;
                     reduction = reduction.max(1).min(depth - 2);
                     // let reduction = 1;
-                    score =
-                        -self.alpha_beta(-alpha - 1, -alpha, depth - 1 - reduction, false, false);
+                    score = -self.alpha_beta(-alpha - 1, -alpha, depth - 1 - reduction, false);
                 } else {
                     score = alpha + 1; // To enter the PVS search
                 }
@@ -118,10 +120,10 @@ impl Search {
 
                 // FIXME: TEST: Shouldn't the above true for pvs be in this line here ????
                 if score > alpha {
-                    score = -self.alpha_beta(-alpha - 1, -alpha, depth - 1, false, false);
+                    score = -self.alpha_beta(-alpha - 1, -alpha, depth - 1, false);
 
                     if alpha < score && score < beta {
-                        score = -self.alpha_beta(-beta, -alpha, depth - 1, false, false);
+                        score = -self.alpha_beta(-beta, -alpha, depth - 1, false);
                     }
                 }
             }
