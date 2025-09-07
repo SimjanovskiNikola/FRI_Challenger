@@ -3,8 +3,8 @@ use crate::engine::board::moves::Move;
 use crate::engine::board::piece::PieceTrait;
 use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::move_generator::make_move::BoardMoveTrait;
-use crate::engine::move_generator::mv_gen::next_move;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
+use crate::engine::move_generator::mv_oredering::MoveOrderingTrait;
 use crate::engine::protocols::time::time_over;
 
 impl Search {
@@ -73,11 +73,12 @@ impl Search {
         let old_alpha: isize = alpha;
 
         let mut moves = self.board.gen_moves();
+        self.board.score_moves(&mut moves);
         let ply = self.board.ply();
 
         self.board.pv_len[ply] = 0;
 
-        while let Some(mv) = next_move(&mut moves) {
+        while let Some(mv) = self.board.next_move(&mut moves) {
             // Check Time every 2047 Nodes
             if (self.info.nodes & 2047) == 0 && time_over(&self) {
                 return 0;
@@ -168,7 +169,7 @@ impl Search {
                 self.board.pv_len[ply] = child_len + 1;
 
                 if !mv.flag.is_capture() {
-                    self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as u64;
+                    self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as isize;
                 }
             }
         }

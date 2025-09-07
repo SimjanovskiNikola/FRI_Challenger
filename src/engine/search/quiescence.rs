@@ -1,7 +1,8 @@
 use super::iter_deepening::Search;
 use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::move_generator::make_move::BoardMoveTrait;
-use crate::engine::move_generator::mv_gen::{next_move, BoardGenMoveTrait};
+use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
+use crate::engine::move_generator::mv_oredering::MoveOrderingTrait;
 use crate::engine::protocols::time::time_over;
 use crate::engine::search::transposition_table::{Bound, TT};
 
@@ -46,10 +47,11 @@ impl Search {
         let mut best_score = alpha;
         let old_alpha: isize = alpha;
         let mut moves = self.board.gen_captures();
+        self.board.score_moves(&mut moves);
         // let ply = self.board.ply();
         // self.board.pv_len[ply] = ply;
 
-        while let Some(mv) = next_move(&mut moves) {
+        while let Some(mv) = self.board.next_move(&mut moves) {
             if (self.info.nodes & 2047) == 0 && time_over(&self) {
                 break;
             }
