@@ -26,7 +26,7 @@ pub struct Board {
 
     // TODO: Add This to Move Ordering Structure
     pub tt_mv: Option<TTEntry>,
-    pub s_history: [[u64; 64]; 14],
+    pub s_history: [[isize; 64]; 14],
     pub s_killers: [[Option<Move>; 2]; 64],
     pub pv_moves: [[Option<Move>; MAX_PLY]; MAX_PLY],
     pub pv_len: [usize; MAX_PLY],
@@ -52,7 +52,7 @@ impl Board {
 
             // Move Ordering
             tt_mv: None,
-            s_history: [[0u64; 64]; 14],
+            s_history: [[0isize; 64]; 14],
             s_killers: [[None; 2]; 64],
             pv_moves: [[None; 64]; 64],
             pv_len: [0; 64],
@@ -71,7 +71,7 @@ impl Board {
         self.history = Vec::with_capacity(1024);
         self.state = BoardState::init();
         self.tt_mv = None;
-        self.s_history = [[0u64; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
+        self.s_history = [[0isize; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
                                           // self.s_pv = [None; 64];
         self.gen_moves.clear();

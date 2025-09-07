@@ -51,9 +51,9 @@ pub trait BoardGenMoveTrait {
     fn get_mv_bb(piece: Piece, sq: usize, own_occ: u64, enemy_occ: u64) -> u64;
 
     // Move Ordering
-    fn quiet_eval(&mut self, mv: &Move) -> isize;
-    fn capture_eval(&mut self, mv: &Move) -> isize;
-    fn see(&mut self, from: usize, to: usize) -> isize;
+    // fn quiet_eval(&mut self, mv: &Move) -> isize;
+    // fn capture_eval(&mut self, mv: &Move) -> isize;
+    // fn see(&mut self, from: usize, to: usize) -> isize;
 
     // Is square Attacked
     fn sq_attack(&self, sq: usize, color: Color) -> u64;
@@ -163,8 +163,7 @@ impl BoardGenMoveTrait for Board {
 
             while let Some(to_sq) = one_mv.next() {
                 let mv = Move::init((to_sq - 8) as u8, to_sq as u8, piece, Flag::Quiet);
-                let eval = self.quiet_eval(&mv);
-                self.gen_moves.push((mv, eval));
+                self.gen_moves.push((mv, 0));
             }
 
             while let Some(to_sq) = one_promo.next() {
@@ -173,8 +172,7 @@ impl BoardGenMoveTrait for Board {
 
             while let Some(to_sq) = two_mv.next() {
                 let mv = Move::init((to_sq - 16) as u8, to_sq as u8, piece, Flag::Quiet);
-                let eval = self.quiet_eval(&mv);
-                self.gen_moves.push((mv, eval));
+                self.gen_moves.push((mv, 0));
             }
         } else {
             let mv = (self.pawn_bb(self.color()) >> 8) & !both_occ;
@@ -184,8 +182,7 @@ impl BoardGenMoveTrait for Board {
 
             while let Some(to_sq) = one_mv.next() {
                 let mv = Move::init((to_sq + 8) as u8, to_sq as u8, piece, Flag::Quiet);
-                let eval = self.quiet_eval(&mv);
-                self.gen_moves.push((mv, eval));
+                self.gen_moves.push((mv, 0));
             }
 
             while let Some(to_sq) = one_promo.next() {
@@ -194,8 +191,7 @@ impl BoardGenMoveTrait for Board {
 
             while let Some(to_sq) = two_mv.next() {
                 let mv = Move::init((to_sq + 16) as u8, to_sq as u8, piece, Flag::Quiet);
-                let eval = self.quiet_eval(&mv);
-                self.gen_moves.push((mv, eval));
+                self.gen_moves.push((mv, 0));
             }
         }
     }
@@ -216,8 +212,7 @@ impl BoardGenMoveTrait for Board {
                     piece,
                     Flag::Capture(self.piece_sq(to_sq)),
                 );
-                let eval = self.capture_eval(&mv);
-                self.gen_moves.push((mv, eval));
+                self.gen_moves.push((mv, 0));
             }
 
             while let Some(to_sq) = left_promo.next() {
@@ -235,8 +230,7 @@ impl BoardGenMoveTrait for Board {
                     piece,
                     Flag::Capture(self.piece_sq(to_sq)),
                 );
-                let eval = self.capture_eval(&mv);
-                self.gen_moves.push((mv, eval));
+                self.gen_moves.push((mv, 0));
             }
 
             while let Some(to_sq) = right_promo.next() {
@@ -254,8 +248,7 @@ impl BoardGenMoveTrait for Board {
                     piece,
                     Flag::Capture(self.piece_sq(to_sq)),
                 );
-                let eval = self.capture_eval(&mv);
-                self.gen_moves.push((mv, eval));
+                self.gen_moves.push((mv, 0));
             }
 
             while let Some(to_sq) = left_promo.next() {
@@ -273,8 +266,7 @@ impl BoardGenMoveTrait for Board {
                     piece,
                     Flag::Capture(self.piece_sq(to_sq)),
                 );
-                let eval = self.capture_eval(&mv);
-                self.gen_moves.push((mv, eval));
+                self.gen_moves.push((mv, 0));
             }
 
             while let Some(to_sq) = right_promo.next() {
@@ -288,8 +280,7 @@ impl BoardGenMoveTrait for Board {
         while let Some(to_sq) = bb.next() {
             let flag = Flag::Capture(self.piece_sq(to_sq));
             let mv = Move::init(from_sq as u8, to_sq as u8, piece, flag);
-            let eval = self.capture_eval(&mv);
-            self.gen_moves.push((mv, eval));
+            self.gen_moves.push((mv, 0));
         }
     }
 
@@ -297,8 +288,7 @@ impl BoardGenMoveTrait for Board {
     fn add_quiet_moves(&mut self, mut bb: u64, piece: Piece, from_sq: usize) {
         while let Some(to_sq) = bb.next() {
             let mv = Move::init(from_sq as u8, to_sq as u8, piece, Flag::Quiet);
-            let eval = self.quiet_eval(&mv);
-            self.gen_moves.push((mv, eval));
+            self.gen_moves.push((mv, 0));
         }
     }
 
@@ -312,8 +302,7 @@ impl BoardGenMoveTrait for Board {
 
             while let Some(sq) = attack.next() {
                 let mv = Move::init(sq as u8, mv, PAWN + color.opp(), Flag::EP);
-                let eval = self.quiet_eval(&mv);
-                self.gen_moves.push((mv, eval));
+                self.gen_moves.push((mv, 0));
             }
         }
     }
@@ -323,8 +312,7 @@ impl BoardGenMoveTrait for Board {
         for promo_piece in &PIECES_WITHOUT_PAWN_KING {
             let flag = Flag::Promotion(*promo_piece + piece.color(), Some(taken_piece));
             let mv = Move::init(from_sq, to_sq, piece, flag);
-            let eval = self.capture_eval(&mv);
-            self.gen_moves.push((mv, eval));
+            self.gen_moves.push((mv, 0));
         }
     }
 
@@ -332,8 +320,7 @@ impl BoardGenMoveTrait for Board {
         for promo_piece in &PIECES_WITHOUT_PAWN_KING {
             let flag = Flag::Promotion(*promo_piece + piece.color(), None);
             let mv = Move::init(from_sq, to_sq, piece, flag);
-            let eval = self.quiet_eval(&mv); // promo_piece.weight();
-            self.gen_moves.push((mv, eval));
+            self.gen_moves.push((mv, 0));
         }
     }
 
@@ -345,127 +332,25 @@ impl BoardGenMoveTrait for Board {
             WHITE => {
                 if self.state.castling.valid(CastlingRights::WKINGSIDE, self, own, enemy) {
                     let mv = Move::init(E1 as u8, G1 as u8, piece, Flag::KingCastle);
-                    let eval = self.quiet_eval(&mv);
-                    self.gen_moves.push((mv, eval));
+                    self.gen_moves.push((mv, 0));
                 }
                 if self.state.castling.valid(CastlingRights::WQUEENSIDE, self, own, enemy) {
                     let mv = Move::init(E1 as u8, C1 as u8, piece, Flag::QueenCastle);
-                    let eval = self.quiet_eval(&mv);
-                    self.gen_moves.push((mv, eval));
+                    self.gen_moves.push((mv, 0));
                 }
             }
             BLACK => {
                 if self.state.castling.valid(CastlingRights::BKINGSIDE, self, own, enemy) {
                     let mv = Move::init(E8 as u8, G8 as u8, piece, Flag::KingCastle);
-                    let eval = self.quiet_eval(&mv);
-                    self.gen_moves.push((mv, eval));
+                    self.gen_moves.push((mv, 0));
                 }
                 if self.state.castling.valid(CastlingRights::BQUEENSIDE, self, own, enemy) {
                     let mv = Move::init(E8 as u8, C8 as u8, piece, Flag::QueenCastle);
-                    let eval = self.quiet_eval(&mv);
-                    self.gen_moves.push((mv, eval));
+                    self.gen_moves.push((mv, 0));
                 }
             }
             _ => panic!("Invalid Castling"),
         }
-    }
-
-    fn quiet_eval(&mut self, mv: &Move) -> isize {
-        if matches!(self.pv_moves[0][self.ply()], Some(pv_mv) if *mv == pv_mv) {
-            return PV_MV_SCORE;
-        }
-
-        if matches!(TT.read().unwrap().get(self.key()), Some(tt_mv) if *mv == tt_mv.mv) {
-            return TT_MV_SCORE;
-        }
-
-        if matches!(self.s_killers[self.ply()][0], Some(x) if x == *mv) {
-            return KILLER_MV_SCORE[0];
-        } else if matches!(self.s_killers[self.ply()][1], Some(x) if x == *mv) {
-            return KILLER_MV_SCORE[1];
-        }
-
-        let his_score = self.s_history[mv.piece.idx()][mv.to as usize] as isize;
-        return his_score + HIS_MV_SCORE;
-    }
-
-    fn capture_eval(&mut self, mv: &Move) -> isize {
-        if matches!(self.pv_moves[0][self.ply()], Some(pv_mv) if *mv == pv_mv) {
-            return PV_MV_SCORE;
-        }
-
-        if matches!(TT.read().unwrap().get(self.key()), Some(tt_mv) if *mv == tt_mv.mv) {
-            return TT_MV_SCORE;
-        }
-
-        let see = self.see(mv.from as usize, mv.to as usize);
-        if see >= 0 {
-            return see + SEE_MV_SCORE;
-        } else {
-            match mv.flag {
-                Flag::Capture(cap) => cap.weight() - mv.piece as isize,
-                _ => unreachable!("There is no flag capture"),
-            }
-        }
-    }
-
-    fn see(&mut self, from: usize, to: usize) -> isize {
-        let mut occ = self.occ_bb(WHITE) | self.occ_bb(BLACK);
-        let mut from_sq = from;
-        let mut clr = self.color();
-        // let mut clr = self.piece_sq(from).color();
-        let mut gain = [0isize; 32];
-        let mut depth = 0;
-
-        let pce = self.piece_sq(to);
-        // println!("Piece: {:?}", pce);
-        gain[0] = pce.weight();
-
-        // DEPRECATE:
-        // let mut attackers = self.sq_attack(to, clr) | self.sq_attack(to, clr.opp());
-
-        loop {
-            depth += 1;
-            clr.change_color();
-            occ.clear_bit(from_sq);
-
-            gain[depth] = self.piece_sq(from_sq).weight() - gain[depth - 1];
-
-            let attacks = self.sq_attack_with_occ(to, clr.opp(), occ);
-
-            let mut next_attacker = None;
-            for &piece in &PIECES {
-                let attackers: u64 = self.bb(piece + clr) & attacks & occ;
-                // println!("Attackers: {:?}", piece);
-                // print_bitboard(attackers, None);
-                // print_bitboard(attacks, None);
-                // print_bitboard(self.bb(piece + clr), None);
-                // print_bitboard(occ, None);
-                if attackers != 0 {
-                    next_attacker = Some(attackers.get_lsb());
-                    break;
-                }
-            }
-
-            if next_attacker.is_none() {
-                break;
-            }
-            from_sq = next_attacker.unwrap();
-        }
-
-        while {
-            depth -= 1;
-            depth > 0
-        } {
-            gain[depth - 1] = -cmp::max(-gain[depth - 1], gain[depth]);
-        }
-
-        // while depth > 0 {
-        //     gain[depth - 1] = -cmp::max(-gain[depth - 1], gain[depth]);
-        //     depth -= 1;
-        // }
-
-        gain[0]
     }
 
     #[inline(always)]
@@ -534,18 +419,18 @@ impl BoardGenMoveTrait for Board {
     }
 }
 
-pub fn next_move(moves: &mut Vec<(Move, isize)>) -> Option<Move> {
-    if moves.len() == 0 {
-        return None;
-    }
+// pub fn next_move(moves: &mut Vec<(Move, isize)>) -> Option<Move> {
+//     if moves.len() == 0 {
+//         return None;
+//     }
 
-    for idx in 0..(moves.len() - 1) {
-        if moves[idx].1 > moves[idx + 1].1 {
-            moves.swap(idx, idx + 1);
-        }
-    }
-    moves.pop().map(|(mv, _)| mv)
-}
+//     for idx in 0..(moves.len() - 1) {
+//         if moves[idx].1 > moves[idx + 1].1 {
+//             moves.swap(idx, idx + 1);
+//         }
+//     }
+//     moves.pop().map(|(mv, _)| mv)
+// }
 
 #[cfg(test)]
 mod tests {
@@ -748,69 +633,6 @@ mod tests {
         let moves = test_mov_att(&fen_king, WHITE_KING, 0);
         let test_positions = vec![26, 27, 28, 34, 36, 42, 43, 44];
         assert_eq!(test_positions, moves);
-    }
-
-    #[test]
-    fn test_see_pos_1() {
-        let fen = "1k1r4/1pp4p/p7/4p3/8/P5P1/1PP4P/2K1R3 w - - 0 1";
-        let mut board = Board::read_fen(&fen);
-        print_chess(&board);
-        let see = board.see(4, 36);
-        assert_eq!(see, 100);
-    }
-
-    #[test]
-    fn test_see_pos_2() {
-        let fen = "1k1r3q/1ppn3p/p4b2/4p3/8/P2N2P1/1PP1R1BP/2K1Q3 w - - 0 1";
-        let mut board = Board::read_fen(&fen);
-        print_chess(&board);
-        let see = board.see(19, 36);
-        assert_eq!(see, -225);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_see_pos_3() {
-        let fen = "8/8/8/3b4/3B4/8/8/8 w - - 0 1";
-        let mut board = Board::read_fen(&fen);
-        print_chess(&board);
-        let see = board.see(27, 36);
-    }
-
-    #[test]
-    fn test_see_pos_4() {
-        let fen = "2r4k/2r4p/p7/2b2p1b/4pP2/1BR5/P1R3PP/2Q4K w - - 0 1";
-        let mut board = Board::read_fen(&fen);
-        print_chess(&board);
-        let see = board.see(18, 34);
-        assert_eq!(see, 350);
-    }
-
-    #[test]
-    fn test_see_pos_5() {
-        let fen = "4q3/1p1pr1kb/1B2rp2/6p1/p3PP2/P3R1P1/1P2R1K1/4Q3 b - - 0 1";
-        let mut board = Board::read_fen(&fen);
-        print_chess(&board);
-        let see = board.see(55, 28);
-        assert_eq!(see, 100);
-    }
-
-    #[test]
-    fn test_see_pos_6() {
-        let fen = "2r2r1k/6bp/p7/2q2p1Q/3PpP2/1B6/P5PP/2RR3K b - - 0 1";
-        let mut board = Board::read_fen(&fen);
-        print_chess(&board);
-        let see = board.see(34, 2);
-        assert_eq!(see, 100);
-    }
-
-    #[test]
-    fn test_see_pos_7() {
-        let fen = "4R3/2r3p1/5bk1/1p1r3p/p2PR1P1/P1BK1P2/1P6/8 b - - 0 1";
-        let mut board = Board::read_fen(&fen);
-        print_chess(&board);
-        let see = board.see(39, 30);
-        assert_eq!(see, 0);
     }
 
     #[test]
