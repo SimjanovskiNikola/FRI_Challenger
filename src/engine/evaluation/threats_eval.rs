@@ -1,15 +1,14 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, ColorTrait};
-use crate::engine::board::structures::piece::*;
+use crate::engine::attacks::knight::get_knight_mask;
+use crate::engine::attacks::pawn::{
+    get_all_pawn_forward_mask, get_all_pawn_left_att_mask, get_all_pawn_right_att_mask,
+};
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{Color, ColorTrait};
+use crate::engine::board::piece::*;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::evaluation::mobility_eval::MobilityEvalTrait;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::RANK_BITBOARD;
-use crate::engine::move_generator::knight::get_knight_mask;
-use crate::engine::move_generator::pawn::{
-    get_all_pawn_forward_mask, get_all_pawn_left_att_mask, get_all_pawn_right_att_mask,
-};
 
 pub const ROOK_THREAT: [(isize, isize); 6] =
     [(3, 46), (37, 68), (0, 0), (42, 60), (0, 38), (58, 41)];
@@ -236,8 +235,8 @@ impl ThreatsEvalTrait for Board {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 

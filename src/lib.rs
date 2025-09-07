@@ -1,15 +1,24 @@
 pub mod engine {
 
     pub mod board {
+        pub mod board;
+        pub mod castling;
+        pub mod color;
         pub mod fen;
+        pub mod moves;
+        pub mod piece;
+        pub mod square;
+        pub mod state;
+        pub mod zobrist;
+    }
+    pub mod generated;
+    pub mod move_generator {
         pub mod make_move;
         pub mod mv_gen;
         pub mod perft;
-        pub mod structures;
     }
-    pub mod move_generator {
+    pub mod attacks {
         pub mod bishop;
-        pub mod generated;
         pub mod king;
         pub mod knight;
         pub mod pawn;

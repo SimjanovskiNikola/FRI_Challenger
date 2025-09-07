@@ -1,6 +1,6 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, BLACK, WHITE};
-use crate::engine::board::structures::piece::{Piece, PieceTrait};
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{Color, BLACK, WHITE};
+use crate::engine::board::piece::{Piece, PieceTrait};
 use crate::engine::misc::display::display_board::print_eval;
 
 pub trait TraceEvalTrait {

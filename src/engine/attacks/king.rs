@@ -1,7 +1,7 @@
-use super::generated::king::KING_LOOKUP;
-use super::generated::pawn::ISOLATED_PAWN_LOOKUP;
-use crate::engine::board::structures::castling::*;
-use crate::engine::board::structures::color::Color;
+use crate::engine::board::castling::*;
+use crate::engine::board::color::Color;
+use crate::engine::generated::king::KING_LOOKUP;
+use crate::engine::generated::pawn::ISOLATED_PAWN_LOOKUP;
 
 #[inline(always)]
 pub fn get_king_mv(sq: usize, own: u64, _: u64, _: Color) -> u64 {

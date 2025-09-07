@@ -1,8 +1,8 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, ColorTrait};
+use crate::engine::attacks::bishop::has_bishop_pair;
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{Color, ColorTrait};
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
-use crate::engine::move_generator::bishop::has_bishop_pair;
 
 // Quadratic interaction bonuses for own peaces NOTE: DONE
 pub const QUADRATIC_OURS: [[isize; 6]; 6] = [
@@ -94,8 +94,8 @@ impl ImbalanceEvalTrait for Board {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 

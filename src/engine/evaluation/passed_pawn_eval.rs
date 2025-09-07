@@ -1,15 +1,12 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, ColorTrait};
-use crate::engine::board::structures::piece::{PieceTrait, PAWN};
-use crate::engine::board::structures::square::{get_file, get_rank};
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{Color, ColorTrait};
+use crate::engine::board::piece::{PieceTrait, PAWN};
+use crate::engine::board::square::{get_file, get_rank};
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::eval_defs::{CLR_RANK, PASSED_PAWN_REW};
-use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::evaluation::pawn_eval::PawnEvalTrait;
+use crate::engine::generated::pawn::{FORWARD_SPANS_LR, PAWN_ATTACK_LOOKUP, PAWN_FORWARD_SPANS};
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
-use crate::engine::move_generator::generated::pawn::{
-    FORWARD_SPANS_LR, PAWN_ATTACK_LOOKUP, PAWN_FORWARD_SPANS,
-};
 
 pub trait PassedPawnEvalTrait {
     fn passed_pawn(&mut self, clr: Color);
@@ -233,8 +230,8 @@ impl PassedPawnEvalTrait for Board {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 

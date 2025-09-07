@@ -1,6 +1,12 @@
-use crate::engine::board::structures::piece::{PieceTrait, BISHOP, KNIGHT, PAWN, ROOK};
-use crate::engine::board::structures::square::get_file;
+use crate::engine::attacks::bishop::{get_bishop_mask, BLACK_SQUARES, WHITE_SQUARES};
+use crate::engine::attacks::pawn::get_all_pawn_forward_mask;
+use crate::engine::attacks::rook::get_rook_mask;
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{Color, ColorTrait};
+use crate::engine::board::piece::{PieceTrait, BISHOP, KNIGHT, PAWN, ROOK};
+use crate::engine::board::square::get_file;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
+use crate::engine::generated::between::BETWEEN_BB;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::{FILE_BITBOARD, RANK_BITBOARD};
 
@@ -13,16 +19,6 @@ pub const QUEEN_INFILTRATION: [u64; 2] = [
     RANK_BITBOARD[7] | RANK_BITBOARD[6] | RANK_BITBOARD[5] | RANK_BITBOARD[4],
     RANK_BITBOARD[0] | RANK_BITBOARD[1] | RANK_BITBOARD[2] | RANK_BITBOARD[3],
 ];
-
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, ColorTrait};
-use crate::engine::evaluation::evaluation::EvaluationTrait;
-use crate::engine::move_generator::bishop::{get_bishop_mask, BLACK_SQUARES, WHITE_SQUARES};
-use crate::engine::move_generator::generated::between::BETWEEN_BB;
-use crate::engine::move_generator::pawn::get_all_pawn_forward_mask;
-use crate::engine::move_generator::rook::get_rook_mask;
-
-pub const TEMPO_WT: isize = 28;
 
 pub trait PieceEvalTrait {
     fn piece_eval(&mut self, clr: Color);
@@ -275,8 +271,8 @@ impl PieceEvalTrait for Board {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 

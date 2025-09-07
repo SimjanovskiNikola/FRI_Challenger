@@ -1,9 +1,3 @@
-pub mod bishop;
-pub mod generated;
-pub mod king;
-pub mod knight;
-pub mod pawn;
-pub mod queen;
-pub mod rays;
-pub mod rook;
-pub mod utility;
+pub mod make_move;
+pub mod mv_gen;
+pub mod perft;

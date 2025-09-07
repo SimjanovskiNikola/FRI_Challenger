@@ -1,6 +1,6 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::Color;
-use crate::engine::board::structures::piece::{Piece, PieceTrait, PIECES};
+use crate::engine::board::board::Board;
+use crate::engine::board::color::Color;
+use crate::engine::board::piece::{Piece, PieceTrait, PIECES};
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::eval_defs::CLR_SQ;
 use crate::engine::evaluation::evaluation::EvaluationTrait;
@@ -98,8 +98,8 @@ impl PSQTEvalTrait for Board {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 

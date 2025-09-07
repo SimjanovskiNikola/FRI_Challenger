@@ -1,15 +1,14 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, ColorTrait};
-use crate::engine::board::structures::piece::{PieceTrait, PAWN};
-use crate::engine::board::structures::square::get_rank;
+use crate::engine::attacks::pawn::{get_all_pawn_forward_mask, get_pawn_att_mask};
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{Color, ColorTrait};
+use crate::engine::board::piece::{PieceTrait, PAWN};
+use crate::engine::board::square::get_rank;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::eval_defs::{BLOCKED_RANKS, CLR_RANK};
-use crate::engine::evaluation::evaluation::EvaluationTrait;
-use crate::engine::misc::bitboard::{Bitboard, BitboardTrait, Iterator};
-use crate::engine::move_generator::generated::pawn::{
+use crate::engine::generated::pawn::{
     FORWARD_SPANS_LR, ISOLATED_PAWN_LOOKUP, PAWN_ATTACK_LOOKUP, PAWN_FORWARD_SPANS,
 };
-use crate::engine::move_generator::pawn::{get_all_pawn_forward_mask, get_pawn_att_mask};
+use crate::engine::misc::bitboard::{Bitboard, BitboardTrait, Iterator};
 
 pub trait PawnEvalTrait {
     fn pawns_eval(&mut self, clr: Color);
@@ -202,8 +201,8 @@ impl PawnEvalTrait for Board {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::SF_EVAL;
 

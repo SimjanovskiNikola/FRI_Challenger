@@ -1,15 +1,12 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, ColorTrait};
-use crate::engine::board::structures::piece::{
-    Piece, PieceTrait, BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK,
-};
-use crate::engine::board::structures::square::{get_file, get_rank};
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{Color, ColorTrait};
+use crate::engine::board::piece::*;
+use crate::engine::board::square::{get_file, get_rank};
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::eval_defs::CLR_RANK;
-use crate::engine::evaluation::evaluation::EvaluationTrait;
+use crate::engine::generated::pawn::{ISOLATED_PAWN_LOOKUP, PAWN_FORWARD_SPANS};
 use crate::engine::misc::bitboard::{Bitboard, BitboardTrait};
 use crate::engine::misc::const_utility::{FILE_BITBOARD, RANK_BITBOARD};
-use crate::engine::move_generator::generated::pawn::{ISOLATED_PAWN_LOOKUP, PAWN_FORWARD_SPANS};
 
 pub const UNBLOCKED_STORM: [[isize; 7]; 8] = [
     [85, 50, 45, 50, 97, -166, -289],
@@ -457,8 +454,8 @@ impl KingEvalTrait for Board {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 

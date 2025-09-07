@@ -251,8 +251,8 @@ impl Board {
 mod tests {
 
     use super::*;
-    use crate::engine::board::structures::castling::CastlingRights;
-    use crate::engine::board::structures::color::{BLACK, WHITE};
+    use crate::engine::board::castling::CastlingRights;
+    use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::evaluation::evaluation::{Evaluation, EvaluationTrait};
     use crate::engine::misc::const_utility::{
         FEN_CASTLE_ONE, FEN_MATE_IN_5, FEN_POS_FIVE, FEN_POS_FOUR, FEN_POS_THREE,

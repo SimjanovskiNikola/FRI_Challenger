@@ -1,6 +1,6 @@
-use super::generated::pawn::*;
-use crate::engine::board::structures::color::*;
-use crate::engine::board::structures::piece::*;
+use crate::engine::board::color::*;
+use crate::engine::board::piece::*;
+use crate::engine::generated::pawn::*;
 use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::const_utility::Rank;

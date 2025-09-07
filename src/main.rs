@@ -1,21 +1,6 @@
 use ::engine::engine::protocols::uci::UCI;
 use std::env;
 
-use crate::engine::{
-    board::{
-        fen::FenTrait,
-        structures::{
-            board::Board,
-            color::{BLACK, WHITE},
-        },
-    },
-    evaluation::evaluation::EvaluationTrait,
-    move_generator::{
-        bishop::{has_bishop_pair, BLACK_SQUARES, WHITE_SQUARES},
-        generated::king::KING_RING,
-    },
-};
-
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;

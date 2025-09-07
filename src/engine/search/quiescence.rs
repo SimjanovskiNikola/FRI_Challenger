@@ -1,7 +1,7 @@
 use super::iter_deepening::Search;
-use crate::engine::board::make_move::BoardMoveTrait;
-use crate::engine::board::mv_gen::{next_move, BoardGenMoveTrait};
 use crate::engine::evaluation::evaluation::EvaluationTrait;
+use crate::engine::move_generator::make_move::BoardMoveTrait;
+use crate::engine::move_generator::mv_gen::{next_move, BoardGenMoveTrait};
 use crate::engine::protocols::time::time_over;
 use crate::engine::search::transposition_table::{Bound, TT};
 

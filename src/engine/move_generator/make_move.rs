@@ -1,14 +1,14 @@
 use super::mv_gen::BoardGenMoveTrait;
-use super::structures::board::Board;
-use super::structures::castling::*;
-use super::structures::color::ColorTrait;
-use super::structures::moves::*;
-use super::structures::piece::*;
-use crate::engine::board::structures::zobrist::ZobristKeysTrait;
+use crate::engine::board::board::Board;
+use crate::engine::board::castling::*;
+use crate::engine::board::color::ColorTrait;
+use crate::engine::board::moves::*;
+use crate::engine::board::piece::*;
+use crate::engine::board::zobrist::ZobristKeysTrait;
+use crate::engine::generated::zobrist_keys::PIECE_KEYS;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::display::display_board::print_bitboard;
 use crate::engine::misc::display::display_board::print_chess;
-use crate::engine::move_generator::generated::zobrist_keys::*;
 use core::panic;
 
 pub trait BoardMoveTrait {

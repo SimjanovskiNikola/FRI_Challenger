@@ -1,5 +1,5 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::Color;
+use crate::engine::board::board::Board;
+use crate::engine::board::color::Color;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::evaluation::EvaluationTrait;
 

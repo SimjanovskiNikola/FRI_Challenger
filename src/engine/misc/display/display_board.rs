@@ -1,7 +1,7 @@
 use std::array;
 
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::piece::PieceTrait;
+use crate::engine::board::board::Board;
+use crate::engine::board::piece::PieceTrait;
 use crate::engine::misc::const_utility::FILE_LETTERS;
 
 pub fn print_bitboard(bitboard: u64, mark: Option<i8>) {
