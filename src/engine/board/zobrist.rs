@@ -19,8 +19,7 @@ impl ZobristKeysTrait for Board {
     }
 
     fn zb_replace_piece(&mut self, from_sq: usize, to_sq: usize, piece: Piece) {
-        // FIXME: THIS IS WRONG !!! INVALID ZOBRIST KEY BECAUSE OF "|" !!!
-        // self.state.key ^= PIECE_KEYS[to_sq][piece.idx()] | PIECE_KEYS[from_sq][piece.idx()];
+        self.state.key ^= PIECE_KEYS[to_sq][piece.idx()] ^ PIECE_KEYS[from_sq][piece.idx()];
     }
 
     fn zb_toggle_piece(&mut self, sq: usize, piece: Piece) {

@@ -1,7 +1,6 @@
 use crate::engine::board::board::Board;
 use crate::engine::board::color::Color;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::evaluation::evaluation::EvaluationTrait;
 
 pub const TEMPO_WT: isize = 28;
 

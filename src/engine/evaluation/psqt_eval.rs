@@ -3,7 +3,6 @@ use crate::engine::board::color::Color;
 use crate::engine::board::piece::{Piece, PieceTrait, PIECES};
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::eval_defs::CLR_SQ;
-use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::misc::bitboard::Iterator;
 
 #[rustfmt::skip]
