@@ -1,9 +1,8 @@
-use crate::engine::board::structures::color::Color;
-use crate::engine::board::structures::square::get_file;
-use crate::engine::misc::const_utility::FILE_BITBOARD;
-
-use super::generated::rook::{ROOK_BASE, ROOK_LOOKUP, ROOK_MASKS};
 use super::utility::pext;
+use crate::engine::board::color::Color;
+use crate::engine::board::square::get_file;
+use crate::engine::generated::rook::{ROOK_BASE, ROOK_LOOKUP, ROOK_MASKS};
+use crate::engine::misc::const_utility::FILE_BITBOARD;
 
 #[inline(always)]
 pub fn get_rook_mv(sq: usize, own: u64, enemy: u64, _clr: Color) -> u64 {

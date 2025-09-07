@@ -1,7 +1,6 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::ColorTrait;
-use crate::engine::board::structures::piece::{Piece, PieceTrait};
-use crate::engine::move_generator::generated::zobrist_keys::*;
+use crate::engine::board::board::Board;
+use crate::engine::board::piece::{Piece, PieceTrait};
+use crate::engine::generated::zobrist_keys::*;
 
 pub trait ZobristKeysTrait {
     fn zb_reset_key(&mut self);
@@ -20,8 +19,7 @@ impl ZobristKeysTrait for Board {
     }
 
     fn zb_replace_piece(&mut self, from_sq: usize, to_sq: usize, piece: Piece) {
-        // FIXME: THIS IS WRONG !!! INVALID ZOBRIST KEY BECAUSE OF "|" !!!
-        // self.state.key ^= PIECE_KEYS[to_sq][piece.idx()] | PIECE_KEYS[from_sq][piece.idx()];
+        self.state.key ^= PIECE_KEYS[to_sq][piece.idx()] ^ PIECE_KEYS[from_sq][piece.idx()];
     }
 
     fn zb_toggle_piece(&mut self, sq: usize, piece: Piece) {
@@ -45,10 +43,11 @@ impl ZobristKeysTrait for Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::{
-        board::{fen::FenTrait, make_move::BoardMoveTrait, structures::board::Board},
-        misc::{const_utility::FEN_START, display::display_moves::from_move_notation},
-    };
+    use crate::engine::board::board::Board;
+    use crate::engine::board::fen::FenTrait;
+    use crate::engine::misc::const_utility::FEN_START;
+    use crate::engine::misc::display::display_moves::from_move_notation;
+    use crate::engine::move_generator::make_move::BoardMoveTrait;
 
     #[test]
     fn test_hash_v2() {

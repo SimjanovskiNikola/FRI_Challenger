@@ -1,7 +1,7 @@
 use super::make_move::BoardMoveTrait;
 use super::mv_gen::BoardGenMoveTrait;
-use super::structures::board::Board;
-use super::structures::moves::{Flag, Move};
+use crate::engine::board::board::Board;
+use crate::engine::board::moves::{Flag, Move};
 use crate::engine::board::fen::FenTrait;
 use std::fs::File;
 use std::time::Instant;

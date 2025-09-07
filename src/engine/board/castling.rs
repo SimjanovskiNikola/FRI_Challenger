@@ -2,9 +2,9 @@ use bitflags::bitflags;
 
 use super::color::*;
 use super::square::SqPos::*;
-use crate::engine::board::mv_gen::BoardGenMoveTrait;
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::piece::PieceTrait;
+use crate::engine::board::board::Board;
+use crate::engine::board::piece::PieceTrait;
+use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 
 pub const CASTLE_DATA: [(usize, usize, CastlingRights, Color); 4] = [
     (H1 as usize, E1 as usize, CastlingRights::WKINGSIDE, WHITE),

@@ -1,5 +1,5 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::moves::Move;
+use crate::engine::board::board::Board;
+use crate::engine::board::moves::Move;
 use crate::engine::misc::display::display_moves::get_move_list;
 use crate::engine::misc::display::display_stats::DisplayStatsTrait;
 use crate::engine::protocols::time::safe_to_start_next_iter;

@@ -1,16 +1,11 @@
 use super::iter_deepening::Search;
-use super::transposition_table::Bound;
-use crate::engine::board::make_move::BoardMoveTrait;
-use crate::engine::board::mv_gen::next_move;
-use crate::engine::board::mv_gen::BoardGenMoveTrait;
-use crate::engine::board::structures::moves::Move;
-use crate::engine::board::structures::piece::PieceTrait;
-use crate::engine::board::structures::piece::KING;
+use crate::engine::board::moves::Move;
+use crate::engine::board::piece::PieceTrait;
 use crate::engine::evaluation::evaluation::EvaluationTrait;
-use crate::engine::misc::bitboard::BitboardTrait;
-use crate::engine::misc::display::display_board::print_chess;
+use crate::engine::move_generator::make_move::BoardMoveTrait;
+use crate::engine::move_generator::mv_gen::next_move;
+use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 use crate::engine::protocols::time::time_over;
-use crate::engine::search::transposition_table::TT;
 
 impl Search {
     pub fn alpha_beta(

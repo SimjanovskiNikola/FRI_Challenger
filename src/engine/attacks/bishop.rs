@@ -1,6 +1,6 @@
-use crate::engine::board::structures::color::Color;
+use crate::engine::board::color::Color;
+use crate::engine::generated::bishop::{BISHOP_BASE, BISHOP_LOOKUP, BISHOP_MASKS};
 
-use super::generated::bishop::{BISHOP_BASE, BISHOP_LOOKUP, BISHOP_MASKS};
 use super::utility::pext;
 
 pub const WHITE_SQUARES: u64 = 0b0101010110101010010101011010101001010101101010100101010110101010;

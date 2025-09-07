@@ -1,11 +1,11 @@
-use super::make_move::BoardMoveTrait;
-use super::structures::board::Board;
-use super::structures::castling::CastlingRights;
-use super::structures::color::*;
-use super::structures::piece::*;
-use crate::engine::board::structures::zobrist::ZobristKeysTrait;
+use super::board::Board;
+use super::castling::CastlingRights;
+use super::color::*;
+use super::piece::*;
+use crate::engine::board::zobrist::ZobristKeysTrait;
 use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::bitboard::BitboardTrait;
+use crate::engine::move_generator::make_move::BoardMoveTrait;
 
 // TODO: Validate if the fen is correct
 
@@ -105,8 +105,8 @@ impl FenTrait for Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::board::structures::piece::WHITE_PAWN;
-    use crate::engine::board::structures::square::SqPos;
+    use crate::engine::board::piece::WHITE_PAWN;
+    use crate::engine::board::square::SqPos;
     use crate::engine::misc::const_utility::{FEN_MIDDLE_GAME, FEN_PAWNS_BLACK};
 
     use super::*;

@@ -1,5 +1,3 @@
-use crate::engine::misc::const_utility::RANK_BITBOARD;
-
 #[rustfmt::skip]
 pub enum SqPos {
     A1 = 0,  B1 = 1,  C1 = 2,  D1 = 3,  E1 = 4,  F1 = 5,  G1 = 6,  H1 = 7,
@@ -14,17 +12,17 @@ pub enum SqPos {
 
 impl SqPos {
     #[inline(always)]
-    pub fn idx(self) -> usize {
+    pub const fn idx(self) -> usize {
         self as usize
     }
 }
 
-pub fn get_file(sq: usize) -> usize {
+pub const fn get_file(sq: usize) -> usize {
     assert!(sq >= 0 && sq <= 64);
     sq % 8
 }
 
-pub fn get_rank(sq: usize) -> usize {
+pub const fn get_rank(sq: usize) -> usize {
     assert!(sq >= 0 && sq <= 64);
     sq / 8
 }

@@ -1,11 +1,11 @@
-use crate::engine::board::mv_gen::BoardGenMoveTrait;
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::moves::Flag;
-use crate::engine::board::structures::moves::Move;
-use crate::engine::board::structures::piece::Piece;
-use crate::engine::board::structures::piece::PieceTrait;
+use crate::engine::board::board::Board;
+use crate::engine::board::moves::Flag;
+use crate::engine::board::moves::Move;
+use crate::engine::board::piece::Piece;
+use crate::engine::board::piece::PieceTrait;
 use crate::engine::misc::bit_pos_utility::idx_to_position;
 use crate::engine::misc::const_utility::FILE_LETTERS;
+use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 
 pub fn print_move_list(moves: &[(Move, isize)]) {
     for (idx, (mv, _)) in moves.iter().enumerate() {

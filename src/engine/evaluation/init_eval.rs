@@ -1,7 +1,12 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{ColorTrait, BLACK, COLORS, WHITE};
-use crate::engine::board::structures::piece::{PieceTrait, KING, PAWN, PIECES};
-use crate::engine::board::structures::square::get_file;
+use crate::engine::attacks::bishop::get_bishop_mask;
+use crate::engine::attacks::king::get_king_mask;
+use crate::engine::attacks::pawn::{
+    get_all_pawn_left_att_mask, get_all_pawn_right_att_mask, get_pawn_att_mask,
+};
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{ColorTrait, BLACK, COLORS, WHITE};
+use crate::engine::board::piece::{PieceTrait, KING, PAWN, PIECES};
+use crate::engine::board::square::get_file;
 use crate::engine::evaluation::common_eval::{CommonEvalTrait, KING_ATT_WEIGHT};
 use crate::engine::evaluation::eval_defs::CLR_CENTER;
 use crate::engine::evaluation::king_eval::KingEvalTrait;
@@ -9,15 +14,10 @@ use crate::engine::evaluation::material_eval::MaterialEvalTrait;
 use crate::engine::evaluation::mobility_eval::MobilityEvalTrait;
 use crate::engine::evaluation::pawn_eval::PawnEvalTrait;
 use crate::engine::evaluation::piece_eval::OUTPOST_RANKS;
+use crate::engine::generated::king::KING_RING;
+use crate::engine::generated::pawn::{FORWARD_SPANS_LR, PAWN_3_BEHIND_MASKS};
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::FILE_BITBOARD;
-use crate::engine::move_generator::bishop::get_bishop_mask;
-use crate::engine::move_generator::generated::king::KING_RING;
-use crate::engine::move_generator::generated::pawn::{FORWARD_SPANS_LR, PAWN_3_BEHIND_MASKS};
-use crate::engine::move_generator::king::get_king_mask;
-use crate::engine::move_generator::pawn::{
-    get_all_pawn_left_att_mask, get_all_pawn_right_att_mask, get_pawn_att_mask,
-};
 
 pub const MG_LIMIT: isize = 15258;
 pub const EG_LIMIT: isize = 3915;

@@ -1,4 +1,4 @@
-use crate::engine::board::structures::color::Color;
+use crate::engine::board::color::Color;
 
 use super::bishop::get_bishop_mask;
 use super::bishop::get_bishop_mv;

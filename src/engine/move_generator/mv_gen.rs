@@ -1,21 +1,21 @@
 use std::cmp;
 
 use super::make_move::BoardMoveTrait;
-use super::structures::board::Board;
-use super::structures::castling::*;
-use super::structures::color::*;
-use super::structures::moves::*;
-use super::structures::piece::*;
-use super::structures::square::SqPos::*;
+use crate::engine::attacks::bishop::*;
+use crate::engine::attacks::king::*;
+use crate::engine::attacks::knight::*;
+use crate::engine::attacks::pawn::*;
+use crate::engine::attacks::queen::*;
+use crate::engine::attacks::rook::*;
+use crate::engine::board::board::Board;
+use crate::engine::board::castling::*;
+use crate::engine::board::color::*;
+use crate::engine::board::moves::*;
+use crate::engine::board::piece::*;
+use crate::engine::board::square::SqPos::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::bitboard::Iterator;
 use crate::engine::misc::const_utility::*;
-use crate::engine::move_generator::bishop::*;
-use crate::engine::move_generator::king::*;
-use crate::engine::move_generator::knight::*;
-use crate::engine::move_generator::pawn::*;
-use crate::engine::move_generator::queen::*;
-use crate::engine::move_generator::rook::*;
 use crate::engine::search::transposition_table::TT;
 
 const PV_MV_SCORE: isize = 95000;
@@ -553,7 +553,7 @@ mod tests {
     use core::panic;
 
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::structures::zobrist::ZobristKeysTrait;
+    use crate::engine::board::zobrist::ZobristKeysTrait;
     use crate::engine::misc::bit_pos_utility::extract_all_bits;
     use crate::engine::misc::display::display_board::*;
     use crate::engine::misc::display::display_moves::*;

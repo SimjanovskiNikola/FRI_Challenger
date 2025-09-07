@@ -1,6 +1,6 @@
-use crate::engine::board::structures::color::Color;
+use crate::engine::board::color::Color;
 
-use super::generated::knight::KNIGHT_LOOKUP;
+use crate::engine::generated::knight::KNIGHT_LOOKUP;
 
 #[inline(always)]
 pub fn get_knight_mv(sq: usize, own: u64, _: u64, _: Color) -> u64 {

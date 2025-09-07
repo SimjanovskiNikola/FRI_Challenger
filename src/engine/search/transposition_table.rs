@@ -1,7 +1,8 @@
-use crate::engine::board::mv_gen::BoardGenMoveTrait;
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::moves::Move;
-use crate::engine::board::{make_move::BoardMoveTrait, structures::moves::ExtendedMove};
+use crate::engine::board::board::Board;
+use crate::engine::board::moves::ExtendedMove;
+use crate::engine::board::moves::Move;
+use crate::engine::move_generator::make_move::BoardMoveTrait;
+use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 
 use once_cell::sync::Lazy;
 use std::sync::{atomic::AtomicU64, Mutex, RwLock};

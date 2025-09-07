@@ -1,7 +1,5 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::*;
-use crate::engine::board::structures::piece::*;
-use crate::engine::board::structures::square::*;
+use crate::engine::board::board::Board;
+use crate::engine::board::color::*;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::imbalance_eval::ImbalanceEvalTrait;
 use crate::engine::evaluation::init_eval::InitEvalTrait;
@@ -11,31 +9,12 @@ use crate::engine::evaluation::mobility_eval::MobilityEvalTrait;
 use crate::engine::evaluation::passed_pawn_eval::PassedPawnEvalTrait;
 use crate::engine::evaluation::pawn_eval::PawnEvalTrait;
 use crate::engine::evaluation::piece_eval::PieceEvalTrait;
-use crate::engine::evaluation::piece_eval::OUTPOST_RANKS;
 use crate::engine::evaluation::psqt_eval::PSQTEvalTrait;
 use crate::engine::evaluation::space_eval::SpaceEvalTrait;
 use crate::engine::evaluation::tempo_eval::TempoEvalTrait;
 use crate::engine::evaluation::threats_eval::ThreatsEvalTrait;
 use crate::engine::evaluation::trace_eval::TraceEvalTrait;
 use crate::engine::misc::bitboard::Bitboard;
-use crate::engine::misc::bitboard::BitboardTrait;
-use crate::engine::misc::bitboard::Iterator;
-use crate::engine::misc::const_utility::FILE_BITBOARD;
-use crate::engine::misc::display::display_board::print_eval;
-use crate::engine::move_generator::bishop::get_bishop_mask;
-use crate::engine::move_generator::bishop::has_bishop_pair;
-use crate::engine::move_generator::generated::between::BETWEEN_BB;
-use crate::engine::move_generator::generated::king::KING_RING;
-use crate::engine::move_generator::generated::pawn::FORWARD_SPANS_LR;
-use crate::engine::move_generator::generated::pawn::PAWN_3_BEHIND_MASKS;
-use crate::engine::move_generator::king::get_king_mask;
-use crate::engine::move_generator::knight::get_knight_mask;
-use crate::engine::move_generator::pawn::get_all_pawn_left_att_mask;
-use crate::engine::move_generator::pawn::get_all_pawn_right_att_mask;
-use crate::engine::move_generator::pawn::get_pawn_2_att;
-use crate::engine::move_generator::pawn::get_pawn_att_mask;
-use crate::engine::move_generator::queen::get_queen_mask;
-use crate::engine::move_generator::rook::get_rook_mask;
 
 // The Numbers (Tapered Eval) for the evaluation are taken from -> STOCKFISH SF_9
 

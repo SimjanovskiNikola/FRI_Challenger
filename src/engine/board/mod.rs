@@ -1,5 +1,9 @@
+pub mod board;
+pub mod castling;
+pub mod color;
 pub mod fen;
-pub mod make_move;
-pub mod mv_gen;
-pub mod perft;
-pub mod structures;
+pub mod moves;
+pub mod piece;
+pub mod square;
+pub mod state;
+pub mod zobrist;

@@ -1,18 +1,15 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, ColorTrait};
-use crate::engine::board::structures::piece::{
+use crate::engine::attacks::bishop::get_bishop_mask;
+use crate::engine::attacks::knight::get_knight_mask;
+use crate::engine::attacks::pawn::{get_all_pawn_left_att_mask, get_all_pawn_right_att_mask};
+use crate::engine::attacks::queen::get_queen_mask;
+use crate::engine::attacks::rook::get_rook_mask;
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{Color, ColorTrait};
+use crate::engine::board::piece::{
     Piece, PieceTrait, BISHOP, KNIGHT, PIECES_WITHOUT_PAWN_KING, QUEEN, ROOK,
 };
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
-use crate::engine::move_generator::bishop::get_bishop_mask;
-use crate::engine::move_generator::knight::get_knight_mask;
-use crate::engine::move_generator::pawn::{
-    get_all_pawn_left_att_mask, get_all_pawn_right_att_mask,
-};
-use crate::engine::move_generator::queen::get_queen_mask;
-use crate::engine::move_generator::rook::get_rook_mask;
 
 pub const KNIGHT_MOBILITY: [(isize, isize); 9] =
     [(-62, -81), (-53, -56), (-12, -31), (-4, -16), (3, 5), (13, 11), (22, 17), (28, 20), (33, 25)];
@@ -105,8 +102,8 @@ impl MobilityEvalTrait for Board {
 #[cfg(test)]
 mod tests {
 
+    use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::structures::color::{BLACK, WHITE};
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
 

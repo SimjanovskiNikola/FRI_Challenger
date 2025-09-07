@@ -5,13 +5,13 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use std::{io, thread, u64};
 
+use crate::engine::board::board::Board;
+use crate::engine::board::color::ColorTrait;
 use crate::engine::board::fen::FenTrait;
-use crate::engine::board::make_move::BoardMoveTrait;
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::ColorTrait;
-use crate::engine::board::structures::moves::Move;
+use crate::engine::board::moves::Move;
 use crate::engine::misc::const_utility::FEN_START;
 use crate::engine::misc::display::display_moves::{from_move_notation, move_notation};
+use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::search::iter_deepening::Search;
 use crate::engine::search::transposition_table::{TTTable, TT};
 

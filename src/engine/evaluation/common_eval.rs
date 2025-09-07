@@ -1,16 +1,15 @@
-use crate::engine::board::structures::board::Board;
-use crate::engine::board::structures::color::{Color, ColorTrait, BLACK, WHITE};
-use crate::engine::board::structures::piece::*;
-use crate::engine::board::structures::square::{get_file, get_rank};
-use crate::engine::evaluation::trace_eval::TraceEvalTrait;
-use crate::engine::move_generator::bishop::get_bishop_mask;
-use crate::engine::move_generator::generated::between::BETWEEN_BB;
-use crate::engine::move_generator::generated::king::KING_RING;
-use crate::engine::move_generator::king::get_king_mask;
-use crate::engine::move_generator::knight::get_knight_mask;
-use crate::engine::move_generator::pawn::{get_pawn_2_att, get_pawn_att_mask};
-use crate::engine::move_generator::queen::get_queen_mask;
-use crate::engine::move_generator::rook::get_rook_mask;
+use crate::engine::attacks::bishop::get_bishop_mask;
+use crate::engine::attacks::king::get_king_mask;
+use crate::engine::attacks::knight::get_knight_mask;
+use crate::engine::attacks::pawn::{get_pawn_2_att, get_pawn_att_mask};
+use crate::engine::attacks::queen::get_queen_mask;
+use crate::engine::attacks::rook::get_rook_mask;
+use crate::engine::board::board::Board;
+use crate::engine::board::color::{Color, ColorTrait, BLACK, WHITE};
+use crate::engine::board::piece::*;
+use crate::engine::board::square::{get_file, get_rank};
+use crate::engine::generated::between::BETWEEN_BB;
+use crate::engine::generated::king::KING_RING;
 
 pub const KING_ATT_WEIGHT: [isize; 6] = [0, 81, 0, 52, 44, 10];
 
