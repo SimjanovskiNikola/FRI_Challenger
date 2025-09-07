@@ -55,12 +55,10 @@ impl MoveOrderingTrait for Board {
             return None;
         }
 
-        for idx in 0..(moves.len() - 1) {
-            if moves[idx].1 > moves[idx + 1].1 {
-                moves.swap(idx, idx + 1);
-            }
-        }
-        moves.pop().map(|(mv, _)| mv)
+        let best_idx =
+            moves.iter().enumerate().max_by_key(|(_, (_, score))| score).map(|(idx, _)| idx)?;
+
+        Some(moves.swap_remove(best_idx).0)
     }
 
     fn quiet_eval(&mut self, mv: &Move) -> isize {
