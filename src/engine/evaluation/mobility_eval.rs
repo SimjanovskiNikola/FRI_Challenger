@@ -114,7 +114,7 @@ mod tests {
             board.init();
             board.mobility_eval(WHITE);
             board.mobility_eval(BLACK);
-            eval_assert(board.calculate_score(), obj.mobility, 28, true); // FIXME: The difference is too quiet high
+            eval_assert(board.calculate_score(), obj.mobility, 28, false); // FIXME: The difference is too quiet high
         }
     }
 }

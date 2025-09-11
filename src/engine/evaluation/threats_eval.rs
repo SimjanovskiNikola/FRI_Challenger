@@ -255,7 +255,7 @@ mod tests {
 
             // board.print_trace_log("");
 
-            eval_assert(board.calculate_score(), obj.threats, 0, true);
+            eval_assert(board.calculate_score(), obj.threats, 0, false);
         }
     }
 }
