@@ -1,8 +1,7 @@
 use crate::engine::board::board::Board;
 use crate::engine::board::color::Color;
-use crate::engine::board::piece::{Piece, PieceTrait, PIECES, PIECES_WITHOUT_PAWN};
+use crate::engine::board::piece::*;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::misc::bitboard::BitboardTrait;
 
 #[rustfmt::skip]
 pub const PIECE_MATERIAL: [(isize, isize); 6] = [
@@ -25,7 +24,7 @@ impl MaterialEvalTrait for Board {
     fn material_eval(&mut self, clr: Color) {
         for &pce in &PIECES {
             let piece = pce + clr;
-            let count = self.bb(piece).count() as isize;
+            let count = self.p_count[piece.idx()] as isize;
             let (mg_sum, eg_sum) = MaterialEvalTrait::piece_material(self, piece);
             self.sum(clr, None, Some(piece), (mg_sum * count, eg_sum * count));
         }
@@ -36,7 +35,7 @@ impl MaterialEvalTrait for Board {
         let mut score = 0;
         for &pce in &PIECES_WITHOUT_PAWN {
             let piece = pce + clr;
-            let count = self.bb(piece).count() as isize;
+            let count = self.p_count[piece.idx()] as isize;
             score += MaterialEvalTrait::piece_material(self, piece).0 * count;
         }
         score
@@ -62,9 +61,9 @@ mod tests {
     #[test]
     fn material_test() {
         for obj in &SF_EVAL {
-            if obj.fen != SF_EVAL[10].fen {
-                continue;
-            }
+            // if obj.fen != SF_EVAL[10].fen {
+            //     continue;
+            // }
 
             let mut board = Board::read_fen(obj.fen);
             board.init();

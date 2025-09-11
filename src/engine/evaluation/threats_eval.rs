@@ -9,6 +9,7 @@ use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::mobility_eval::MobilityEvalTrait;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::RANK_BITBOARD;
+use crate::engine::misc::display::display_board::print_bitboard;
 
 pub const ROOK_THREAT: [(isize, isize); 6] =
     [(3, 46), (37, 68), (0, 0), (42, 60), (0, 38), (58, 41)];
@@ -66,7 +67,7 @@ impl ThreatsEvalTrait for Board {
 
     #[inline(always)]
     fn safe_pawn(&mut self, clr: Color) -> u64 {
-        let bb = (self.pawn_bb(clr) & self.eval.defend_map[clr.idx()])
+        let bb = (self.pawn_bb(clr) & self.eval.attack_map[clr.idx()])
             | (self.pawn_bb(clr) & !self.eval.attack_map[clr.opp().idx()]);
         bb
     }
@@ -89,7 +90,7 @@ impl ThreatsEvalTrait for Board {
             & !get_all_pawn_right_att_mask(self.pawn_bb(clr.opp()), clr.opp())
             & self.eval.attack_map[clr.idx()];
         let att_twice = weak_enemy_bb & self.eval.attacked_by_2[clr.idx()];
-        let not_def_twice = weak_enemy_bb & !self.eval.defended_by_2[clr.opp().idx()];
+        let not_def_twice = weak_enemy_bb & !self.eval.attacked_by_2[clr.opp().idx()];
 
         att_twice | not_def_twice
     }
@@ -123,7 +124,7 @@ impl ThreatsEvalTrait for Board {
         let weak_enemy_bb = self.weak_enemy(clr);
         let att_many =
             weak_enemy_bb & !self.pawn_bb(clr.opp()) & self.eval.attacked_by_2[clr.idx()];
-        let not_defended = weak_enemy_bb & !self.eval.defend_map[clr.opp().idx()];
+        let not_defended = weak_enemy_bb & !self.eval.attack_map[clr.opp().idx()];
 
         not_defended | att_many
     }
@@ -162,9 +163,8 @@ impl ThreatsEvalTrait for Board {
         }
 
         // TODO: Try using self.eval.xray here
-        let mut mobility_bb = (self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
-            | self.eval.defended_by[(QUEEN + clr.opp()).idx()])
-            & self.mobility_area(clr);
+        let mut mobility_bb =
+            self.eval.attacked_by[(QUEEN + clr.opp()).idx()] & self.mobility_area(clr);
 
         mobility_bb = mobility_bb
             & !self.pawn_bb(clr)
@@ -173,6 +173,9 @@ impl ThreatsEvalTrait for Board {
 
         let diagonal = mobility_bb & self.eval.queen_diagonal[clr.opp().idx()];
         let orthogonal = mobility_bb & !self.eval.queen_diagonal[clr.opp().idx()];
+
+        // print_bitboard(diagonal, None);
+        // print_bitboard(orthogonal, None);
 
         let v = if self.queen_bb(clr).count() == 0 { 2 } else { 1 };
 
@@ -206,14 +209,22 @@ impl ThreatsEvalTrait for Board {
 
     #[inline(always)]
     fn restricted(&mut self, clr: Color) -> u64 {
-        let restricted_bb = (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()])
-            & (self.eval.attack_map[clr.opp().idx()] | self.eval.defend_map[clr.opp().idx()])
+        let restricted_bb = self.eval.attack_map[clr.idx()]
+            & self.eval.attack_map[clr.opp().idx()]
             & !self.eval.attacked_by[(PAWN + clr.opp()).idx()]
-            & !self.eval.defended_by[(PAWN + clr.opp()).idx()]
-            & !((self.eval.attacked_by_2[clr.opp().idx()]
-                | self.eval.defended_by_2[clr.opp().idx()])
-                & (!(self.eval.attacked_by_2[clr.idx()] | self.eval.defended_by_2[clr.idx()])
-                    & (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()])));
+            & !(self.eval.attacked_by_2[clr.opp().idx()]
+                & !self.eval.attacked_by_2[clr.idx()]
+                & self.eval.attack_map[clr.idx()]);
+        // print_bitboard(self.eval.attacked_by_2[clr.idx()], None);
+        // print_bitboard(self.eval.attack_map[clr.idx()], None);
+        // print_bitboard(self.eval.attacked_by_2[clr.opp().idx()], None);
+        // print_bitboard(
+        //     !(self.eval.attacked_by_2[clr.opp().idx()]
+        //         & !self.eval.attacked_by_2[clr.idx()]
+        //         & self.eval.attack_map[clr.idx()]),
+        //     None,
+        // );
+        // print_bitboard(restricted_bb, None);
 
         restricted_bb
     }
@@ -239,6 +250,7 @@ mod tests {
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
     use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::trace_eval::TraceEvalTrait;
 
     use super::*;
 
@@ -246,12 +258,18 @@ mod tests {
     #[test]
     fn threats_test() {
         for obj in &SF_EVAL {
+            // if obj.fen != SF_EVAL[2].fen {
+            //     continue;
+            // }
             let mut board = Board::read_fen(obj.fen);
+
             board.init();
             board.threats_eval(WHITE);
             board.threats_eval(BLACK);
 
-            eval_assert(board.calculate_score(), obj.threats, 0, false);
+            // board.print_trace_log("");
+
+            eval_assert(board.calculate_score(), obj.threats, 0, true);
         }
     }
 }

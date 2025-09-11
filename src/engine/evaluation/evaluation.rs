@@ -1,5 +1,6 @@
 use crate::engine::board::board::Board;
 use crate::engine::board::color::*;
+use crate::engine::board::piece::{Piece, PieceTrait};
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::imbalance_eval::ImbalanceEvalTrait;
 use crate::engine::evaluation::init_eval::InitEvalTrait;
@@ -34,20 +35,20 @@ pub struct Evaluation {
     pub checks: [Bitboard; 14],
     pub x_ray: [Bitboard; 14],
     pub attacked_by: [Bitboard; 14],
-    pub defended_by: [Bitboard; 14],
-    pub defended_by_2: [Bitboard; 2],
     pub attacked_by_2: [Bitboard; 2],
     pub king_att_weight: [isize; 2],
     pub king_att_count: [usize; 2],
     pub king_att_count_pieces: [u64; 2],
     pub king_att: [usize; 2],
     pub king_pawn_dx: [usize; 2],
-    pub defend_map: [Bitboard; 2],
     pub attack_map: [Bitboard; 2],
     pub queen_diagonal: [Bitboard; 2],
     pub phase: (isize, isize),
     pub score: [(isize, isize); 2],
     pub king_shelter: [(isize, isize, isize); 2],
+
+    pub material_eval: [(isize, isize); 2],
+    pub psqt_eval: [(isize, isize); 2],
 }
 
 impl Evaluation {
@@ -67,20 +68,20 @@ impl Evaluation {
             x_ray: [0; 14],
             checks: [0; 14],
             attacked_by: [0; 14],
-            defended_by: [0; 14],
             attacked_by_2: [0; 2],
-            defended_by_2: [0; 2],
             king_att_weight: [0; 2],
             king_att_count: [0; 2],
             king_att_count_pieces: [0; 2],
             king_att: [0; 2],
             king_pawn_dx: [6; 2],
-            defend_map: [0; 2],
             attack_map: [0; 2],
             queen_diagonal: [0; 2],
             phase: (0, 0),
             score: [(0, 0); 2],
             king_shelter: [(0, 0, 0); 2],
+
+            material_eval: [(0, 0); 2],
+            psqt_eval: [(0, 0); 2],
         }
     }
 
@@ -94,15 +95,12 @@ impl Evaluation {
         self.checks.fill(0);
         self.x_ray.fill(0);
         self.attacked_by.fill(0);
-        self.defended_by.fill(0);
         self.attacked_by_2.fill(0);
-        self.defended_by_2.fill(0);
         self.king_att_weight.fill(0);
         self.king_att_count.fill(0);
         self.king_att_count_pieces.fill(0);
         self.king_att.fill(0);
         self.king_pawn_dx.fill(6);
-        self.defend_map.fill(0);
         self.attack_map.fill(0);
         self.queen_diagonal.fill(0);
         self.phase = (0, 0);
@@ -111,6 +109,9 @@ impl Evaluation {
 
         self.mg_test = [[0; 64]; 2];
         self.eg_test = [[0; 64]; 2];
+
+        // self.material_eval.fill((0, 0));
+        // self.psqt_eval.fill((0, 0));
     }
 }
 
@@ -130,27 +131,27 @@ pub trait EvaluationTrait:
     + SpaceEvalTrait
     + TempoEvalTrait
 {
-    // NOTE: Main Evaluation Function (It has 11 sub evaluations)
     fn evaluation(&mut self) -> isize;
+    fn inc_evaluation(&mut self) -> isize;
+
+    fn clear_eval(&mut self, piece: Piece, sq: usize);
+    fn add_eval(&mut self, piece: Piece, sq: usize);
+    fn quiet_eval(&mut self, piece: Piece, from: usize, to: usize);
 }
 
 impl EvaluationTrait for Board {
-    // ************************************************
-    //                MAIN EVALUATION                 *
-    // ************************************************
-
     fn evaluation(&mut self) -> isize {
         self.init();
 
-        // 1. Piece Value NOTE: DONE
+        // 1. Piece Value
         self.material_eval(WHITE);
         self.material_eval(BLACK);
 
-        // 2. PSQT NOTE: DONE
+        // 2. PSQT
         self.psqt_eval(WHITE);
         self.psqt_eval(BLACK);
 
-        // 3. Imbalance NOTE: DONE
+        // 3. Imbalance
         self.imbalance(WHITE);
         self.imbalance(BLACK);
 
@@ -182,16 +183,86 @@ impl EvaluationTrait for Board {
         self.king_eval(WHITE);
         self.king_eval(BLACK);
 
-        // 11. Tempo NOTE: DONE
+        // 11. Tempo
         self.tempo(self.color());
 
-        // 1r1q4/6pk/3P2pp/1p1Q4/p2P4/P6P/1P3P2/3R2K1 b - - 0 31
-        // 1R6/1P4k1/5p2/1r3K2/8/7P/6P1/8 w - - 5 55
-        // 6k1/5p2/7p/4p1p1/pn2P3/2K1BP1P/6P1/8 b - - 2 45
-        // 7k/4R3/3p1r2/4p2p/4P3/1Q3N2/4KPq1/8 b - - 3 45
-        // 8/8/2KB4/3Pb3/1r2k3/8/2R5/8 b - - 0 59
+        return self.calculate_score() * self.color().sign();
+    }
+
+    fn inc_evaluation(&mut self) -> isize {
+        self.init();
+
+        // 1. Piece Value
+        self.sum(WHITE, None, None, self.eval.material_eval[WHITE.idx()]);
+        self.sum(BLACK, None, None, self.eval.material_eval[BLACK.idx()]);
+
+        // 2. PSQT
+        self.sum(WHITE, None, None, self.eval.psqt_eval[WHITE.idx()]);
+        self.sum(BLACK, None, None, self.eval.psqt_eval[BLACK.idx()]);
+
+        // 3. Imbalance
+        self.imbalance(WHITE);
+        self.imbalance(BLACK);
+
+        // 4. Pawns
+        self.pawns_eval(WHITE);
+        self.pawns_eval(BLACK);
+
+        // 5. Pieces
+        self.piece_eval(WHITE);
+        self.piece_eval(BLACK);
+
+        // 6. Mobility
+        self.mobility_eval(WHITE);
+        self.mobility_eval(BLACK);
+
+        // 7. Threats
+        self.threats_eval(WHITE);
+        self.threats_eval(BLACK);
+
+        // 8. Passed Pawns
+        self.passed_pawn(WHITE);
+        self.passed_pawn(BLACK);
+
+        // 9. Space
+        self.space(WHITE);
+        self.space(BLACK);
+
+        // 10. King
+        self.king_eval(WHITE);
+        self.king_eval(BLACK);
+
+        // 11. Tempo
+        self.tempo(self.color());
 
         return self.calculate_score() * self.color().sign();
+    }
+
+    fn clear_eval(&mut self, piece: Piece, sq: usize) {
+        self.eval.material_eval[piece.color().idx()].0 -=
+            MaterialEvalTrait::piece_material(self, piece).0;
+        self.eval.material_eval[piece.color().idx()].1 -=
+            MaterialEvalTrait::piece_material(self, piece).1;
+
+        self.eval.psqt_eval[piece.color().idx()].0 -= PSQTEvalTrait::piece_psqt(self, piece, sq).0;
+        self.eval.psqt_eval[piece.color().idx()].1 -= PSQTEvalTrait::piece_psqt(self, piece, sq).1;
+    }
+    fn add_eval(&mut self, piece: Piece, sq: usize) {
+        self.eval.material_eval[piece.color().idx()].0 +=
+            MaterialEvalTrait::piece_material(self, piece).0;
+        self.eval.material_eval[piece.color().idx()].1 +=
+            MaterialEvalTrait::piece_material(self, piece).1;
+
+        self.eval.psqt_eval[piece.color().idx()].0 += PSQTEvalTrait::piece_psqt(self, piece, sq).0;
+        self.eval.psqt_eval[piece.color().idx()].1 += PSQTEvalTrait::piece_psqt(self, piece, sq).1;
+    }
+
+    fn quiet_eval(&mut self, piece: Piece, from: usize, to: usize) {
+        self.eval.psqt_eval[piece.color().idx()].0 += PSQTEvalTrait::piece_psqt(self, piece, to).0
+            - PSQTEvalTrait::piece_psqt(self, piece, from).0;
+
+        self.eval.psqt_eval[piece.color().idx()].1 += PSQTEvalTrait::piece_psqt(self, piece, to).1
+            - PSQTEvalTrait::piece_psqt(self, piece, from).1;
     }
 }
 
@@ -211,7 +282,7 @@ mod tests {
             let mut board = Board::read_fen(obj.fen);
             board.init();
             let score = board.evaluation();
-            eval_assert(score * board.color().sign(), obj.eval, 130, true);
+            eval_assert(score * board.color().sign(), obj.eval, 130, false);
         }
     }
 

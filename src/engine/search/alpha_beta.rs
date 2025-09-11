@@ -29,7 +29,8 @@ impl Search {
         }
 
         if self.board.ply() > 63 || depth >= 63 {
-            return self.board.evaluation();
+            return self.board.inc_evaluation();
+            // return self.board.evaluation();
         }
 
         let in_check: bool =

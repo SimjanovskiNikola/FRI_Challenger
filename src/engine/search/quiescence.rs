@@ -12,7 +12,8 @@ impl Search {
     pub fn quiescence_search(&mut self, mut alpha: isize, beta: isize, depth: i8) -> isize {
         self.info.nodes += 1;
 
-        let eval = self.board.evaluation();
+        // let eval = self.board.evaluation();
+        let eval = self.board.inc_evaluation();
 
         if self.board.ply() > 63 {
             return eval;

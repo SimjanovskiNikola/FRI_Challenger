@@ -93,13 +93,9 @@ impl InitEvalTrait for Board {
                     let piece_mask = self.x_ray_mask(piece, sq);
 
                     self.eval.attacked_by_2[clr.idx()] |=
-                        self.eval.attack_map[clr.idx()] & (piece_mask & !own);
+                        self.eval.attack_map[clr.idx()] & piece_mask;
 
-                    self.eval.defended_by_2[clr.idx()] |=
-                        self.eval.defend_map[clr.idx()] & (piece_mask & own);
-
-                    self.eval.attack_map[clr.idx()] |= piece_mask & !own;
-                    self.eval.defend_map[clr.idx()] |= piece_mask & own;
+                    self.eval.attack_map[clr.idx()] |= piece_mask;
 
                     self.eval.attacked_by[piece.idx()] |= piece_mask;
 

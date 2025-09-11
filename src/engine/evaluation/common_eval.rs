@@ -8,6 +8,7 @@ use crate::engine::board::board::Board;
 use crate::engine::board::color::{Color, ColorTrait, BLACK, WHITE};
 use crate::engine::board::piece::*;
 use crate::engine::board::square::{get_file, get_rank};
+use crate::engine::evaluation::trace_eval::TraceEvalTrait;
 use crate::engine::generated::between::BETWEEN_BB;
 use crate::engine::generated::king::KING_RING;
 

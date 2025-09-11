@@ -3,6 +3,7 @@ use super::color::{Color, ColorTrait};
 use super::piece::{Piece, PieceTrait, BISHOP, KING, KNIGHT, QUEEN, ROOK};
 use super::state::BoardState;
 use super::{moves::Move, piece::PAWN};
+use crate::engine::board::piece;
 use crate::engine::evaluation::eval_defs::CLR_SQ;
 use crate::engine::evaluation::evaluation::Evaluation;
 use crate::engine::misc::bitboard::BitboardTrait;
@@ -18,6 +19,7 @@ pub struct Board {
     // Peace Occupancy (Bitboard Representation)
     pub squares: [Piece; 64],
     pub bitboard: [Bitboard; 14],
+    pub p_count: [usize; 14],
 
     // Position Vectors (Moves until now)
     pub moves: Vec<Move>,
@@ -45,6 +47,7 @@ impl Board {
         Self {
             squares: [0; 64],
             bitboard: [0 as Bitboard; 14],
+            p_count: [0; 14],
 
             moves: Vec::with_capacity(1024),
             history: Vec::with_capacity(1024),
@@ -144,6 +147,41 @@ impl Board {
     #[inline(always)]
     pub fn king_sq(&self, color: Color) -> usize {
         self.king_bb(color).get_lsb()
+    }
+
+    #[inline(always)]
+    pub fn piece_count(&self, piece: Piece) -> usize {
+        self.p_count[piece.idx()]
+    }
+
+    #[inline(always)]
+    pub fn pawn_count(&self, color: Color) -> usize {
+        self.piece_count(PAWN + color)
+    }
+
+    #[inline(always)]
+    pub fn knight_count(&self, color: Color) -> usize {
+        self.piece_count(KNIGHT + color)
+    }
+
+    #[inline(always)]
+    pub fn king_count(&self, color: Color) -> usize {
+        self.piece_count(KING + color)
+    }
+
+    #[inline(always)]
+    pub fn bishop_count(&self, color: Color) -> usize {
+        self.piece_count(BISHOP + color)
+    }
+
+    #[inline(always)]
+    pub fn rook_count(&self, color: Color) -> usize {
+        self.piece_count(ROOK + color)
+    }
+
+    #[inline(always)]
+    pub fn queen_count(&self, color: Color) -> usize {
+        self.piece_count(QUEEN + color)
     }
 
     #[inline(always)]

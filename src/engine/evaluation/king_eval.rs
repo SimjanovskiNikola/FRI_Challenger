@@ -168,9 +168,7 @@ impl KingEvalTrait for Board {
             | FILE_BITBOARD[get_file(king_sq)]
             | FILE_BITBOARD[FLANK_ADDITIONAL_FILE[get_file(king_sq)]];
 
-        let att_1 = flanks
-            & FLANK_MASK[clr.opp().idx()]
-            & (self.eval.attack_map[clr.opp().idx()] | self.eval.defend_map[clr.opp().idx()]);
+        let att_1 = flanks & FLANK_MASK[clr.opp().idx()] & self.eval.attack_map[clr.opp().idx()];
 
         // println!("Attack 1");
         // print_bitboard(att_1, None);
@@ -186,19 +184,9 @@ impl KingEvalTrait for Board {
             | FILE_BITBOARD[get_file(king_sq)]
             | FILE_BITBOARD[FLANK_ADDITIONAL_FILE[get_file(king_sq)]];
 
-        let att_1 = flanks
-            & FLANK_MASK[clr.opp().idx()]
-            & (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()]);
+        let att_1 = flanks & FLANK_MASK[clr.opp().idx()] & self.eval.attack_map[clr.idx()];
 
-        let att_2 = flanks
-            & FLANK_MASK[clr.opp().idx()]
-            & (self.eval.attacked_by_2[clr.idx()] | self.eval.defended_by_2[clr.idx()]);
-
-        // println!("Attack 1");
-        // print_bitboard(att_1, None);
-
-        // println!("Attack 2");
-        // print_bitboard(att_2, None);
+        let att_2 = flanks & FLANK_MASK[clr.opp().idx()] & self.eval.attacked_by_2[clr.idx()];
 
         return (att_1.count() + att_2.count()) as isize;
     }
@@ -215,9 +203,7 @@ impl KingEvalTrait for Board {
 
     #[inline(always)]
     fn knight_defender(&mut self, clr: Color) -> u64 {
-        (self.eval.attacked_by[(KNIGHT + clr).idx()] | self.eval.defended_by[(KNIGHT + clr).idx()])
-            & (self.eval.attacked_by[(KING + clr).idx()]
-                | self.eval.defended_by[(KING + clr).idx()])
+        self.eval.attacked_by[(KNIGHT + clr).idx()] & self.eval.attacked_by[(KING + clr).idx()]
     }
 
     #[inline(always)]
@@ -244,8 +230,7 @@ impl KingEvalTrait for Board {
             QUEEN => {
                 self.eval.checks[piece.idx()]
                     & !self.eval.checks[(ROOK + clr).idx()]
-                    & !(self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
-                        | self.eval.defended_by[(QUEEN + clr.opp()).idx()])
+                    & !self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
             }
             _ => panic!("There is other peace that was not expected here"),
         };
@@ -253,27 +238,20 @@ impl KingEvalTrait for Board {
         let weak_squares = self.weak_squares(clr) & self.eval.attacked_by_2[clr.idx()];
 
         return !self.occ_bb(clr)
-            & (!(self.eval.attack_map[clr.opp().idx()] | self.eval.defend_map[clr.opp().idx()])
-                | weak_squares)
+            & (!self.eval.attack_map[clr.opp().idx()] | weak_squares)
             & checks;
     }
 
     #[inline(always)]
     fn weak_squares(&mut self, clr: Color) -> u64 {
-        let enemy_att_2 =
-            self.eval.attacked_by_2[clr.opp().idx()] | self.eval.defended_by_2[clr.opp().idx()];
+        let enemy_att_2 = self.eval.attacked_by_2[clr.opp().idx()];
 
-        let not_att_2_times =
-            (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()]) & !enemy_att_2;
+        let not_att_2_times = self.eval.attack_map[clr.idx()] & !enemy_att_2;
 
-        (self.eval.attack_map[clr.idx()] | self.eval.defend_map[clr.idx()])
-            & (not_att_2_times
-                & !(self.eval.attack_map[clr.opp().idx()] | self.eval.defend_map[clr.opp().idx()]))
+        self.eval.attack_map[clr.idx()] & (not_att_2_times & !self.eval.attack_map[clr.opp().idx()])
             | (not_att_2_times
                 & (self.eval.attacked_by[(KING + clr.opp()).idx()]
-                    | self.eval.defended_by[(KING + clr.opp()).idx()]
-                    | self.eval.attacked_by[(QUEEN + clr.opp()).idx()]
-                    | self.eval.defended_by[(QUEEN + clr.opp()).idx()]))
+                    | self.eval.attacked_by[(QUEEN + clr.opp()).idx()]))
     }
 
     #[inline(always)]
@@ -299,20 +277,16 @@ impl KingEvalTrait for Board {
     #[inline(always)]
     fn check(&mut self, clr: Color) {
         let king_sq = self.king_sq(clr.opp());
-        self.eval.checks[(KNIGHT + clr).idx()] = (self.eval.attacked_by[(KNIGHT + clr).idx()]
-            | self.eval.defended_by[(KNIGHT + clr).idx()])
+        self.eval.checks[(KNIGHT + clr).idx()] = self.eval.attacked_by[(KNIGHT + clr).idx()]
             & self.x_ray_mask(KNIGHT + clr.opp(), king_sq);
 
-        self.eval.checks[(BISHOP + clr).idx()] = (self.eval.attacked_by[(BISHOP + clr).idx()]
-            | self.eval.defended_by[(BISHOP + clr).idx()])
+        self.eval.checks[(BISHOP + clr).idx()] = self.eval.attacked_by[(BISHOP + clr).idx()]
             & self.x_ray_mask(BISHOP + clr.opp(), king_sq);
 
-        self.eval.checks[(ROOK + clr).idx()] = (self.eval.attacked_by[(ROOK + clr).idx()]
-            | self.eval.defended_by[(ROOK + clr).idx()])
-            & self.x_ray_mask(ROOK + clr.opp(), king_sq);
+        self.eval.checks[(ROOK + clr).idx()] =
+            self.eval.attacked_by[(ROOK + clr).idx()] & self.x_ray_mask(ROOK + clr.opp(), king_sq);
 
-        self.eval.checks[(QUEEN + clr).idx()] = (self.eval.attacked_by[(QUEEN + clr).idx()]
-            | self.eval.defended_by[(QUEEN + clr).idx()])
+        self.eval.checks[(QUEEN + clr).idx()] = self.eval.attacked_by[(QUEEN + clr).idx()]
             & self.x_ray_mask(QUEEN + clr.opp(), king_sq);
     }
 
