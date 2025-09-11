@@ -148,16 +148,8 @@ impl InitEvalTrait for Board {
     #[inline(always)]
     fn determine_phase(&mut self) {
         let mut npm = self.non_pawn_material_eval(WHITE) + self.non_pawn_material_eval(BLACK);
-        // println!("{:?}", self.non_pawn_material_eval(WHITE));
-        // println!("{:?}", npm);
-
         npm = EG_LIMIT.max(npm.min(MG_LIMIT));
-        // println!("{:?}", npm);
-
         let phase = ((npm - EG_LIMIT) * 128) / (MG_LIMIT - EG_LIMIT);
-        // println!("{:?}", (npm, phase));
-
         self.eval.phase = (phase, 128 - phase);
-        // println!("{:?}", (phase, 128 - phase));
     }
 }

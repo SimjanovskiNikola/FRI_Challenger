@@ -86,8 +86,7 @@ impl ThreatsEvalTrait for Board {
     #[inline(always)]
     fn weak_enemy(&mut self, clr: Color) -> u64 {
         let weak_enemy_bb = self.occ_bb(clr.opp())
-            & !get_all_pawn_left_att_mask(self.pawn_bb(clr.opp()), clr.opp())
-            & !get_all_pawn_right_att_mask(self.pawn_bb(clr.opp()), clr.opp())
+            & !self.eval.attacked_by[(PAWN + clr.opp()).idx()]
             & self.eval.attack_map[clr.idx()];
         let att_twice = weak_enemy_bb & self.eval.attacked_by_2[clr.idx()];
         let not_def_twice = weak_enemy_bb & !self.eval.attacked_by_2[clr.opp().idx()];
@@ -174,9 +173,6 @@ impl ThreatsEvalTrait for Board {
         let diagonal = mobility_bb & self.eval.queen_diagonal[clr.opp().idx()];
         let orthogonal = mobility_bb & !self.eval.queen_diagonal[clr.opp().idx()];
 
-        // print_bitboard(diagonal, None);
-        // print_bitboard(orthogonal, None);
-
         let v = if self.queen_bb(clr).count() == 0 { 2 } else { 1 };
 
         return ((diagonal & self.eval.x_ray[(BISHOP + clr).idx()])
@@ -215,16 +211,6 @@ impl ThreatsEvalTrait for Board {
             & !(self.eval.attacked_by_2[clr.opp().idx()]
                 & !self.eval.attacked_by_2[clr.idx()]
                 & self.eval.attack_map[clr.idx()]);
-        // print_bitboard(self.eval.attacked_by_2[clr.idx()], None);
-        // print_bitboard(self.eval.attack_map[clr.idx()], None);
-        // print_bitboard(self.eval.attacked_by_2[clr.opp().idx()], None);
-        // print_bitboard(
-        //     !(self.eval.attacked_by_2[clr.opp().idx()]
-        //         & !self.eval.attacked_by_2[clr.idx()]
-        //         & self.eval.attack_map[clr.idx()]),
-        //     None,
-        // );
-        // print_bitboard(restricted_bb, None);
 
         restricted_bb
     }

@@ -1,12 +1,11 @@
 use crate::engine::attacks::bishop::get_bishop_mask;
 use crate::engine::attacks::knight::get_knight_mask;
-use crate::engine::attacks::pawn::{get_all_pawn_left_att_mask, get_all_pawn_right_att_mask};
 use crate::engine::attacks::queen::get_queen_mask;
 use crate::engine::attacks::rook::get_rook_mask;
 use crate::engine::board::board::Board;
 use crate::engine::board::color::{Color, ColorTrait};
 use crate::engine::board::piece::{
-    Piece, PieceTrait, BISHOP, KNIGHT, PIECES_WITHOUT_PAWN_KING, QUEEN, ROOK,
+    Piece, PieceTrait, BISHOP, KNIGHT, PAWN, PIECES_WITHOUT_PAWN_KING, QUEEN, ROOK,
 };
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
@@ -93,8 +92,7 @@ impl MobilityEvalTrait for Board {
             & !self.king_bb(clr)
             & !self.queen_bb(clr)
             & !self.pawn_bb(clr)
-            & !get_all_pawn_left_att_mask(self.pawn_bb(clr.opp()), clr.opp())
-            & !get_all_pawn_right_att_mask(self.pawn_bb(clr.opp()), clr.opp());
+            & !self.eval.attacked_by[(PAWN + clr.opp()).idx()];
         bb
     }
 }
@@ -116,7 +114,7 @@ mod tests {
             board.init();
             board.mobility_eval(WHITE);
             board.mobility_eval(BLACK);
-            eval_assert(board.calculate_score(), obj.mobility, 28, false); // FIXME: The difference is too quiet high
+            eval_assert(board.calculate_score(), obj.mobility, 28, true); // FIXME: The difference is too quiet high
         }
     }
 }
