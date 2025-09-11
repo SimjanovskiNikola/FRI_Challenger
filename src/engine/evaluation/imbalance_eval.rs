@@ -26,68 +26,55 @@ pub const QUADRATIC_THEIRS: [[isize; 6]; 6] = [
 
 pub trait ImbalanceEvalTrait {
     fn imbalance(&mut self, clr: Color);
-    fn imb_piece_count(&mut self, num: usize, clr: Color) -> isize;
 }
 
 impl ImbalanceEvalTrait for Board {
     fn imbalance(&mut self, clr: Color) {
         let ours: [isize; 6] = [
-            0,
-            self.pawn_bb(clr).count() as isize,
-            self.knight_bb(clr).count() as isize,
-            self.bishop_bb(clr).count() as isize,
-            self.rook_bb(clr).count() as isize,
-            self.queen_bb(clr).count() as isize,
+            has_bishop_pair(self.bishop_bb(clr)) as isize,
+            self.pawn_count(clr) as isize,
+            self.knight_count(clr) as isize,
+            self.bishop_count(clr) as isize,
+            self.rook_count(clr) as isize,
+            self.queen_count(clr) as isize,
         ];
+
         let theirs: [isize; 6] = [
-            0,
-            self.pawn_bb(clr.opp()).count() as isize,
-            self.knight_bb(clr.opp()).count() as isize,
-            self.bishop_bb(clr.opp()).count() as isize,
-            self.rook_bb(clr.opp()).count() as isize,
-            self.queen_bb(clr.opp()).count() as isize,
+            has_bishop_pair(self.bishop_bb(clr.opp())) as isize,
+            self.pawn_count(clr.opp()) as isize,
+            self.knight_count(clr.opp()) as isize,
+            self.bishop_count(clr.opp()) as isize,
+            self.rook_count(clr.opp()) as isize,
+            self.queen_count(clr.opp()) as isize,
         ];
         let mut bonus = 0;
-
-        let has_our_bishop_pair = has_bishop_pair(self.bishop_bb(clr)) as isize;
-        let has_their_bishop_pair = has_bishop_pair(self.bishop_bb(clr.opp())) as isize;
 
         for pt1 in 1..6 {
             if ours[pt1] == 0 {
                 continue;
             }
 
-            bonus += (QUADRATIC_OURS[pt1][0] * has_our_bishop_pair
-                + QUADRATIC_OURS[pt1][1] * ours[1]
-                + QUADRATIC_OURS[pt1][2] * ours[2]
-                + QUADRATIC_OURS[pt1][3] * ours[3]
-                + QUADRATIC_OURS[pt1][4] * ours[4]
-                + QUADRATIC_OURS[pt1][5] * ours[5]
-                + QUADRATIC_THEIRS[pt1][0] * has_their_bishop_pair
-                + QUADRATIC_THEIRS[pt1][1] * theirs[1]
-                + QUADRATIC_THEIRS[pt1][2] * theirs[2]
-                + QUADRATIC_THEIRS[pt1][3] * theirs[3]
-                + QUADRATIC_THEIRS[pt1][4] * theirs[4]
-                + QUADRATIC_THEIRS[pt1][5] * theirs[5])
-                * ours[pt1];
+            bonus += ours[pt1]
+                * (QUADRATIC_OURS[pt1].iter().zip(ours).map(|(x, y)| x * y).sum::<isize>()
+                    + QUADRATIC_THEIRS[pt1].iter().zip(theirs).map(|(x, y)| x * y).sum::<isize>());
+            // bonus += (QUADRATIC_OURS[pt1][0] * ours[0]
+            //     + QUADRATIC_OURS[pt1][1] * ours[1]
+            //     + QUADRATIC_OURS[pt1][2] * ours[2]
+            //     + QUADRATIC_OURS[pt1][3] * ours[3]
+            //     + QUADRATIC_OURS[pt1][4] * ours[4]
+            //     + QUADRATIC_OURS[pt1][5] * ours[5]
+            //     + QUADRATIC_THEIRS[pt1][0] * theirs[0]
+            //     + QUADRATIC_THEIRS[pt1][1] * theirs[1]
+            //     + QUADRATIC_THEIRS[pt1][2] * theirs[2]
+            //     + QUADRATIC_THEIRS[pt1][3] * theirs[3]
+            //     + QUADRATIC_THEIRS[pt1][4] * theirs[4]
+            //     + QUADRATIC_THEIRS[pt1][5] * theirs[5])
+            //     * ours[pt1];
         }
 
-        bonus += 1438 * has_our_bishop_pair;
+        bonus += 1438 * ours[0];
         bonus /= 16;
         self.sum(clr, None, None, (bonus, bonus));
-    }
-
-    #[inline(always)]
-    fn imb_piece_count(&mut self, num: usize, clr: Color) -> isize {
-        match num {
-            0 => 0, //self.king_bb(clr).count() as isize,
-            1 => self.pawn_bb(clr).count() as isize,
-            2 => self.knight_bb(clr).count() as isize,
-            3 => self.bishop_bb(clr).count() as isize,
-            4 => self.rook_bb(clr).count() as isize,
-            5 => self.queen_bb(clr).count() as isize,
-            _ => panic!("Sth is not right"),
-        }
     }
 }
 

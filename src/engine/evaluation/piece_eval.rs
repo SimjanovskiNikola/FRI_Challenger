@@ -261,8 +261,7 @@ impl PieceEvalTrait for Board {
     fn queen_infaltration(&mut self, clr: Color) -> isize {
         let bb = self.queen_bb(clr)
             & QUEEN_INFILTRATION[clr.idx()]
-            & !(self.eval.attacked_by[(PAWN + clr.opp()).idx()]
-                | self.eval.defended_by[(PAWN + clr.opp()).idx()])
+            & !self.eval.attacked_by[(PAWN + clr.opp()).idx()]
             & !self.eval.pawn_att_span[clr.opp().idx()];
         bb.count() as isize
     }

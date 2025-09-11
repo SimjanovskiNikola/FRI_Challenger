@@ -5,6 +5,8 @@ use crate::engine::board::color::ColorTrait;
 use crate::engine::board::moves::*;
 use crate::engine::board::piece::*;
 use crate::engine::board::zobrist::ZobristKeysTrait;
+use crate::engine::evaluation::evaluation::EvaluationTrait;
+use crate::engine::generated::zobrist_keys::PIECE_COUNT_KEYS;
 use crate::engine::generated::zobrist_keys::PIECE_KEYS;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::display::display_board::print_bitboard;
@@ -121,6 +123,7 @@ impl BoardMoveTrait for Board {
         self.bitboard[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
         self.state.key ^= PIECE_KEYS[from_sq][piece.idx()];
         self.state.key ^= PIECE_KEYS[to_sq][piece.idx()];
+        self.quiet_eval(piece, from_sq, to_sq);
     }
 
     #[inline(always)]
@@ -130,6 +133,10 @@ impl BoardMoveTrait for Board {
         self.bitboard[piece.idx()].set_bit(sq);
         self.bitboard[piece.color().idx()].set_bit(sq);
         self.state.key ^= PIECE_KEYS[sq][piece.idx()];
+        self.state.pc_key ^= PIECE_COUNT_KEYS[self.p_count[piece.idx()]][piece.idx()]
+            ^ PIECE_COUNT_KEYS[self.p_count[piece.idx()] + 1][piece.idx()];
+        self.p_count[piece.idx()] += 1;
+        self.add_eval(piece, sq);
     }
 
     #[inline(always)]
@@ -139,6 +146,10 @@ impl BoardMoveTrait for Board {
         self.bitboard[piece.idx()].clear_bit(sq);
         self.bitboard[piece.color().idx()].clear_bit(sq);
         self.state.key ^= PIECE_KEYS[sq][piece.idx()];
+        self.state.pc_key ^= PIECE_COUNT_KEYS[self.p_count[piece.idx()]][piece.idx()]
+            ^ PIECE_COUNT_KEYS[self.p_count[piece.idx()] - 1][piece.idx()];
+        self.p_count[piece.idx()] -= 1;
+        self.clear_eval(piece, sq);
     }
 
     fn make_state(&mut self, mv: &Move) {

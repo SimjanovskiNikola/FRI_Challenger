@@ -76,12 +76,6 @@ impl BoardGenMoveTrait for Board {
         self.add_castling_moves();
         self.add_ep_moves();
 
-        // self.gen_moves.sort_unstable_by_key(|&(_, score)| -score);
-
-        // for (i, score) in &self.gen_moves {
-        //     println!("{:?} {:?}", i, score);
-        // }
-
         self.gen_moves.drain(..).collect()
     }
 
@@ -419,26 +413,10 @@ impl BoardGenMoveTrait for Board {
     }
 }
 
-// pub fn next_move(moves: &mut Vec<(Move, isize)>) -> Option<Move> {
-//     if moves.len() == 0 {
-//         return None;
-//     }
-
-//     for idx in 0..(moves.len() - 1) {
-//         if moves[idx].1 > moves[idx + 1].1 {
-//             moves.swap(idx, idx + 1);
-//         }
-//     }
-//     moves.pop().map(|(mv, _)| mv)
-// }
-
 #[cfg(test)]
 mod tests {
 
-    use core::panic;
-
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::board::zobrist::ZobristKeysTrait;
     use crate::engine::misc::bit_pos_utility::extract_all_bits;
     use crate::engine::misc::display::display_board::*;
     use crate::engine::misc::display::display_moves::*;

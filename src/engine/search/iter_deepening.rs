@@ -79,6 +79,9 @@ impl Search {
     pub fn iterative_deepening(&mut self) -> Option<Move> {
         self.clear_search();
 
+        self.board.eval.material_eval.fill((0, 0));
+        self.board.eval.psqt_eval.fill((0, 0));
+
         let max_depth = self.uci.read().unwrap().max_depth;
         let alpha = MIN_INF;
         let beta = MAX_INF;
@@ -148,7 +151,7 @@ mod tests {
         let depth = 7;
         let fen = "8/2P1P3/b1B2p2/1pPRp3/2k3P1/P4pK1/nP3p1p/N7 w - - 0 1";
         // NOTE: Best Continuation after h2h1n: b5b4 or c3b2
-        let expected_pv = " d5d1 a2c3 b2c3 h2h1q d1h1 f2f1q h1f1"; // Depth 7
+        let expected_pv = " d5d1 a2c3 b2c3 h2h1r d1h1 f2f1q h1f1"; // Depth 7
                                                                    // let expected_pv = " b2b3 c4c3 d5d1 f2f1q d1f1 h2h1n"; // Depth 6
         test_search(fen, depth, expected_pv);
     }
@@ -192,25 +195,31 @@ mod tests {
     // }
 
     // NOTE: Uncomment In Cargo.toml the pprof to see the performance.
-    // #[test]
-    // fn test_search() {
-    //     let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).blocklist(&["libc", "libgcc", "pthread", "vdso"]).build().unwrap();
+    #[test]
+    fn test_pprof_search() {
+        #[cfg(feature = "dhat-heap")]
+        let _profiler = dhat::Profiler::new_heap();
+        let guard = pprof::ProfilerGuardBuilder::default()
+            .frequency(1000)
+            .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+            .build()
+            .unwrap();
 
-    //     let uci = Arc::new(RwLock::new(NewUCI::init()));
-    //     uci.write().unwrap().max_depth = 6;
-    //     // let board = Board::read_fen("2kr3r/pppq1pp1/3np2p/8/2pP4/4P2P/PP1N1PP1/2RQK2R b K - 1 13");
-    //     // let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
-    //     // let board =
-    //     // Board::read_fen("2r1r3/ppqn1kp1/3b1n1p/3P1b2/Q2Pp1P1/7P/PP1N1PB1/R1B1R1K1 b - - 0 0");
-    //     // let board = Board::read_fen("5rk1/ppq3pp/2p1rn2/4p1Q1/8/2N4P/PP4P1/2KRR3 w - - 0 3");
-    //     let board = Board::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    //     let mut search = Search::init(board, uci);
+        let uci = Arc::new(RwLock::new(NewUCI::init()));
+        uci.write().unwrap().max_depth = 10;
+        // let board = Board::read_fen("2kr3r/pppq1pp1/3np2p/8/2pP4/4P2P/PP1N1PP1/2RQK2R b K - 1 13");
+        // let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
+        // let board =
+        // Board::read_fen("2r1r3/ppqn1kp1/3b1n1p/3P1b2/Q2Pp1P1/7P/PP1N1PB1/R1B1R1K1 b - - 0 0");
+        // let board = Board::read_fen("5rk1/ppq3pp/2p1rn2/4p1Q1/8/2N4P/PP4P1/2KRR3 w - - 0 3");
+        let board = Board::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        let mut search = Search::init(board, uci);
 
-    //     let mv = search.iterative_deepening();
+        let mv = search.iterative_deepening();
 
-    //     if let Ok(report) = guard.report().build() {
-    //         let file = File::create("flamegraph.svg").unwrap();
-    //         report.flamegraph(file).unwrap();
-    //     };
-    // }
+        if let Ok(report) = guard.report().build() {
+            let file = File::create("flamegraph.svg").unwrap();
+            report.flamegraph(file).unwrap();
+        };
+    }
 }

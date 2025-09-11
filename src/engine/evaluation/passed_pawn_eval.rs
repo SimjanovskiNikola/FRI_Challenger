@@ -85,20 +85,17 @@ impl PassedPawnEvalTrait for Board {
         let backward = PAWN_FORWARD_SPANS[clr.opp().idx()][sq];
         let forward_lr = FORWARD_SPANS_LR[clr.idx()][sq];
 
-        let mut defended_bb =
-            forward & (self.eval.defend_map[clr.idx()] | self.eval.attack_map[clr.idx()]);
+        let mut defended_bb = forward & self.eval.attack_map[clr.idx()];
 
         // print_bitboard(forward, None);
         // print_bitboard(self.eval.defend_map[clr.opp().idx()], None);
         // print_bitboard(self.eval.attack_map[clr.opp().idx()], None);
 
-        let mut unsafe_bb = forward
-            & (self.eval.defend_map[clr.opp().idx()] | self.eval.attack_map[clr.opp().idx()]);
+        let mut unsafe_bb = forward & self.eval.attack_map[clr.opp().idx()];
 
         // print_bitboard(unsafe_bb, None);
 
-        let mut wunsafe_bb = forward_lr
-            & (self.eval.defend_map[clr.opp().idx()] | self.eval.attack_map[clr.opp().idx()]);
+        let mut wunsafe_bb = forward_lr & self.eval.attack_map[clr.opp().idx()];
 
         let mut is_defended1 = defended_bb.is_set(self.front_sq(sq, clr));
 
