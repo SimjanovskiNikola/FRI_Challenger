@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn psqt_test() {
         for obj in &SF_EVAL {
-            // if obj.fen != "3r2k1/2p2bpp/p2r4/P2PpP2/BR1q4/7P/5PP1/2R1Q1K1 b - - 0 0" {
+            // if obj.fen != SF_EVAL[10].fen {
             //     continue;
             // }
 
@@ -117,11 +117,18 @@ mod tests {
             board.psqt_eval(WHITE);
             board.psqt_eval(BLACK);
 
-            // if board.calculate_score() != obj.psqt {
-            //     println!("assertion `{:?} == {:?}` failed", board.calculate_score(), obj.psqt);
-            // } else {
-            //     println!("assertion `{:?} == {:?}` success", board.calculate_score(), obj.psqt);
-            // }
+            eval_assert(board.calculate_score(), obj.psqt, 0, false);
+        }
+    }
+
+    #[test]
+    fn inc_psqt_test() {
+        for obj in &SF_EVAL {
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.sum(WHITE, None, None, board.eval.psqt_eval[WHITE.idx()]);
+            board.sum(BLACK, None, None, board.eval.psqt_eval[BLACK.idx()]);
+
             eval_assert(board.calculate_score(), obj.psqt, 0, false);
         }
     }

@@ -9,7 +9,7 @@ pub fn get_king_mv(sq: usize, own: u64, _: u64, _: Color) -> u64 {
 }
 
 #[inline(always)]
-pub fn get_king_mask(sq: usize, own: u64, _: u64, _: Color) -> u64 {
+pub const fn get_king_mask(sq: usize, own: u64, _: u64, _: Color) -> u64 {
     KING_LOOKUP[sq]
 }
 

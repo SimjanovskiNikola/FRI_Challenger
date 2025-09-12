@@ -14,9 +14,10 @@ use crate::engine::evaluation::material_eval::MaterialEvalTrait;
 use crate::engine::evaluation::mobility_eval::MobilityEvalTrait;
 use crate::engine::evaluation::pawn_eval::PawnEvalTrait;
 use crate::engine::evaluation::piece_eval::OUTPOST_RANKS;
+use crate::engine::evaluation::threats_eval::ThreatsEvalTrait;
 use crate::engine::generated::king::KING_RING;
 use crate::engine::generated::pawn::{FORWARD_SPANS_LR, PAWN_3_BEHIND_MASKS};
-use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
+use crate::engine::misc::bitboard::{Bitboard, BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::FILE_BITBOARD;
 
 pub const MG_LIMIT: isize = 15258;
@@ -77,8 +78,7 @@ impl InitEvalTrait for Board {
     #[inline(always)]
     fn piece_init(&mut self) {
         for &clr in &COLORS {
-            let (own, enemy) = self.both_occ_bb(clr);
-            let area = self.mobility_area(clr);
+            self.eval.mobility_area[clr.idx()] = self.mobility_area(clr);
             let king_sq = self.king_sq(clr.opp());
             let king_ring = self.king_ring(clr.opp());
 
@@ -101,38 +101,33 @@ impl InitEvalTrait for Board {
 
                     match piece.kind() {
                         PAWN => {
-                            if piece_mask & KING_RING[king_sq] != 0 {
-                                attckers_count += 1;
-                                self.eval.king_att_count[clr.idx()] +=
-                                    (piece_mask & KING_RING[king_sq]).count();
-                            }
+                            let cnt = (piece_mask & KING_RING[king_sq]).count();
+                            attckers_count += 1 * cnt;
+                            self.eval.king_att_count[clr.idx()] += cnt;
                         }
                         KING => {}
                         _ => {
-                            let safe_squares = (self.mobility_piece(sq, piece, clr) & area).count();
-                            self.eval.mobility[clr.idx()] +=
-                                self.mobility_bonus(piece, safe_squares).0;
+                            let safe_squares =
+                                (piece_mask & self.eval.mobility_area[clr.idx()]).count();
+                            self.inc_mobility_eval(piece, clr, safe_squares);
 
-                            if piece_mask & king_ring != 0 {
-                                attckers_count += 1;
-                                self.eval.king_att_count[clr.idx()] += 1;
-                                self.eval.king_att_count_pieces[clr.idx()].set_bit(sq);
-                            }
+                            let cnt = 1 * (piece_mask & king_ring != 0) as usize;
+                            attckers_count += cnt;
+                            self.eval.king_att_count[clr.idx()] += cnt;
+                            self.eval.king_att_count_pieces[clr.idx()] |= (cnt << sq) as u64;
 
                             self.eval.king_att[clr.idx()] += (piece_mask & opp_king_mask).count();
-
-                            self.eval.x_ray[piece.idx()] |= self.mobility_piece(sq, piece, clr);
                         }
-                    }
-
-                    if piece.is_queen() {
-                        self.eval.queen_diagonal[clr.idx()] |= get_bishop_mask(sq, own, enemy, clr);
                     }
                 }
 
                 self.eval.king_att_weight[clr.idx()] +=
                     KING_ATT_WEIGHT[piece.arr_idx()] * attckers_count as isize;
             }
+        }
+
+        for &clr in &COLORS {
+            self.eval.weak_enemy[clr.idx()] = self.weak_enemy(clr);
         }
     }
 

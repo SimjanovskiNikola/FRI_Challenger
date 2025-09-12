@@ -16,6 +16,7 @@ pub const PIECE_MATERIAL: [(isize, isize); 6] = [
 pub trait MaterialEvalTrait {
     fn material_eval(&mut self, clr: Color);
     fn non_pawn_material_eval(&mut self, clr: Color) -> isize;
+    fn inc_non_pawn_material_eval(&mut self, clr: Color) -> isize;
     fn piece_material(&mut self, piece: Piece) -> (isize, isize);
 }
 
@@ -39,6 +40,12 @@ impl MaterialEvalTrait for Board {
             score += MaterialEvalTrait::piece_material(self, piece).0 * count;
         }
         score
+    }
+
+    #[inline(always)]
+    fn inc_non_pawn_material_eval(&mut self, clr: Color) -> isize {
+        self.eval.material_eval[clr.idx()].0
+            - (self.piece_count(PAWN + clr) as isize * PIECE_MATERIAL[PAWN.arr_idx()].0)
     }
 
     #[inline(always)]
@@ -69,6 +76,22 @@ mod tests {
             board.init();
             board.material_eval(WHITE);
             board.material_eval(BLACK);
+
+            eval_assert(board.calculate_score(), obj.material, 0, false);
+        }
+    }
+
+    #[test]
+    fn inc_material_test() {
+        for obj in &SF_EVAL {
+            // if obj.fen != SF_EVAL[10].fen {
+            //     continue;
+            // }
+
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.sum(WHITE, None, None, board.eval.material_eval[WHITE.idx()]);
+            board.sum(BLACK, None, None, board.eval.material_eval[BLACK.idx()]);
 
             eval_assert(board.calculate_score(), obj.material, 0, false);
         }

@@ -1,5 +1,6 @@
 use crate::engine::attacks::bishop::get_bishop_mask;
 use crate::engine::attacks::knight::get_knight_mask;
+use crate::engine::attacks::pawn::{get_all_pawn_left_att_mask, get_all_pawn_right_att_mask};
 use crate::engine::attacks::queen::get_queen_mask;
 use crate::engine::attacks::rook::get_rook_mask;
 use crate::engine::board::board::Board;
@@ -35,24 +36,33 @@ pub const QUEEN_MOBILITY: [(isize, isize); 28] = [
 
 pub trait MobilityEvalTrait {
     fn mobility_eval(&mut self, clr: Color);
+    fn inc_mobility_eval(&mut self, piece: Piece, clr: Color, safe_squares: usize);
     fn mobility_bonus(&mut self, piece: Piece, sq: usize) -> (isize, isize);
     fn mobility_area(&mut self, clr: Color) -> u64;
-    fn mobility_piece(&mut self, sq: usize, piece: Piece, clr: Color) -> u64;
+    // fn mobility_piece(&mut self, sq: usize, piece: Piece, clr: Color) -> u64;
 }
 
 impl MobilityEvalTrait for Board {
     #[inline(always)]
     fn mobility_eval(&mut self, clr: Color) {
+        // FIXME: Change Maybe with self.eval.mobility_area[clr.idx()]
         let area = self.mobility_area(clr);
         for &pce in &PIECES_WITHOUT_PAWN_KING {
             let piece = pce + clr;
             let mut bb = self.bb(piece);
             while let Some(sq) = bb.next() {
-                let safe_squares = (self.mobility_piece(sq, piece, clr) & area).count();
+                let safe_squares = (self.x_ray_mask(piece, sq) & area).count();
                 let bonus = self.mobility_bonus(piece, safe_squares);
                 self.sum(clr, Some(sq), Some(piece), bonus);
             }
         }
+    }
+
+    #[inline(always)]
+    fn inc_mobility_eval(&mut self, piece: Piece, clr: Color, safe_squares: usize) {
+        let bonus = self.mobility_bonus(piece, safe_squares);
+        self.eval.mobility_eval[clr.idx()].0 += bonus.0;
+        self.eval.mobility_eval[clr.idx()].1 += bonus.1;
     }
 
     #[inline(always)]
@@ -67,32 +77,13 @@ impl MobilityEvalTrait for Board {
     }
 
     #[inline(always)]
-    fn mobility_piece(&mut self, sq: usize, piece: Piece, clr: Color) -> u64 {
-        let (mut own, mut enemy) = self.both_occ_bb(clr);
-        match piece.kind() {
-            KNIGHT => get_knight_mask(sq, own, enemy, clr),
-            BISHOP => {
-                own &= !(self.queen_bb(clr));
-                enemy &= !self.queen_bb(clr.opp());
-                get_bishop_mask(sq, own, enemy, clr)
-            }
-            ROOK => {
-                own &= !(self.queen_bb(clr) | self.rook_bb(clr));
-                enemy &= !self.queen_bb(clr.opp());
-                get_rook_mask(sq, own, enemy, clr)
-            }
-            QUEEN => get_queen_mask(sq, own, enemy, clr),
-            _ => panic!("There is other peace that was not expected here"),
-        }
-    }
-
-    #[inline(always)]
     fn mobility_area(&mut self, clr: Color) -> u64 {
         let bb = (u64::MAX)
             & !self.king_bb(clr)
             & !self.queen_bb(clr)
             & !self.pawn_bb(clr)
-            & !self.eval.attacked_by[(PAWN + clr.opp()).idx()];
+            & !get_all_pawn_left_att_mask(self.pawn_bb(clr.opp()), clr.opp())
+            & !get_all_pawn_right_att_mask(self.pawn_bb(clr.opp()), clr.opp());
         bb
     }
 }
@@ -114,6 +105,18 @@ mod tests {
             board.init();
             board.mobility_eval(WHITE);
             board.mobility_eval(BLACK);
+            eval_assert(board.calculate_score(), obj.mobility, 28, false); // FIXME: The difference is too quiet high
+        }
+    }
+
+    #[test]
+    fn inc_mobility_test() {
+        for obj in &SF_EVAL {
+            let mut board = Board::read_fen(obj.fen);
+            board.init();
+            board.sum(WHITE, None, None, board.eval.mobility_eval[WHITE.idx()]);
+            board.sum(BLACK, None, None, board.eval.mobility_eval[BLACK.idx()]);
+
             eval_assert(board.calculate_score(), obj.mobility, 28, false); // FIXME: The difference is too quiet high
         }
     }

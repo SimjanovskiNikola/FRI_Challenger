@@ -145,8 +145,8 @@ impl KingEvalTrait for Board {
             + (3 * flank_att * flank_att / 8)
             - 873 * no_queen
             - (6 * (self.eval.king_shelter[clr.idx()].0 - self.eval.king_shelter[clr.idx()].1) / 8) //self.shelter(clr).0 - self.shelter(clr).1
-            + self.eval.mobility[clr.idx()]
-            - self.eval.mobility[clr.opp().idx()]
+            + self.eval.mobility_eval[clr.idx()].0
+            - self.eval.mobility_eval[clr.opp().idx()].0
             + 37
             + 772 * (self.safe_check(clr, QUEEN + clr).count() as f64).min(1.45) as isize
             + 1084 * (self.safe_check(clr, ROOK + clr).count() as f64).min(1.75) as isize
@@ -330,11 +330,7 @@ impl KingEvalTrait for Board {
         let mut ev = 5;
 
         let file = get_file(sq);
-        let sq = match file {
-            0 => sq + 1,
-            7 => sq - 1,
-            _ => sq,
-        };
+        let sq = sq + ((file == 0) as usize) - ((file == 7) as usize);
 
         for square in (sq - 1)..(sq + 2) {
             // FIXME: ALL Squares forward ????????????
@@ -388,11 +384,7 @@ impl KingEvalTrait for Board {
         let mut score = 5;
 
         let file = get_file(sq);
-        let sq = match file {
-            0 => sq + 1,
-            7 => sq - 1,
-            _ => sq,
-        };
+        let sq = sq + ((file == 0) as usize) - ((file == 7) as usize);
 
         for square in (sq - 1)..(sq + 2) {
             let mut us = 0;
@@ -443,7 +435,7 @@ mod tests {
             board.king_eval(WHITE);
             board.king_eval(BLACK);
 
-            eval_assert(board.calculate_score(), obj.king, 38, false); // FIXME: The Difference is too high
+            eval_assert(board.calculate_score(), obj.king, 34, false); // FIXME: The Difference is too high
         }
     }
 }

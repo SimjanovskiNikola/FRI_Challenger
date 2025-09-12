@@ -1,12 +1,15 @@
+use crate::engine::attacks::bishop::get_bishop_mask;
 use crate::engine::attacks::knight::get_knight_mask;
 use crate::engine::attacks::pawn::{
     get_all_pawn_forward_mask, get_all_pawn_left_att_mask, get_all_pawn_right_att_mask,
 };
+use crate::engine::attacks::queen;
 use crate::engine::board::board::Board;
 use crate::engine::board::color::{Color, ColorTrait};
 use crate::engine::board::piece::*;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::mobility_eval::MobilityEvalTrait;
+use crate::engine::generated::bishop::BISHOP_MASKS;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::RANK_BITBOARD;
 use crate::engine::misc::display::display_board::print_bitboard;
@@ -67,9 +70,8 @@ impl ThreatsEvalTrait for Board {
 
     #[inline(always)]
     fn safe_pawn(&mut self, clr: Color) -> u64 {
-        let bb = (self.pawn_bb(clr) & self.eval.attack_map[clr.idx()])
-            | (self.pawn_bb(clr) & !self.eval.attack_map[clr.opp().idx()]);
-        bb
+        (self.pawn_bb(clr) & self.eval.attack_map[clr.idx()])
+            | (self.pawn_bb(clr) & !self.eval.attack_map[clr.opp().idx()])
     }
 
     #[inline(always)]
@@ -98,7 +100,8 @@ impl ThreatsEvalTrait for Board {
     fn minor_threat(&mut self, clr: Color) {
         let bishop = BISHOP + clr;
         let knight = KNIGHT + clr;
-        let mut bb = (self.weak_enemy(clr) | (self.occ_bb(clr.opp()) & !self.pawn_bb(clr.opp())))
+        let mut bb = (self.eval.weak_enemy[clr.idx()]
+            | (self.occ_bb(clr.opp()) & !self.pawn_bb(clr.opp())))
             & (self.eval.attacked_by[bishop.idx()] | self.eval.attacked_by[knight.idx()]);
 
         while let Some(sq) = bb.next() {
@@ -110,7 +113,7 @@ impl ThreatsEvalTrait for Board {
     #[inline(always)]
     fn rook_threat(&mut self, clr: Color) {
         let piece = ROOK + clr;
-        let mut bb = self.weak_enemy(clr) & self.eval.attacked_by[piece.idx()];
+        let mut bb = self.eval.weak_enemy[clr.idx()] & self.eval.attacked_by[piece.idx()];
 
         while let Some(sq) = bb.next() {
             let piece = self.piece_sq(sq);
@@ -120,7 +123,7 @@ impl ThreatsEvalTrait for Board {
 
     #[inline(always)]
     fn hanging(&mut self, clr: Color) -> u64 {
-        let weak_enemy_bb = self.weak_enemy(clr);
+        let weak_enemy_bb = self.eval.weak_enemy[clr.idx()];
         let att_many =
             weak_enemy_bb & !self.pawn_bb(clr.opp()) & self.eval.attacked_by_2[clr.idx()];
         let not_defended = weak_enemy_bb & !self.eval.attack_map[clr.opp().idx()];
@@ -131,7 +134,7 @@ impl ThreatsEvalTrait for Board {
     #[inline(always)]
     fn king_threat(&mut self, clr: Color) -> u64 {
         let king = KING + clr;
-        self.eval.attacked_by[king.idx()] & self.weak_enemy(clr)
+        self.eval.attacked_by[king.idx()] & self.eval.weak_enemy[clr.idx()]
     }
 
     #[inline(always)]
@@ -163,20 +166,24 @@ impl ThreatsEvalTrait for Board {
 
         // TODO: Try using self.eval.xray here
         let mut mobility_bb =
-            self.eval.attacked_by[(QUEEN + clr.opp()).idx()] & self.mobility_area(clr);
+            self.eval.attacked_by[(QUEEN + clr.opp()).idx()] & self.eval.mobility_area[clr.idx()];
 
         mobility_bb = mobility_bb
             & !self.pawn_bb(clr)
             & !self.eval.attacked_by[(PAWN + clr.opp()).idx()]
             & self.eval.attacked_by_2[clr.idx()];
 
-        let diagonal = mobility_bb & self.eval.queen_diagonal[clr.opp().idx()];
-        let orthogonal = mobility_bb & !self.eval.queen_diagonal[clr.opp().idx()];
+        let (own, enemy) = self.both_occ_bb(clr.opp());
+        let queen_diagonal =
+            get_bishop_mask(self.queen_bb(clr.opp()).get_lsb(), own, enemy, clr.opp());
+
+        let diagonal = mobility_bb & queen_diagonal;
+        let orthogonal = mobility_bb & !queen_diagonal;
 
         let v = if self.queen_bb(clr).count() == 0 { 2 } else { 1 };
 
-        return ((diagonal & self.eval.x_ray[(BISHOP + clr).idx()])
-            | (orthogonal & self.eval.x_ray[(ROOK + clr).idx()]))
+        return ((diagonal & self.eval.attacked_by[(BISHOP + clr).idx()])
+            | (orthogonal & self.eval.attacked_by[(ROOK + clr).idx()]))
         .count() as isize
             * v;
     }
@@ -188,7 +195,7 @@ impl ThreatsEvalTrait for Board {
         }
 
         let sq = self.queen_bb(clr.opp()).get_lsb();
-        let mut mobility_bb = self.mobility_area(clr)
+        let mut mobility_bb = self.eval.mobility_area[clr.idx()]
             & get_knight_mask(sq, 0, 0, 0)
             & self.eval.attacked_by[(KNIGHT + clr).idx()];
 
@@ -217,7 +224,7 @@ impl ThreatsEvalTrait for Board {
 
     #[inline(always)]
     fn weak_queen_protection(&mut self, clr: Color) -> u64 {
-        let weak_enemy_bb = self.weak_enemy(clr);
+        let weak_enemy_bb = self.eval.weak_enemy[clr.idx()];
         let mut queen_protect = 0;
 
         let mut bb = self.queen_bb(clr.opp());
@@ -244,7 +251,7 @@ mod tests {
     #[test]
     fn threats_test() {
         for obj in &SF_EVAL {
-            // if obj.fen != SF_EVAL[2].fen {
+            // if obj.fen != SF_EVAL[0].fen {
             //     continue;
             // }
             let mut board = Board::read_fen(obj.fen);
