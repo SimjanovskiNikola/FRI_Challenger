@@ -123,7 +123,6 @@ impl PawnEvalTrait for Board {
     #[inline(always)]
     fn doubled_pawn(&mut self, sq: usize, clr: Color) -> bool {
         self.pawn_bb(clr).is_set(self.back_sq(sq, clr)) && self.supported_pawn(sq, clr) == 0
-        // PAWN_FORWARD_SPANS[clr.opp().idx()][sq] & self.pawn_bb(clr) != 0
     }
 
     #[inline(always)]

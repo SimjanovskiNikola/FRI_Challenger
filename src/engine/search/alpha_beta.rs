@@ -170,7 +170,8 @@ impl Search {
                 self.board.pv_len[ply] = child_len + 1;
 
                 if !mv.flag.is_capture() {
-                    self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as isize;
+                    self.board.s_history[mv.piece.idx()][mv.to as usize] +=
+                        (depth * depth) as isize;
                 }
             }
         }

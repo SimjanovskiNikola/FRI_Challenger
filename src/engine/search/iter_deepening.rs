@@ -79,9 +79,6 @@ impl Search {
     pub fn iterative_deepening(&mut self) -> Option<Move> {
         self.clear_search();
 
-        self.board.eval.material_eval.fill((0, 0));
-        self.board.eval.psqt_eval.fill((0, 0));
-
         let max_depth = self.uci.read().unwrap().max_depth;
         let alpha = MIN_INF;
         let beta = MAX_INF;

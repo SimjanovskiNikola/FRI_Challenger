@@ -21,97 +21,137 @@ use crate::engine::misc::bitboard::Bitboard;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Evaluation {
+    // Attack Maps
+    pub attack_map: [Bitboard; 2],
+    pub attacked_by: [Bitboard; 14],
+    pub attacked_by_2: [Bitboard; 2],
+
+    // Mobility Evaluation
+    pub mobility_area: [Bitboard; 2],
+
+    // Space Evaluation
     pub pawn_behind_masks: [Bitboard; 2],
-    pub psqt: [isize; 2],
+
+    // Threats Evaluation
+    pub weak_enemy: [Bitboard; 2],
+
+    // Piece Evaluation
+    pub outpost: [Bitboard; 2],
+    pub open_file: [Bitboard; 2],
+    pub pawn_att_span: [Bitboard; 2],
+    pub king_att_count_pieces: [u64; 2],
+
+    // King Evaluation
+    pub king_att_weight: [isize; 2],
+    pub king_att_count: [usize; 2],
+    pub king_att: [usize; 2],
+    pub king_pawn_dx: [usize; 2],
+    pub king_shelter: [(isize, isize, isize); 2],
+    pub checks: [Bitboard; 14],
+    pub king_ring: [Bitboard; 2],
+
+    // Trace
     pub mg_test: [[isize; 64]; 2],
     pub eg_test: [[isize; 64]; 2],
     pub vec_test: Vec<String>,
 
-    pub mobility: [isize; 2],
-    pub outpost: [Bitboard; 2],
-    pub open_file: [Bitboard; 2],
-    pub pawn_att_span: [Bitboard; 2],
-    pub king_ring: [Bitboard; 2],
-    pub checks: [Bitboard; 14],
-    pub x_ray: [Bitboard; 14],
-    pub attacked_by: [Bitboard; 14],
-    pub attacked_by_2: [Bitboard; 2],
-    pub king_att_weight: [isize; 2],
-    pub king_att_count: [usize; 2],
-    pub king_att_count_pieces: [u64; 2],
-    pub king_att: [usize; 2],
-    pub king_pawn_dx: [usize; 2],
-    pub attack_map: [Bitboard; 2],
-    pub queen_diagonal: [Bitboard; 2],
-    pub phase: (isize, isize),
-    pub score: [(isize, isize); 2],
-    pub king_shelter: [(isize, isize, isize); 2],
-
+    // Evaluation
     pub material_eval: [(isize, isize); 2],
     pub psqt_eval: [(isize, isize); 2],
+    pub mobility_eval: [(isize, isize); 2],
+
+    // Score
+    pub phase: (isize, isize),
+    pub score: [(isize, isize); 2],
 }
 
 impl Evaluation {
     pub fn init() -> Self {
         Self {
-            pawn_behind_masks: [0; 2],
-            psqt: [0; 2],
-            mobility: [0; 2],
+            // Attack Maps
+            attack_map: [0; 2],
+            attacked_by: [0; 14],
+            attacked_by_2: [0; 2],
 
+            // Mobility Evaluation
+            mobility_area: [0; 2],
+
+            // Space Evaluation
+            pawn_behind_masks: [0; 2],
+
+            // Threats Evaluation
+            weak_enemy: [0; 2],
+
+            // Piece Evaluation
+            outpost: [0; 2],
+            king_att_count_pieces: [0; 2],
+            open_file: [u64::MAX; 2],
+            pawn_att_span: [0; 2],
+
+            // King Evaluation
+            king_ring: [0; 2],
+            checks: [0; 14],
+            king_att_weight: [0; 2],
+            king_att_count: [0; 2],
+            king_att: [0; 2],
+            king_pawn_dx: [6; 2],
+            king_shelter: [(0, 0, 0); 2],
+
+            // Trace
             mg_test: [[0; 64]; 2],
             eg_test: [[0; 64]; 2],
             vec_test: Vec::with_capacity(200),
-            outpost: [0; 2],
-            open_file: [u64::MAX; 2],
-            pawn_att_span: [0; 2],
-            king_ring: [0; 2],
-            x_ray: [0; 14],
-            checks: [0; 14],
-            attacked_by: [0; 14],
-            attacked_by_2: [0; 2],
-            king_att_weight: [0; 2],
-            king_att_count: [0; 2],
-            king_att_count_pieces: [0; 2],
-            king_att: [0; 2],
-            king_pawn_dx: [6; 2],
-            attack_map: [0; 2],
-            queen_diagonal: [0; 2],
-            phase: (0, 0),
-            score: [(0, 0); 2],
-            king_shelter: [(0, 0, 0); 2],
 
+            // Evaluation
             material_eval: [(0, 0); 2],
             psqt_eval: [(0, 0); 2],
+            mobility_eval: [(0, 0); 2],
+
+            // Score
+            phase: (0, 0),
+            score: [(0, 0); 2],
         }
     }
 
     pub fn reset(&mut self) {
-        self.psqt.fill(0);
-        self.mobility.fill(0);
+        // Attack Maps
+        self.attack_map.fill(0);
+        self.attacked_by.fill(0);
+        self.attacked_by_2.fill(0);
+
+        // Mobility Evaluation
+        self.mobility_area.fill(0);
+
+        // Threats Evaluation
+        self.weak_enemy.fill(0);
+
+        // Piece Evaluation
+        self.king_att_count_pieces.fill(0);
         self.open_file.fill(u64::MAX);
         self.outpost.fill(0);
         self.pawn_att_span.fill(0);
+
+        // King Evaluation
         self.king_ring.fill(0);
         self.checks.fill(0);
-        self.x_ray.fill(0);
-        self.attacked_by.fill(0);
-        self.attacked_by_2.fill(0);
         self.king_att_weight.fill(0);
         self.king_att_count.fill(0);
-        self.king_att_count_pieces.fill(0);
         self.king_att.fill(0);
         self.king_pawn_dx.fill(6);
-        self.attack_map.fill(0);
-        self.queen_diagonal.fill(0);
-        self.phase = (0, 0);
-        self.score.fill((0, 0));
         self.king_shelter.fill((0, 0, 0));
 
-        self.mg_test = [[0; 64]; 2];
-        self.eg_test = [[0; 64]; 2];
+        // Trace
+        // self.mg_test = [[0; 64]; 2];
+        // self.eg_test = [[0; 64]; 2];
 
+        // Evaluation
         // self.material_eval.fill((0, 0));
         // self.psqt_eval.fill((0, 0));
+        self.mobility_eval.fill((0, 0));
+
+        // Score
+        self.phase = (0, 0);
+        self.score.fill((0, 0));
     }
 }
 
@@ -213,8 +253,10 @@ impl EvaluationTrait for Board {
         self.piece_eval(BLACK);
 
         // 6. Mobility
-        self.mobility_eval(WHITE);
-        self.mobility_eval(BLACK);
+        self.sum(WHITE, None, None, self.eval.mobility_eval[WHITE.idx()]);
+        self.sum(BLACK, None, None, self.eval.mobility_eval[BLACK.idx()]);
+        // self.mobility_eval(WHITE);
+        // self.mobility_eval(BLACK);
 
         // 7. Threats
         self.threats_eval(WHITE);
