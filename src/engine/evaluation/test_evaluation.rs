@@ -19,7 +19,7 @@ pub struct SFEval<'a> {
     pub tempo: isize,
 }
 
-pub const SF_EVAL: [SFEval; 11] = [
+pub const SF_EVAL: [SFEval; 18] = [
     SFEval {
         fen: "r3r1k1/3q1pp1/p2pb2p/Np6/1P1QPn2/5N1P/1P3PP1/R3R1K1 w - - 0 0",
         phase: 106,
@@ -218,6 +218,150 @@ pub const SF_EVAL: [SFEval; 11] = [
         winnable: 0,
         tempo: 28,
     },
+    SFEval {
+        fen: "1k6/bPN2pp1/Pp2p3/p1p5/2pn4/3P4/PPR5/1K6 w - - 0 1",
+        phase: 0,
+        eval: 204,
+
+        material: 53,
+        psqt: -47,
+        imbalance: -143,
+        king: 32,
+        mobility: 160,
+        passed_pawn: 95,
+        pawns: 192,
+        piece: 12,
+        space: 0,
+        threats: -191,
+        winnable: 28,
+        tempo: 28,
+    },
+    SFEval {
+        fen: "r3k2r/pp2pp1p/8/q2Pb3/2P5/4p3/B1Q2PPP/2R2RK1 w kq - 0 1",
+        phase: 89,
+        eval: -116,
+
+        material: -148,
+        psqt: 38,
+        imbalance: -18,
+        king: -41,
+        mobility: 10,
+        passed_pawn: -134,
+        pawns: 57,
+        piece: 21,
+        space: 0,
+        threats: 56,
+        winnable: -4,
+        tempo: 28,
+    },
+    SFEval {
+        fen: "r3kb1r/pbqp1pp1/1pn1pn1p/8/3PP3/2PB1N2/3N1PPP/R1BQR1K1 w kq - 0 1",
+        phase: 128,
+        eval: 156,
+
+        material: -124,
+        psqt: 188,
+        imbalance: -54,
+        king: 1,
+        mobility: 80,
+        passed_pawn: -10,
+        pawns: -33,
+        piece: -36,
+        space: 44,
+        threats: 76,
+        winnable: 0,
+        tempo: 28,
+    },
+    SFEval {
+        fen: "r1bqk1r1/1p1p1n2/p1n2pN1/2p1b2Q/2P1Pp2/1PN5/PB4PP/R4RK1 w q - 0 1",
+        phase: 128,
+        eval: -836,
+
+        material: -825,
+        psqt: 154,
+        imbalance: -148,
+        king: -135,
+        mobility: 103,
+        passed_pawn: 10,
+        pawns: 93,
+        piece: -11,
+        space: -15,
+        threats: -104,
+        winnable: 0,
+        tempo: 28,
+    },
+    SFEval {
+        fen: "r1b1r1k1/1pqn1pbp/p2pp1p1/P7/1n1NPP1Q/2NBBR2/1PP3PP/R6K w - - 0 1",
+        phase: 128,
+        eval: 124,
+
+        material: 0,
+        psqt: 60,
+        imbalance: 0,
+        king: 118,
+        mobility: 164,
+        passed_pawn: 0,
+        pawns: -31,
+        piece: -87,
+        space: 84,
+        threats: -208,
+        winnable: 0,
+        tempo: 28,
+    },
+    SFEval {
+        fen: "r3kbnr/1b3ppp/pqn5/1pp1P3/3p4/1BN2N2/PP2QPPP/R1BR2K1 w kq - 0 1",
+        phase: 128,
+        eval: -148,
+
+        material: -124,
+        psqt: 314,
+        imbalance: -54,
+        king: 179,
+        mobility: 67,
+        passed_pawn: -29,
+        pawns: -132,
+        piece: -104,
+        space: -31,
+        threats: -262,
+        winnable: 0,
+        tempo: 28,
+    },
+    SFEval {
+        fen: "2rq1rk1/pb1n1ppN/4p3/1pb5/3P1Pn1/P1N5/1PQ1B1PP/R1B2RK1 b - - 0 1",
+        phase: 128,
+        eval: -380,
+
+        material: 124,
+        psqt: -114,
+        imbalance: 49,
+        king: -548,
+        mobility: -39,
+        passed_pawn: 0,
+        pawns: -19,
+        piece: -100,
+        space: 31,
+        threats: 253,
+        winnable: 0,
+        tempo: -28,
+    },
+    // SFEval {
+    //     fen: "8/5p1p/3P1k2/p1P2n2/3rp3/1B6/P4R2/6K1 w - - 0 1",
+    //     phase: 2,
+    //     eval: 108,
+
+    //     material: -143,
+    //     psqt: -96,
+    //     imbalance: -40,
+    //     king: -6,
+    //     mobility: 139,
+    //     passed_pawn: 127,
+    //     pawns: 129,
+    //     piece: -40,
+    //     space: 0,
+    //     threats: 20,
+    //     winnable: 3,
+    //     tempo: 28,
+    // },
 ];
 
 pub fn assert_all_eval(board: &mut Board, obj: &SFEval) {
@@ -262,18 +406,30 @@ mod tests {
     // FIXME: DEPRECATE: TEST
     #[test]
     fn testing() {
-        let phase: isize = 0;
+        let phase: isize = 2;
 
-        println!("      material: {:?},", stockfish_eval(phase, 0, 0)); // material
-        println!("          psqt: {:?},", stockfish_eval(phase, 0, 0)); // psqt
-        println!("      imbalance: {:?},", stockfish_eval(phase, 0, 0)); // imbalance
-        println!("           king: {:?},", stockfish_eval(phase, 0, 0)); // king
-        println!("      mobility: {:?},", stockfish_eval(phase, 0, 0)); // mobility
-        println!("   passed_pawn: {:?},", stockfish_eval(phase, 0, 0)); // passed pawns
-        println!("         pawns: {:?},", stockfish_eval(phase, 0, 0)); // pawns
-        println!("         piece: {:?},", stockfish_eval(phase, 0, 0)); // pieces
+        println!("      material: {:?},", stockfish_eval(phase, -80, -145)); // material
+        println!("          psqt: {:?},", stockfish_eval(phase, 119, -100)); // psqt
+        println!("      imbalance: {:?},", stockfish_eval(phase, -40, -40)); // imbalance
+        println!("           king: {:?},", stockfish_eval(phase, 85, -8)); // king
+        println!("      mobility: {:?},", stockfish_eval(phase, 117, 140)); // mobility
+        println!("   passed_pawn: {:?},", stockfish_eval(phase, 225, 126)); // passed pawns
+        println!("         pawns: {:?},", stockfish_eval(phase, 135, 129)); // pawns
+        println!("         piece: {:?},", stockfish_eval(phase, -26, -41)); // pieces
         println!("         space: {:?},", stockfish_eval(phase, 0, 0)); // space
-        println!("       threats: {:?},", stockfish_eval(phase, 0, 0)); // threats
-        println!("      winnable: {:?},", stockfish_eval(phase, 0, 0)); // winnable
+        println!("       threats: {:?},", stockfish_eval(phase, -54, 22)); // threats
+        println!("      winnable: {:?},", stockfish_eval(phase, 0, 4)); // winnable
+
+        // println!("      material: {:?},", stockfish_eval(phase, 0, 0)); // material
+        // println!("          psqt: {:?},", stockfish_eval(phase, 0, 0)); // psqt
+        // println!("      imbalance: {:?},", stockfish_eval(phase, 0, 0)); // imbalance
+        // println!("           king: {:?},", stockfish_eval(phase, 0, 0)); // king
+        // println!("      mobility: {:?},", stockfish_eval(phase, 0, 0)); // mobility
+        // println!("   passed_pawn: {:?},", stockfish_eval(phase, 0, 0)); // passed pawns
+        // println!("         pawns: {:?},", stockfish_eval(phase, 0, 0)); // pawns
+        // println!("         piece: {:?},", stockfish_eval(phase, 0, 0)); // pieces
+        // println!("         space: {:?},", stockfish_eval(phase, 0, 0)); // space
+        // println!("       threats: {:?},", stockfish_eval(phase, 0, 0)); // threats
+        // println!("      winnable: {:?},", stockfish_eval(phase, 0, 0)); // winnable
     }
 }
