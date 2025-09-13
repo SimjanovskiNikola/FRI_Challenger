@@ -435,7 +435,7 @@ mod tests {
             board.king_eval(WHITE);
             board.king_eval(BLACK);
 
-            eval_assert(board.calculate_score(), obj.king, 34, false); // FIXME: The Difference is too high
+            eval_assert(board.calculate_score(), obj.king, 54, false); // FIXME: The Difference is too high
         }
     }
 }

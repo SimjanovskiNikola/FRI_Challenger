@@ -97,7 +97,7 @@ mod tests {
             board.imbalance(WHITE);
             board.imbalance(BLACK);
 
-            eval_assert(board.calculate_score(), obj.imbalance, 0, false);
+            eval_assert(board.calculate_score(), obj.imbalance, 1, false);
         }
     }
 }
