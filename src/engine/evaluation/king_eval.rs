@@ -324,7 +324,7 @@ impl KingEvalTrait for Board {
         return (king_strenght, king_storm.0, king_storm.1);
     }
 
-    #[inline(always)]
+    // #[inline(always)]
     fn storm_square(&mut self, sq: usize, clr: Color) -> (isize, isize) {
         let mut v = 0;
         let mut ev = 5;
@@ -379,7 +379,7 @@ impl KingEvalTrait for Board {
         return (v, ev);
     }
 
-    #[inline(always)]
+    // #[inline(always)]
     fn strength_square(&mut self, sq: usize, clr: Color) -> isize {
         let mut score = 5;
 
@@ -423,7 +423,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
 
     use super::*;
 

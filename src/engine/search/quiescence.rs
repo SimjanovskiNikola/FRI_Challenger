@@ -49,8 +49,6 @@ impl Search {
         let old_alpha: isize = alpha;
         let mut moves = self.board.gen_captures();
         self.board.score_moves(&mut moves);
-        // let ply = self.board.ply();
-        // self.board.pv_len[ply] = ply;
 
         while let Some(mv) = self.board.next_move(&mut moves) {
             if (self.info.nodes & 8192) == 0 && time_over(&self) {
@@ -77,11 +75,6 @@ impl Search {
                 alpha = score;
                 best_score = score;
                 best_mv = Some(mv);
-                // self.board.pv_moves[ply][ply] = Some(rev);
-                // for j in (ply + 1)..self.board.pv_len[ply + 1] {
-                //     self.board.pv_moves[ply][j] = self.board.pv_moves[ply + 1][j];
-                // }
-                // self.board.pv_len[ply] = self.board.pv_len[ply + 1];
             }
         }
 

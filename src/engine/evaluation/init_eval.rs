@@ -4,8 +4,8 @@ use crate::engine::attacks::pawn::{
     get_all_pawn_left_att_mask, get_all_pawn_right_att_mask, get_pawn_att_mask,
 };
 use crate::engine::board::board::Board;
-use crate::engine::board::color::{ColorTrait, BLACK, COLORS, WHITE};
-use crate::engine::board::piece::{PieceTrait, KING, PAWN, PIECES};
+use crate::engine::board::color::*;
+use crate::engine::board::piece::*;
 use crate::engine::board::square::get_file;
 use crate::engine::evaluation::common_eval::{CommonEvalTrait, KING_ATT_WEIGHT};
 use crate::engine::evaluation::eval_defs::CLR_CENTER;

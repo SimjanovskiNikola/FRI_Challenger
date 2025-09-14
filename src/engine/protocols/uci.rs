@@ -135,11 +135,13 @@ impl UCI {
         self.abort_search();
 
         self.board.reset();
+        self.board.eval.full_reset();
         TT.write().unwrap().clear();
     }
 
     // Set up the board position from FEN or startpos and apply the given moves
     fn uci_position(&mut self, args: &[&str]) {
+        self.board.eval.full_reset();
         self.abort_search();
 
         let mut is_fen = false;

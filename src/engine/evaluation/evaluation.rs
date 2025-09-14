@@ -5,7 +5,7 @@ use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::imbalance_eval::ImbalanceEvalTrait;
 use crate::engine::evaluation::init_eval::InitEvalTrait;
 use crate::engine::evaluation::king_eval::KingEvalTrait;
-use crate::engine::evaluation::material_eval::MaterialEvalTrait;
+use crate::engine::evaluation::material_eval::{self, MaterialEvalTrait};
 use crate::engine::evaluation::mobility_eval::MobilityEvalTrait;
 use crate::engine::evaluation::passed_pawn_eval::PassedPawnEvalTrait;
 use crate::engine::evaluation::pawn_eval::PawnEvalTrait;
@@ -152,6 +152,16 @@ impl Evaluation {
         // Score
         self.phase = (0, 0);
         self.score.fill((0, 0));
+    }
+
+    pub fn inc_reset(&mut self) {
+        self.material_eval.fill((0, 0));
+        self.psqt_eval.fill((0, 0));
+    }
+
+    pub fn full_reset(&mut self) {
+        self.reset();
+        self.inc_reset();
     }
 }
 
@@ -312,7 +322,7 @@ impl EvaluationTrait for Board {
 mod tests {
 
     use crate::engine::board::fen::FenTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
 
     use super::*;
 

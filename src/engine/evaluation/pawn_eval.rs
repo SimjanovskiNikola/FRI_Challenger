@@ -1,7 +1,7 @@
 use crate::engine::attacks::pawn::{get_all_pawn_forward_mask, get_pawn_att_mask};
 use crate::engine::board::board::Board;
 use crate::engine::board::color::{Color, ColorTrait};
-use crate::engine::board::piece::{PieceTrait, PAWN};
+use crate::engine::board::piece::{PAWN, PieceTrait};
 use crate::engine::board::square::get_rank;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::eval_defs::{BLOCKED_RANKS, CLR_RANK};
@@ -147,13 +147,6 @@ impl PawnEvalTrait for Board {
         let su = self.supported_pawn(sq, clr);
         let bl = self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp()));
 
-        // println!("Sq: {:?}", sq);
-        // println!("Opposed Pawn: {:?}", self.opposed_pawn(sq, clr));
-        // println!("Phalanx: {:?}", self.phalanx_pawn(sq, clr));
-        // println!("Supported: {:?}", self.supported_pawn(sq, clr));
-        // println!("Blocked Pawn: {:?}", self.doubled_pawn(sq, clr));
-        // println!("Bonus: {:?}", seed[r] * (2 + ph as isize - op as isize) + 21 * su as isize);
-
         return seed[r] * (2 + ph as isize - op as isize) + 21 * su as isize;
     }
 
@@ -203,7 +196,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
 
     use super::*;
 
