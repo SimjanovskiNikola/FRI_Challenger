@@ -4,7 +4,7 @@ use crate::engine::misc::display::display_moves::get_move_list;
 use crate::engine::misc::display::display_stats::DisplayStatsTrait;
 use crate::engine::protocols::time::safe_to_start_next_iter;
 use crate::engine::protocols::time::time_over;
-use crate::engine::protocols::uci::NewUCI;
+use crate::engine::protocols::uci::UCITime;
 use crate::engine::search::transposition_table::TT;
 use std::sync::Arc;
 use std::sync::RwLock;
@@ -47,13 +47,13 @@ impl SearchInfo {
 #[derive(Debug)]
 pub struct Search {
     pub board: Board,
-    pub uci: Arc<RwLock<NewUCI>>,
+    pub uci: Arc<RwLock<UCITime>>,
     pub info: SearchInfo,
 }
 
 // Common Search Function
 impl Search {
-    pub fn init(board: Board, uci: Arc<RwLock<NewUCI>>) -> Self {
+    pub fn init(board: Board, uci: Arc<RwLock<UCITime>>) -> Self {
         Self { board, uci, info: SearchInfo::init() }
     }
 
@@ -124,7 +124,7 @@ mod tests {
     use super::*;
 
     fn test_search(fen: &str, depth: i8, expected_pv: &str) {
-        let uci = Arc::new(RwLock::new(NewUCI::init()));
+        let uci = Arc::new(RwLock::new(UCITime::init()));
         uci.write().unwrap().max_depth = depth;
         let board = Board::read_fen(fen);
         let mut search = Search::init(board, uci);
@@ -149,7 +149,7 @@ mod tests {
         let fen = "8/2P1P3/b1B2p2/1pPRp3/2k3P1/P4pK1/nP3p1p/N7 w - - 0 1";
         // NOTE: Best Continuation after h2h1n: b5b4 or c3b2
         let expected_pv = " d5d1 a2c3 b2c3 h2h1r d1h1 f2f1q h1f1"; // Depth 7
-                                                                   // let expected_pv = " b2b3 c4c3 d5d1 f2f1q d1f1 h2h1n"; // Depth 6
+        // let expected_pv = " b2b3 c4c3 d5d1 f2f1q d1f1 h2h1n"; // Depth 6
         test_search(fen, depth, expected_pv);
     }
 
@@ -202,7 +202,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let uci = Arc::new(RwLock::new(NewUCI::init()));
+        let uci = Arc::new(RwLock::new(UCITime::init()));
         uci.write().unwrap().max_depth = 10;
         // let board = Board::read_fen("2kr3r/pppq1pp1/3np2p/8/2pP4/4P2P/PP1N1PP1/2RQK2R b K - 1 13");
         // let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");

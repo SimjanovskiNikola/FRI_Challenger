@@ -80,8 +80,8 @@ impl Search {
         self.board.pv_len[ply] = 0;
 
         while let Some(mv) = self.board.next_move(&mut moves) {
-            // Check Time every 2047 Nodes
-            if (self.info.nodes & 2047) == 0 && time_over(&self) {
+            // Check Time every 8192 Nodes
+            if (self.info.nodes & 8192) == 0 && time_over(&self) {
                 return 0;
             }
 

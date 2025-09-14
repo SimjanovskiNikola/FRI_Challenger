@@ -1,6 +1,6 @@
 use std::io::BufRead;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use std::{io, thread, u64};
@@ -13,25 +13,22 @@ use crate::engine::misc::const_utility::FEN_START;
 use crate::engine::misc::display::display_moves::{from_move_notation, move_notation};
 use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::search::iter_deepening::Search;
-use crate::engine::search::transposition_table::{TTTable, TT};
+use crate::engine::search::transposition_table::{TT, TTTable};
 
 use super::time::set_time_limit;
 
 #[derive(Debug)]
-pub struct NewUCI {
+pub struct UCITime {
     pub start_time: Instant,
     pub time_limit: Option<Duration>,
     pub moves_togo: usize,
     pub infinite: bool,
     pub max_depth: i8,
-    pub moves_played: usize,
     pub quit: bool,
     pub stopped: bool,
-    pub is_searching: Arc<AtomicBool>, // FIXME: Maybe Here should be used stopped ???
-    pub search_thread: Option<JoinHandle<()>>,
 }
 
-impl NewUCI {
+impl UCITime {
     pub fn init() -> Self {
         Self {
             start_time: Instant::now(),
@@ -39,11 +36,8 @@ impl NewUCI {
             moves_togo: 0,
             infinite: false,
             max_depth: 63,
-            moves_played: 0,
             quit: false,
             stopped: false,
-            is_searching: Arc::new(AtomicBool::new(false)),
-            search_thread: None,
         }
     }
 }
@@ -51,42 +45,39 @@ impl NewUCI {
 #[derive()]
 pub struct UCI {
     pub board: Board,
-    pub uci: Arc<RwLock<NewUCI>>,
+    pub uci: Arc<RwLock<UCITime>>,
+
+    pub search_thread: Option<JoinHandle<()>>,
+    pub is_searching: Arc<AtomicBool>,
 }
 
 impl UCI {
     pub fn init() -> UCI {
-        UCI { board: Board::initialize(), uci: Arc::new(RwLock::new(NewUCI::init())) }
+        UCI {
+            board: Board::initialize(),
+            uci: Arc::new(RwLock::new(UCITime::init())),
+            search_thread: None,
+            is_searching: Arc::new(AtomicBool::new(false)),
+        }
     }
 
-    fn engine_metadata() {
-        println!("id name {}", "Challenger 1.0");
-        println!("id author Nikola Simjanovski");
-        println!("uciok");
-    }
-
+    // Main loop that processes UCI commands
     pub fn main(&mut self) {
         let (tx, rx) = mpsc::channel::<String>();
 
+        // This thread is required for reading from stdin
+        // It takes the line that is written and sends it to the main thread
+        // so that the main thread can process it
         let _input_handle = thread::spawn(move || {
             let stdin = io::stdin();
             for line_result in stdin.lock().lines() {
-                match line_result {
-                    Ok(line) => {
-                        if tx.send(line).is_err() {
-                            eprintln!("info string Input thread: Main channel closed.");
-                            break;
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("info string Input thread: Error reading stdin: {}", e);
-                        break;
-                    }
-                }
+                tx.send(line_result.expect("[Input thread]: Failed to read line from stdin !!!"))
+                    .expect("[Input thread]: Failed to send line to receiver. Exiting...");
             }
-            eprintln!("info string Input thread terminating.");
         });
 
+        // Creating an infinite loop that will keep running until the "quit" command is received
+        // It processes the commands received from the input thread
         loop {
             match rx.try_recv() {
                 Ok(cmd) => {
@@ -96,53 +87,59 @@ impl UCI {
                     }
 
                     match args[0] {
-                        "uci" => self.uci(),
+                        "uci" => self.uci_metadata(),
                         "quit" => {
                             self.abort_search();
                             break;
                         }
-                        "stop" => self.stop(),
-                        "isready" => self.isready(),
-                        "ucinewgame" => self.ucinewgame(),
-                        "position" => self.position(&args[1..]),
-                        "go" => self.go(&args[1..]),
-                        _ => eprintln!("info string Unknown command: {}", args[0]),
+                        "stop" => self.uci_stop(),
+                        "isready" => self.uci_is_ready(),
+                        "ucinewgame" => self.uci_new_game(),
+                        "position" => self.uci_position(&args[1..]),
+                        "go" => self.uci_go(&args[1..]),
+                        _ => eprintln!("[Main Loop Thread]: Unknown command: {}", args[0]),
                     }
                 }
                 Err(mpsc::TryRecvError::Empty) => {}
                 Err(mpsc::TryRecvError::Disconnected) => {
-                    eprintln!("info string Main loop: Input channel disconnected. Exiting.");
+                    eprintln!("[Main Loop Thread]: Channel disconnected. Exiting...");
                     self.abort_search();
                     break;
                 }
             }
 
+            // Sleep for a short duration to prevent busy-waiting
             thread::sleep(Duration::from_millis(5));
         }
     }
 
-    fn uci(&mut self) {
-        println!("id name {}", "Challenger 1.0");
+    // Metadata about the engine
+    fn uci_metadata(&mut self) {
+        println!("id name {}", "FRI Challenger 0.5.0");
         println!("id author Nikola Simjanovski");
         println!("uciok");
     }
 
-    fn stop(&mut self) {
+    // Stop the current search
+    fn uci_stop(&mut self) {
         self.stop_search();
     }
 
-    fn isready(&mut self) {
+    // Engine is ready to receive commands
+    fn uci_is_ready(&mut self) {
         println!("readyok");
     }
 
-    fn ucinewgame(&mut self) {
+    // Start a new game
+    fn uci_new_game(&mut self) {
         self.abort_search();
 
         self.board.reset();
         TT.write().unwrap().clear();
     }
 
-    fn position(&mut self, args: &[&str]) {
+    // Set up the board position from FEN or startpos and apply the given moves
+    fn uci_position(&mut self, args: &[&str]) {
         self.abort_search();
 
         let mut is_fen = false;
@@ -162,18 +159,18 @@ impl UCI {
             }
         }
 
-        self.uci.write().unwrap().moves_played = 0;
+        // Apply FEN on to the board
         self.board = Board::read_fen(&fen.join(" "));
 
         for str_mv in moves {
             let mv = from_move_notation(str_mv, &mut self.board);
             self.board.make_move(&mv);
-            self.uci.write().unwrap().moves_played += 1;
+            // Must be removed every time so that it does not exceed ply (64 moves)
             self.board.moves.pop();
         }
     }
 
-    fn go(&mut self, args: &[&str]) {
+    fn uci_go(&mut self, args: &[&str]) {
         self.abort_search();
 
         let mut depth: Option<i8> = None;
@@ -236,13 +233,18 @@ impl UCI {
                 time_limit.or(Some(Duration::from_millis(u64::MAX)));
         }
 
-        self.uci.write().unwrap().is_searching.store(false, Ordering::Relaxed);
+        self.is_searching.store(false, Ordering::Relaxed);
 
-        let stop_flag_clone = Arc::clone(&self.uci.read().unwrap().is_searching);
+        self.create_search_thread();
+    }
 
-        let mut board_clone = self.board.clone();
-        let mut uci_clone = self.uci.clone();
-
+    ///
+    /// Creates and starts a new search thread
+    ///
+    fn create_search_thread(&mut self) {
+        let stop_flag_clone = Arc::clone(&self.is_searching);
+        let board_clone = self.board.clone();
+        let uci_clone = self.uci.clone();
         let mut search = Search::init(board_clone, uci_clone);
 
         let handle = thread::spawn(move || {
@@ -250,52 +252,39 @@ impl UCI {
 
             if !stop_flag_clone.load(Ordering::Relaxed) || best_move.is_some() {
                 if let Some(mv) = best_move {
-                    println!(
-                        "bestmove {}",
-                        move_notation(mv.from, mv.to, mv.flag.get_promo_piece())
-                    );
+                    let mv_notation = move_notation(mv.from, mv.to, mv.flag.get_promo_piece());
+                    println!("bestmove {}", mv_notation);
                 } else {
-                    if !stop_flag_clone.load(Ordering::Relaxed) {
-                        eprintln!(
-                            "info string Search finished but no move found (e.g., game over)."
-                        );
-                    } else {
-                        eprintln!("info string Search stopped before finding a best move.");
-                    }
+                    panic!("Search finished but no move found !!!");
                 }
             } else {
-                eprintln!("info string Search stopped externally before finding a best move.");
+                panic!("Search stopped externally before finding a best move !!!");
             }
         });
 
-        self.uci.write().unwrap().search_thread = Some(handle);
+        self.search_thread = Some(handle);
     }
 
-    // fn start_search(&mut self) {
-    //     self.uci.write().unwrap().stopped = false;
-    //     let mv = iterative_deepening(&mut self.game);
-    //     println!("{:?}", mv);
-    // }
-
-    fn stop_search(&mut self) {
-        self.uci.write().unwrap().stopped = true;
-
-        if self.uci.read().unwrap().search_thread.is_some() {
-            self.uci.write().unwrap().is_searching.store(true, Ordering::Relaxed);
-        }
-    }
-
+    ///
+    /// Aborts the current search and joins the search and timer threads
+    ///
     fn abort_search(&mut self) {
         self.stop_search();
-
-        if let Some(handle) = self.uci.write().unwrap().search_thread.take() {
-            eprintln!("info string Waiting for search thread to finish...");
-            match handle.join() {
-                Ok(_) => eprintln!("info string Search thread joined successfully."),
-                Err(e) => eprintln!("info string Error joining search thread: {:?}", e),
-            }
+        if let Some(search_handle) = self.search_thread.take() {
+            search_handle.join().expect("Error while joining search thread");
         }
 
         self.uci.write().unwrap().stopped = false;
+    }
+
+    ///
+    /// Stops the search by setting the stopped flag to true
+    ///
+    fn stop_search(&mut self) {
+        self.uci.write().unwrap().stopped = true;
+
+        if self.search_thread.is_some() {
+            self.is_searching.store(true, Ordering::Relaxed);
+        }
     }
 }

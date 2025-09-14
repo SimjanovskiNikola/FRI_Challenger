@@ -53,7 +53,7 @@ impl Search {
         // self.board.pv_len[ply] = ply;
 
         while let Some(mv) = self.board.next_move(&mut moves) {
-            if (self.info.nodes & 2047) == 0 && time_over(&self) {
+            if (self.info.nodes & 8192) == 0 && time_over(&self) {
                 break;
             }
 
