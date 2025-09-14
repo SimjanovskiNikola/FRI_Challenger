@@ -32,9 +32,5 @@ pub fn time_over(search: &Search) -> bool {
     let limit = uci.time_limit.unwrap_or(Duration::from_millis(u64::MAX));
     let stopped = uci.stopped;
     drop(uci);
-    // println!("{:?}", elapsed);
-    // println!("{:?}", limit);
-    // println!("{:?}", stopped);
-    // println!("{:?}", elapsed >= limit || stopped);
     elapsed >= limit || stopped
 }
