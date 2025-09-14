@@ -1,5 +1,6 @@
-use ::engine::engine::protocols::uci::UCI;
 use std::env;
+
+use crate::engine::protocols::uci::UCI;
 
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
@@ -12,7 +13,7 @@ fn main() {
     let _profiler = dhat::Profiler::new_heap();
 
     // FIXME: Needed to backtrace the call stack
-    env::set_var("RUST_BACKTRACE", "1");
+    unsafe { env::set_var("RUST_BACKTRACE", "1") };
     let mut uci = UCI::init();
     uci.main();
 
