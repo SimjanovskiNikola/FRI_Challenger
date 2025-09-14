@@ -8,6 +8,7 @@ use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 use crate::engine::move_generator::mv_oredering::MoveOrderingTrait;
 use crate::engine::protocols::time::time_over;
+use crate::engine::search::transposition_table::Bound;
 
 impl Search {
     #[inline(always)]
@@ -92,9 +93,12 @@ impl Search {
 
         let is_pvs = alpha != beta - 1;
 
-        // if let Some((score, _)) =
-        //     TT.read().unwrap().probe(self.board.state.key, depth, alpha as i16, beta as i16)
-        // {
+        // if let Some((score, _)) = self.board.tt.read().unwrap().probe(
+        //     self.board.state.key,
+        //     depth,
+        //     alpha as i16,
+        //     beta as i16,
+        // ) {
         //     return score as isize;
         // }
 
@@ -193,7 +197,7 @@ impl Search {
                     self.add_fail_hard_info();
 
                     // if !is_pvs {
-                    //     TT.write().unwrap().set(
+                    //     self.board.tt.write().unwrap().set(
                     //         self.board.state.key,
                     //         mv,
                     //         score as i16,

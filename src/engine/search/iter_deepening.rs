@@ -5,7 +5,6 @@ use crate::engine::misc::display::display_stats::DisplayStatsTrait;
 use crate::engine::protocols::time::safe_to_start_next_iter;
 use crate::engine::protocols::time::time_over;
 use crate::engine::protocols::uci::UCITime;
-use crate::engine::search::transposition_table::TT;
 use std::sync::Arc;
 use std::sync::RwLock;
 
@@ -47,13 +46,13 @@ impl SearchInfo {
 #[derive(Debug)]
 pub struct Search {
     pub board: Board,
-    pub uci: Arc<RwLock<UCITime>>,
+    pub uci: UCITime,
     pub info: SearchInfo,
 }
 
 // Common Search Function
 impl Search {
-    pub fn init(board: Board, uci: Arc<RwLock<UCITime>>) -> Self {
+    pub fn init(board: Board, uci: UCITime) -> Self {
         Self { board, uci, info: SearchInfo::init() }
     }
 
@@ -65,7 +64,7 @@ impl Search {
         self.info.curr_key = self.board.state.key;
         self.info.curr_depth = 0;
 
-        TT.write().unwrap().clear_stats();
+        // TT.write().unwrap().clear_stats();
         self.board.pv_clear();
     }
 
@@ -79,7 +78,7 @@ impl Search {
     pub fn iterative_deepening(&mut self) -> Option<Move> {
         self.clear_search();
 
-        let max_depth = self.uci.read().unwrap().max_depth;
+        let max_depth = self.uci.max_depth;
         let alpha = MIN_INF;
         let beta = MAX_INF;
         let mut best_mv = None;
@@ -103,12 +102,8 @@ impl Search {
                 best_mv = Some(pv_line[0]);
             }
 
-            // if depth > 6{
-            //     println!("{:?}", self.board.pv_moves);
-            //     println!("{:?}", self.board.pv_len);
-            // }
             self.print_info(score, get_move_list(&pv_line, self.info.curr_depth));
-            self.print_ordering_info(depth);
+            // self.print_ordering_info(depth);
             // search.tt.lock().unwrap().print_stats();
         }
         best_mv
@@ -124,8 +119,8 @@ mod tests {
     use super::*;
 
     fn test_search(fen: &str, depth: i8, expected_pv: &str) {
-        let uci = Arc::new(RwLock::new(UCITime::init()));
-        uci.write().unwrap().max_depth = depth;
+        let mut uci = UCITime::init();
+        uci.max_depth = depth;
         let board = Board::read_fen(fen);
         let mut search = Search::init(board, uci);
 
@@ -202,8 +197,8 @@ mod tests {
             .build()
             .unwrap();
 
-        let uci = Arc::new(RwLock::new(UCITime::init()));
-        uci.write().unwrap().max_depth = 10;
+        let mut uci = UCITime::init();
+        uci.max_depth = 1;
         // let board = Board::read_fen("2kr3r/pppq1pp1/3np2p/8/2pP4/4P2P/PP1N1PP1/2RQK2R b K - 1 13");
         // let board = Board::read_fen("r4rk1/ppq3pp/2p1Pn2/4p1Q1/8/2N5/PP4PP/2KR1R2 w - - 0 1");
         // let board =

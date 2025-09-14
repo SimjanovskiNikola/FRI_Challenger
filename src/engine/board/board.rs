@@ -1,20 +1,22 @@
+use std::sync::{Arc, RwLock};
+
 use super::castling::CastlingRights;
 use super::color::{Color, ColorTrait};
-use super::piece::{Piece, PieceTrait, BISHOP, KING, KNIGHT, QUEEN, ROOK};
+use super::piece::{BISHOP, KING, KNIGHT, Piece, PieceTrait, QUEEN, ROOK};
 use super::state::BoardState;
 use super::{moves::Move, piece::PAWN};
 use crate::engine::board::piece;
 use crate::engine::evaluation::eval_defs::CLR_SQ;
 use crate::engine::evaluation::evaluation::Evaluation;
 use crate::engine::misc::bitboard::BitboardTrait;
-use crate::engine::search::transposition_table::TTEntry;
+use crate::engine::search::transposition_table::{TTEntry, TTTable};
 use crate::engine::{
     board::fen::FenTrait,
     misc::{bitboard::Bitboard, const_utility::FEN_START},
 };
 const MAX_PLY: usize = 64;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Board {
     // Peace Occupancy (Bitboard Representation)
     pub squares: [Piece; 64],
@@ -76,7 +78,7 @@ impl Board {
         self.tt_mv = None;
         self.s_history = [[0isize; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
-                                          // self.s_pv = [None; 64];
+        // self.s_pv = [None; 64];
         self.gen_moves.clear();
 
         self.eval.reset();

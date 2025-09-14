@@ -251,8 +251,8 @@ impl EvaluationTrait for Board {
         self.sum(BLACK, None, None, self.eval.psqt_eval[BLACK.idx()]);
 
         // 3. Imbalance
-        self.imbalance(WHITE);
-        self.imbalance(BLACK);
+        // self.imbalance(WHITE);
+        // self.imbalance(BLACK);
 
         // 4. Pawns
         self.pawns_eval(WHITE);

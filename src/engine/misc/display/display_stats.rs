@@ -8,7 +8,7 @@ pub trait DisplayStatsTrait {
 
 impl DisplayStatsTrait for Search {
     fn print_info(&self, score: isize, line: String) {
-        let time = self.uci.read().unwrap().start_time.elapsed().as_millis();
+        let time = self.uci.start_time.elapsed().as_millis();
         println!(
             "info depth {} nodes {} time {} score cp {} pv{}",
             self.info.curr_depth, self.info.nodes, time, score, line

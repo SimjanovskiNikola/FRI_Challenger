@@ -16,7 +16,6 @@ use crate::engine::board::square::SqPos::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::bitboard::Iterator;
 use crate::engine::misc::const_utility::*;
-use crate::engine::search::transposition_table::TT;
 
 const PV_MV_SCORE: isize = 95000;
 const TT_MV_SCORE: isize = 80000;

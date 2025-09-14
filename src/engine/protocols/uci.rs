@@ -5,6 +5,8 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use std::{io, thread, u64};
 
+use arc_swap::ArcSwap;
+
 use crate::engine::board::board::Board;
 use crate::engine::board::color::ColorTrait;
 use crate::engine::board::fen::FenTrait;
@@ -13,11 +15,11 @@ use crate::engine::misc::const_utility::FEN_START;
 use crate::engine::misc::display::display_moves::{from_move_notation, move_notation};
 use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::search::iter_deepening::Search;
-use crate::engine::search::transposition_table::{TT, TTTable};
+use crate::engine::search::transposition_table::TTTable;
 
 use super::time::set_time_limit;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UCITime {
     pub start_time: Instant,
     pub time_limit: Option<Duration>,
@@ -25,7 +27,7 @@ pub struct UCITime {
     pub infinite: bool,
     pub max_depth: i8,
     pub quit: bool,
-    pub stopped: bool,
+    pub stopped: Arc<AtomicBool>,
 }
 
 impl UCITime {
@@ -37,7 +39,7 @@ impl UCITime {
             infinite: false,
             max_depth: 63,
             quit: false,
-            stopped: false,
+            stopped: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -45,8 +47,8 @@ impl UCITime {
 #[derive()]
 pub struct UCI {
     pub board: Board,
-    pub uci: Arc<RwLock<UCITime>>,
-
+    pub uci: UCITime,
+    // pub tt: ArcSwap<TTTable>,
     pub search_thread: Option<JoinHandle<()>>,
     pub is_searching: Arc<AtomicBool>,
 }
@@ -55,7 +57,8 @@ impl UCI {
     pub fn init() -> UCI {
         UCI {
             board: Board::initialize(),
-            uci: Arc::new(RwLock::new(UCITime::init())),
+            uci: UCITime::init(),
+            // tt: ArcSwap::new(TTTable::init().into()),
             search_thread: None,
             is_searching: Arc::new(AtomicBool::new(false)),
         }
@@ -136,7 +139,7 @@ impl UCI {
 
         self.board.reset();
         self.board.eval.full_reset();
-        TT.write().unwrap().clear();
+        // self.tt.clear();
     }
 
     // Set up the board position from FEN or startpos and apply the given moves
@@ -214,25 +217,24 @@ impl UCI {
             }
         }
 
-        self.uci.write().unwrap().start_time = Instant::now();
-        self.uci.write().unwrap().infinite = infinite;
-        self.uci.write().unwrap().max_depth = depth.unwrap_or(63);
+        self.uci.start_time = Instant::now();
+        self.uci.infinite = infinite;
+        self.uci.max_depth = depth.unwrap_or(63);
 
         if !infinite && matches!(time_limit, None) && self.board.state.color.is_white() {
-            self.uci.write().unwrap().time_limit = Some(set_time_limit(
+            self.uci.time_limit = Some(set_time_limit(
                 moves_togo.unwrap_or(30),
                 wtime.unwrap_or(0),
                 winc.unwrap_or(0),
             ));
         } else if !infinite && matches!(time_limit, None) && self.board.state.color.is_black() {
-            self.uci.write().unwrap().time_limit = Some(set_time_limit(
+            self.uci.time_limit = Some(set_time_limit(
                 moves_togo.unwrap_or(30),
                 btime.unwrap_or(0),
                 binc.unwrap_or(0),
             ));
         } else {
-            self.uci.write().unwrap().time_limit =
-                time_limit.or(Some(Duration::from_millis(u64::MAX)));
+            self.uci.time_limit = time_limit.or(Some(Duration::from_millis(u64::MAX)));
         }
 
         self.is_searching.store(false, Ordering::Relaxed);
@@ -276,14 +278,14 @@ impl UCI {
             search_handle.join().expect("Error while joining search thread");
         }
 
-        self.uci.write().unwrap().stopped = false;
+        self.uci.stopped.store(false, Ordering::Relaxed);
     }
 
     ///
     /// Stops the search by setting the stopped flag to true
     ///
     fn stop_search(&mut self) {
-        self.uci.write().unwrap().stopped = true;
+        self.uci.stopped.store(true, Ordering::Relaxed);
 
         if self.search_thread.is_some() {
             self.is_searching.store(true, Ordering::Relaxed);

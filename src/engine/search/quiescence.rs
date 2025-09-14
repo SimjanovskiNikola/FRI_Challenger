@@ -4,7 +4,6 @@ use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 use crate::engine::move_generator::mv_oredering::MoveOrderingTrait;
 use crate::engine::protocols::time::time_over;
-use crate::engine::search::transposition_table::{Bound, TT};
 
 const BIG_DELTA: isize = 1800;
 
