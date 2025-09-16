@@ -4,12 +4,10 @@ use crate::engine::board::moves::Move;
 use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 
-use once_cell::sync::Lazy;
-use std::sync::{Mutex, RwLock, atomic::AtomicU64};
-
 // pub static mut TT: Lazy<TTTable> = Lazy::new(|| TTTable::init());
 
-const MAX_TT_ENTRIES: usize = 1040211;
+// const MAX_TT_ENTRIES: usize = 1040211;
+const MAX_TT_ENTRIES: usize = 104211;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Bound {
@@ -37,7 +35,7 @@ impl TTEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TTTable {
     pub table: Box<[Option<TTEntry>]>, //Vec<Option<TTEntry>>,
     pub lookups: u64,

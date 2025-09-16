@@ -28,10 +28,9 @@ impl MoveOrderingTrait for Board {
         for (mv, score) in moves.iter_mut() {
             if pv_mv == Some(*mv) {
                 *score = PV_MV_SCORE;
+            } else if matches!(self.tt.get(self.key()), Some(tt_move) if *mv == tt_move.mv) {
+                *score = TT_MV_SCORE;
             }
-            // else if matches!(tt_mv, Some(tt_move) if *mv == tt_move.mv) {
-            //     *score = TT_MV_SCORE;
-            // }
 
             match mv.flag {
                 Flag::Capture(_) | Flag::Promotion(_, Some(_)) => {

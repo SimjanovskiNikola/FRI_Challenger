@@ -139,7 +139,7 @@ impl UCI {
 
         self.board.reset();
         self.board.eval.full_reset();
-        // self.tt.clear();
+        // self.tt.clear(); // NOTE: No need as i am resetting it inside the board
     }
 
     // Set up the board position from FEN or startpos and apply the given moves

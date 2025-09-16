@@ -103,7 +103,7 @@ impl Search {
             }
 
             self.print_info(score, get_move_list(&pv_line, self.info.curr_depth));
-            // self.print_ordering_info(depth);
+            self.print_ordering_info(depth);
             // search.tt.lock().unwrap().print_stats();
         }
         best_mv
