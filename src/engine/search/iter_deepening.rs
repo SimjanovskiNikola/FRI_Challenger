@@ -64,7 +64,7 @@ impl Search {
         self.info.curr_key = self.board.state.key;
         self.info.curr_depth = 0;
 
-        // TT.write().unwrap().clear_stats();
+        // self.board.tt.clear_stats();
         self.board.pv_clear();
     }
 

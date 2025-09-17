@@ -48,7 +48,6 @@ impl UCITime {
 pub struct UCI {
     pub board: Board,
     pub uci: UCITime,
-    // pub tt: ArcSwap<TTTable>,
     pub search_thread: Option<JoinHandle<()>>,
     pub is_searching: Arc<AtomicBool>,
 }
@@ -58,7 +57,6 @@ impl UCI {
         UCI {
             board: Board::initialize(),
             uci: UCITime::init(),
-            // tt: ArcSwap::new(TTTable::init().into()),
             search_thread: None,
             is_searching: Arc::new(AtomicBool::new(false)),
         }

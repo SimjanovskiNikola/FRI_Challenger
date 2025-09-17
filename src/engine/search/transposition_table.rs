@@ -4,10 +4,7 @@ use crate::engine::board::moves::Move;
 use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 
-// pub static mut TT: Lazy<TTTable> = Lazy::new(|| TTTable::init());
-
-// const MAX_TT_ENTRIES: usize = 1040211;
-const MAX_TT_ENTRIES: usize = 104211;
+const MAX_TT_ENTRIES: usize = 1040211;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Bound {
