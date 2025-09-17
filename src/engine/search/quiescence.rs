@@ -5,8 +5,6 @@ use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 use crate::engine::move_generator::mv_oredering::MoveOrderingTrait;
 use crate::engine::protocols::time::time_over;
 
-const BIG_DELTA: isize = 1800;
-
 impl Search {
     pub fn quiescence_search(&mut self, mut alpha: isize, beta: isize, depth: i8) -> isize {
         self.info.nodes += 1;

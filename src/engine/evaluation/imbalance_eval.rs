@@ -2,7 +2,6 @@ use crate::engine::attacks::bishop::has_bishop_pair;
 use crate::engine::board::board::Board;
 use crate::engine::board::color::{Color, ColorTrait};
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::misc::bitboard::BitboardTrait;
 
 // Quadratic interaction bonuses for own peaces NOTE: DONE
 pub const QUADRATIC_OURS: [[isize; 6]; 6] = [
@@ -84,7 +83,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
 
     use super::*;
 

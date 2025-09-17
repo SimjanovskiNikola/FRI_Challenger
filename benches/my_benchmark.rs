@@ -1,9 +1,9 @@
-use FRI_Challenger::engine::misc::const_utility::FEN_POS_FIVE;
-use FRI_Challenger::engine::misc::const_utility::FEN_POS_FOUR;
-use FRI_Challenger::engine::misc::const_utility::FEN_POS_SIX;
-use FRI_Challenger::engine::misc::const_utility::FEN_START;
-use FRI_Challenger::engine::move_generator::perft::init_test_func;
 use criterion::{Criterion, criterion_group, criterion_main};
+use fri_challenger::engine::misc::const_utility::FEN_POS_FIVE;
+use fri_challenger::engine::misc::const_utility::FEN_POS_FOUR;
+use fri_challenger::engine::misc::const_utility::FEN_POS_SIX;
+use fri_challenger::engine::misc::const_utility::FEN_START;
+use fri_challenger::engine::move_generator::perft::init_test_func;
 
 use std::hint::black_box;
 

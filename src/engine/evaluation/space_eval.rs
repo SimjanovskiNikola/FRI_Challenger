@@ -4,10 +4,10 @@ use crate::engine::attacks::pawn::get_all_pawn_right_att_mask;
 use crate::engine::board::board::Board;
 use crate::engine::board::color::Color;
 use crate::engine::board::color::ColorTrait;
-use crate::engine::board::piece::PieceTrait;
 use crate::engine::board::piece::PAWN;
+use crate::engine::board::piece::PieceTrait;
+use crate::engine::evaluation::common_eval::CLR_CENTER;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::evaluation::eval_defs::CLR_CENTER;
 use crate::engine::evaluation::material_eval::MaterialEvalTrait;
 use crate::engine::misc::bitboard::BitboardTrait;
 
@@ -63,7 +63,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
     use crate::engine::evaluation::trace_eval::TraceEvalTrait;
 
     use super::*;

@@ -5,14 +5,44 @@ use crate::engine::attacks::pawn::{get_pawn_2_att, get_pawn_att_mask};
 use crate::engine::attacks::queen::get_queen_mask;
 use crate::engine::attacks::rook::get_rook_mask;
 use crate::engine::board::board::Board;
-use crate::engine::board::color::{Color, ColorTrait, BLACK, WHITE};
+use crate::engine::board::color::{BLACK, Color, ColorTrait, WHITE};
 use crate::engine::board::piece::*;
 use crate::engine::board::square::{get_file, get_rank};
-use crate::engine::evaluation::trace_eval::TraceEvalTrait;
 use crate::engine::generated::between::BETWEEN_BB;
 use crate::engine::generated::king::KING_RING;
 
 pub const KING_ATT_WEIGHT: [isize; 6] = [0, 81, 0, 52, 44, 10];
+
+// First 3 Ranks and 4 Center Files for every Color
+pub const CLR_CENTER: [u64; 2] = [1010580480, 16954726998343680];
+
+// Absolute Ranks based on color
+pub const CLR_RANK: [[usize; 8]; 2] = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]];
+
+// Absolute Square based on color
+#[rustfmt::skip]
+pub const CLR_SQ: [[usize; 64]; 2] = [
+    [
+        0,  1,  2,  3,  4,  5,  6,  7,
+        8,  9,  10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31,
+        32, 33, 34, 35, 36, 37, 38, 39,
+        40, 41, 42, 43, 44, 45, 46, 47,
+        48, 49, 50, 51, 52, 53, 54, 55,
+        56, 57, 58, 59, 60, 61, 62, 63,
+    ],
+    [ 
+        56, 57, 58, 59, 60, 61, 62, 63,
+        48, 49, 50, 51, 52, 53, 54, 55,
+        40, 41, 42, 43, 44, 45, 46, 47,
+        32, 33, 34, 35, 36, 37, 38, 39,
+        24, 25, 26, 27, 28, 29, 30, 31,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        8,  9,  10, 11, 12, 13, 14, 15,
+        0,  1,  2,  3,  4,  5,  6,  7,
+    ],
+];
 
 pub trait CommonEvalTrait {
     fn tapered(&mut self, value: (isize, isize)) -> isize;

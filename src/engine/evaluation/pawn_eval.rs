@@ -3,12 +3,13 @@ use crate::engine::board::board::Board;
 use crate::engine::board::color::{Color, ColorTrait};
 use crate::engine::board::piece::{PAWN, PieceTrait};
 use crate::engine::board::square::get_rank;
-use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::evaluation::eval_defs::{BLOCKED_RANKS, CLR_RANK};
+use crate::engine::evaluation::common_eval::{CLR_RANK, CommonEvalTrait};
 use crate::engine::generated::pawn::{
     FORWARD_SPANS_LR, ISOLATED_PAWN_LOOKUP, PAWN_ATTACK_LOOKUP, PAWN_FORWARD_SPANS,
 };
 use crate::engine::misc::bitboard::{Bitboard, BitboardTrait, Iterator};
+
+pub const BLOCKED_RANKS: [u64; 2] = [281470681743360, 4294901760];
 
 pub trait PawnEvalTrait {
     fn pawns_eval(&mut self, clr: Color);
@@ -145,7 +146,7 @@ impl PawnEvalTrait for Board {
         let op = self.opposed_pawn(sq, clr);
         let ph = self.phalanx_pawn(sq, clr);
         let su = self.supported_pawn(sq, clr);
-        let bl = self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp()));
+        // let bl = self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp()));
 
         return seed[r] * (2 + ph as isize - op as isize) + 21 * su as isize;
     }

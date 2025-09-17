@@ -5,7 +5,7 @@ use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::evaluation::imbalance_eval::ImbalanceEvalTrait;
 use crate::engine::evaluation::init_eval::InitEvalTrait;
 use crate::engine::evaluation::king_eval::KingEvalTrait;
-use crate::engine::evaluation::material_eval::{self, MaterialEvalTrait};
+use crate::engine::evaluation::material_eval::MaterialEvalTrait;
 use crate::engine::evaluation::mobility_eval::MobilityEvalTrait;
 use crate::engine::evaluation::passed_pawn_eval::PassedPawnEvalTrait;
 use crate::engine::evaluation::pawn_eval::PawnEvalTrait;

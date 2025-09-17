@@ -1,5 +1,3 @@
-use std::cmp;
-
 use super::make_move::BoardMoveTrait;
 use crate::engine::attacks::bishop::*;
 use crate::engine::attacks::king::*;
@@ -13,7 +11,6 @@ use crate::engine::board::color::*;
 use crate::engine::board::moves::*;
 use crate::engine::board::piece::*;
 use crate::engine::board::square::SqPos::*;
-use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::bitboard::Iterator;
 use crate::engine::misc::const_utility::*;
 
@@ -184,7 +181,7 @@ impl BoardGenMoveTrait for Board {
     }
 
     fn pawn_capture_moves(&mut self) {
-        let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
+        let (_own_occ, enemy_occ) = self.both_occ_bb(self.color());
         let piece = PAWN + self.color();
 
         if self.color().is_white() {
@@ -411,6 +408,7 @@ mod tests {
 
     use crate::engine::board::fen::FenTrait;
     use crate::engine::misc::bit_pos_utility::extract_all_bits;
+    use crate::engine::misc::bitboard::BitboardTrait;
     use crate::engine::misc::display::display_board::*;
     use crate::engine::misc::display::display_moves::*;
 

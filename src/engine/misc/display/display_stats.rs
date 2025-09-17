@@ -15,7 +15,7 @@ impl DisplayStatsTrait for Search {
         );
     }
 
-    fn print_pruning_info(&self, score: isize) {
+    fn print_pruning_info(&self, _score: isize) {
         println!(
             "Fail Hard First: {:?}, Fail Hard: {:?}",
             self.info.fail_hard_first, self.info.fail_hard

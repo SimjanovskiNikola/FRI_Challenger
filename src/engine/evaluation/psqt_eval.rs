@@ -1,8 +1,7 @@
 use crate::engine::board::board::Board;
 use crate::engine::board::color::Color;
-use crate::engine::board::piece::{Piece, PieceTrait, PIECES};
-use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::evaluation::eval_defs::CLR_SQ;
+use crate::engine::board::piece::{PIECES, Piece, PieceTrait};
+use crate::engine::evaluation::common_eval::{CLR_SQ, CommonEvalTrait};
 use crate::engine::misc::bitboard::Iterator;
 
 #[rustfmt::skip]
@@ -100,7 +99,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
 
     use super::*;
 

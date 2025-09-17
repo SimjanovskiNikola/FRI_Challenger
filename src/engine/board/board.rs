@@ -1,15 +1,12 @@
-use std::sync::{Arc, RwLock};
-
 use super::castling::CastlingRights;
 use super::color::{Color, ColorTrait};
 use super::piece::{BISHOP, KING, KNIGHT, Piece, PieceTrait, QUEEN, ROOK};
 use super::state::BoardState;
 use super::{moves::Move, piece::PAWN};
-use crate::engine::board::piece;
-use crate::engine::evaluation::eval_defs::CLR_SQ;
+use crate::engine::evaluation::common_eval::CLR_SQ;
 use crate::engine::evaluation::evaluation::Evaluation;
 use crate::engine::misc::bitboard::BitboardTrait;
-use crate::engine::search::transposition_table::{TTEntry, TTTable};
+use crate::engine::search::transposition_table::TTTable;
 use crate::engine::{
     board::fen::FenTrait,
     misc::{bitboard::Bitboard, const_utility::FEN_START},
