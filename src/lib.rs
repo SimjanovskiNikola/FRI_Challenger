@@ -44,7 +44,6 @@ pub mod engine {
 
     pub mod evaluation {
         pub mod common_eval;
-        pub mod eval_defs;
         pub mod evaluation;
         pub mod imbalance_eval;
         pub mod init_eval;
