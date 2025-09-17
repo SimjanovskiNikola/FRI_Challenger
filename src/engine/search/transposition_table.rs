@@ -4,11 +4,6 @@ use crate::engine::board::moves::Move;
 use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 
-use once_cell::sync::Lazy;
-use std::sync::{atomic::AtomicU64, Mutex, RwLock};
-
-pub static TT: Lazy<RwLock<TTTable>> = Lazy::new(|| RwLock::new(TTTable::init()));
-
 const MAX_TT_ENTRIES: usize = 1040211;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -37,7 +32,7 @@ impl TTEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TTTable {
     pub table: Box<[Option<TTEntry>]>, //Vec<Option<TTEntry>>,
     pub lookups: u64,
@@ -59,6 +54,7 @@ impl TTTable {
         }
     }
 
+    #[inline(always)]
     pub fn idx(key: u64) -> usize {
         return (key % MAX_TT_ENTRIES as u64) as usize;
     }
@@ -103,12 +99,9 @@ impl TTTable {
     }
 
     pub fn get(&self, key: u64) -> Option<TTEntry> {
-        let idx = Self::idx(key);
-        if let Some(entry) = self.table.get(idx) {
-            if let Some(e) = *entry {
-                if e.key == key {
-                    return Some(e);
-                }
+        if let Some(entry) = self.table[Self::idx(key)] {
+            if entry.key == key {
+                return Some(entry);
             }
         }
 

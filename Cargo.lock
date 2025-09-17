@@ -6,6 +6,7 @@ version = 4
 name = "FRI_Challenger"
 version = "0.5.0"
 dependencies = [
+ "arc-swap",
  "bitflags 2.9.4",
  "clippy",
  "criterion",
@@ -74,6 +75,12 @@ name = "anstyle"
 version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55cc3b69f167a1ef2e161439aa98aed94e6028e5f9a59be9a6ffb47aef1651f9"
+
+[[package]]
+name = "arc-swap"
+version = "1.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
 
 [[package]]
 name = "arrayref"

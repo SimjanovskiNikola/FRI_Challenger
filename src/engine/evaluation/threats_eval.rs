@@ -123,10 +123,10 @@ impl ThreatsEvalTrait for Board {
 
     #[inline(always)]
     fn hanging(&mut self, clr: Color) -> u64 {
-        let weak_enemy_bb = self.eval.weak_enemy[clr.idx()];
-        let att_many =
-            weak_enemy_bb & !self.pawn_bb(clr.opp()) & self.eval.attacked_by_2[clr.idx()];
-        let not_defended = weak_enemy_bb & !self.eval.attack_map[clr.opp().idx()];
+        let att_many = self.eval.weak_enemy[clr.idx()]
+            & !self.pawn_bb(clr.opp())
+            & self.eval.attacked_by_2[clr.idx()];
+        let not_defended = self.eval.weak_enemy[clr.idx()] & !self.eval.attack_map[clr.opp().idx()];
 
         not_defended | att_many
     }
@@ -242,7 +242,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
     use crate::engine::evaluation::trace_eval::TraceEvalTrait;
 
     use super::*;

@@ -1,9 +1,10 @@
-use criterion::{criterion_group, criterion_main, Criterion};
-use engine::engine::board::perft::init_test_func;
-use engine::engine::misc::const_utility::FEN_POS_FIVE;
-use engine::engine::misc::const_utility::FEN_POS_FOUR;
-use engine::engine::misc::const_utility::FEN_POS_SIX;
-use engine::engine::misc::const_utility::FEN_START;
+use FRI_Challenger::engine::misc::const_utility::FEN_POS_FIVE;
+use FRI_Challenger::engine::misc::const_utility::FEN_POS_FOUR;
+use FRI_Challenger::engine::misc::const_utility::FEN_POS_SIX;
+use FRI_Challenger::engine::misc::const_utility::FEN_START;
+use FRI_Challenger::engine::move_generator::perft::init_test_func;
+use criterion::{Criterion, criterion_group, criterion_main};
+
 use std::hint::black_box;
 
 pub fn criterion_benchmark(c: &mut Criterion) {

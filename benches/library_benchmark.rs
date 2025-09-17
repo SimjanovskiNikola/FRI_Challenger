@@ -1,6 +1,6 @@
-use engine::engine::board::perft::init_test_func;
-use engine::engine::board::perft::Stats;
-use engine::engine::misc::const_utility::FEN_START;
+use FRI_Challenger::engine::misc::const_utility::FEN_START;
+use FRI_Challenger::engine::move_generator::perft::Stats;
+use FRI_Challenger::engine::move_generator::perft::init_test_func;
 use iai_callgrind::library_benchmark;
 use iai_callgrind::library_benchmark_group;
 use iai_callgrind::main;

@@ -1,5 +1,5 @@
 use crate::engine::search::iter_deepening::Search;
-use std::time::Duration;
+use std::{sync::atomic::Ordering, time::Duration};
 
 pub fn set_time_limit(movestogo: usize, time: usize, inc: usize) -> Duration {
     let time_per_move = time as f64 / movestogo.max(1) as f64;
@@ -15,10 +15,9 @@ pub fn safe_to_start_next_iter(search: &Search) -> bool {
     if time_over(search) {
         return false;
     }
-    let uci = search.uci.read().unwrap();
 
-    let elapsed = uci.start_time.elapsed();
-    let total_time = uci.time_limit.unwrap_or(Duration::from_millis(u64::MAX));
+    let elapsed = search.uci.start_time.elapsed();
+    let total_time = search.uci.time_limit.unwrap_or(Duration::from_millis(u64::MAX));
     let remaining_time = total_time - elapsed;
     let threshold = remaining_time.mul_f32(0.4); // 40% of remaining time
 
@@ -27,10 +26,8 @@ pub fn safe_to_start_next_iter(search: &Search) -> bool {
 }
 
 pub fn time_over(search: &Search) -> bool {
-    let uci = search.uci.read().unwrap();
-    let elapsed = uci.start_time.elapsed();
-    let limit = uci.time_limit.unwrap_or(Duration::from_millis(u64::MAX));
-    let stopped = uci.stopped;
-    drop(uci);
+    let elapsed = search.uci.start_time.elapsed();
+    let limit = search.uci.time_limit.unwrap_or(Duration::from_millis(u64::MAX));
+    let stopped = search.uci.stopped.load(Ordering::Relaxed);
     elapsed >= limit || stopped
 }
