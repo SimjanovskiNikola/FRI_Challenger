@@ -5,8 +5,6 @@ use crate::engine::misc::display::display_stats::DisplayStatsTrait;
 use crate::engine::protocols::time::safe_to_start_next_iter;
 use crate::engine::protocols::time::time_over;
 use crate::engine::protocols::uci::UCITime;
-use std::sync::Arc;
-use std::sync::RwLock;
 
 const MAX_INF: isize = isize::MAX / 2;
 const MIN_INF: isize = isize::MIN / 2;

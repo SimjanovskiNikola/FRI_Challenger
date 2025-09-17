@@ -1,5 +1,3 @@
-use rand::rand_core::le;
-
 use super::iter_deepening::Search;
 use crate::engine::board::moves::Move;
 use crate::engine::board::piece::PieceTrait;
@@ -8,7 +6,6 @@ use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 use crate::engine::move_generator::mv_oredering::MoveOrderingTrait;
 use crate::engine::protocols::time::time_over;
-use crate::engine::search::transposition_table::Bound;
 
 impl Search {
     #[inline(always)]

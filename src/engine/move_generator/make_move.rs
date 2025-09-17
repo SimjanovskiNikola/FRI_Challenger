@@ -9,8 +9,6 @@ use crate::engine::evaluation::evaluation::EvaluationTrait;
 use crate::engine::generated::zobrist_keys::PIECE_COUNT_KEYS;
 use crate::engine::generated::zobrist_keys::PIECE_KEYS;
 use crate::engine::misc::bitboard::BitboardTrait;
-use crate::engine::misc::display::display_board::print_bitboard;
-use crate::engine::misc::display::display_board::print_chess;
 use core::panic;
 
 pub trait BoardMoveTrait {

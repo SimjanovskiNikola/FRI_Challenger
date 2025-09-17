@@ -1,12 +1,16 @@
 use crate::engine::board::board::Board;
 use crate::engine::board::color::{Color, ColorTrait};
-use crate::engine::board::piece::{PieceTrait, PAWN};
+use crate::engine::board::piece::{PAWN, PieceTrait};
 use crate::engine::board::square::{get_file, get_rank};
-use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::evaluation::eval_defs::{CLR_RANK, PASSED_PAWN_REW};
+use crate::engine::evaluation::common_eval::{CLR_RANK, CommonEvalTrait};
 use crate::engine::evaluation::pawn_eval::PawnEvalTrait;
 use crate::engine::generated::pawn::{FORWARD_SPANS_LR, PAWN_ATTACK_LOOKUP, PAWN_FORWARD_SPANS};
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
+
+pub const PASSED_PAWN_REW: [[(isize, isize); 8]; 2] = [
+    [(0, 0), (10, 28), (17, 33), (15, 41), (62, 72), (168, 177), (276, 260), (0, 0)],
+    [(0, 0), (276, 260), (168, 177), (62, 72), (15, 41), (17, 33), (10, 28), (0, 0)],
+];
 
 pub trait PassedPawnEvalTrait {
     fn passed_pawn(&mut self, clr: Color);
@@ -85,7 +89,7 @@ impl PassedPawnEvalTrait for Board {
         let backward = PAWN_FORWARD_SPANS[clr.opp().idx()][sq];
         let forward_lr = FORWARD_SPANS_LR[clr.idx()][sq];
 
-        let mut defended_bb = forward & self.eval.attack_map[clr.idx()];
+        let defended_bb = forward & self.eval.attack_map[clr.idx()];
 
         // print_bitboard(forward, None);
         // print_bitboard(self.eval.defend_map[clr.opp().idx()], None);
@@ -95,7 +99,7 @@ impl PassedPawnEvalTrait for Board {
 
         // print_bitboard(unsafe_bb, None);
 
-        let mut wunsafe_bb = forward_lr & self.eval.attack_map[clr.opp().idx()];
+        let wunsafe_bb = forward_lr & self.eval.attack_map[clr.opp().idx()];
 
         let mut is_defended1 = defended_bb.is_set(self.front_sq(sq, clr));
 
@@ -103,7 +107,7 @@ impl PassedPawnEvalTrait for Board {
 
         if (self.queen_bb(clr) | self.rook_bb(clr)) & backward != 0 {
             is_defended1 = true;
-            defended_bb = 1;
+            // defended_bb = 1;
         }
 
         if (self.queen_bb(clr.opp()) | self.rook_bb(clr.opp())) & backward != 0 {
@@ -230,7 +234,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
 
     use super::*;
 

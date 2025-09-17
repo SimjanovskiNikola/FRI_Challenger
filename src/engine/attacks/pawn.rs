@@ -3,8 +3,8 @@ use crate::engine::board::piece::*;
 use crate::engine::generated::pawn::*;
 use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::bitboard::BitboardTrait;
-use crate::engine::misc::const_utility::Rank;
 use crate::engine::misc::const_utility::FILE_BITBOARD;
+use crate::engine::misc::const_utility::Rank;
 
 // PAWN MOVE, ATTACK, EP
 #[inline(always)]
@@ -28,7 +28,7 @@ pub fn get_pawn_att(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
 }
 
 #[inline(always)]
-pub fn get_pawn_att_mask(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
+pub fn get_pawn_att_mask(sq: usize, _own: u64, _enemy: u64, color: Color) -> u64 {
     PAWN_ATTACK_LOOKUP[color.idx()][sq]
 }
 
@@ -49,30 +49,18 @@ pub const fn get_pawn_2_att(bb: u64, color: Color) -> u64 {
 
 #[inline(always)]
 pub const fn get_all_pawn_left_att_mask(bb: u64, color: Color) -> u64 {
-    if color == WHITE {
-        (bb << 9) & !FILE_BITBOARD[0]
-    } else {
-        (bb >> 9) & !FILE_BITBOARD[7]
-    }
+    if color == WHITE { (bb << 9) & !FILE_BITBOARD[0] } else { (bb >> 9) & !FILE_BITBOARD[7] }
 }
 
 #[inline(always)]
 pub const fn get_all_pawn_right_att_mask(bb: u64, color: Color) -> u64 {
-    if color == WHITE {
-        (bb << 7) & !FILE_BITBOARD[7]
-    } else {
-        (bb >> 7) & !FILE_BITBOARD[0]
-    }
+    if color == WHITE { (bb << 7) & !FILE_BITBOARD[7] } else { (bb >> 7) & !FILE_BITBOARD[0] }
 }
 
 // TODO:
 #[inline(always)]
 pub const fn get_all_pawn_forward_mask(bb: u64, color: Color) -> u64 {
-    if color == WHITE {
-        bb << 8
-    } else {
-        bb >> 8
-    }
+    if color == WHITE { bb << 8 } else { bb >> 8 }
 }
 
 #[inline(always)]
@@ -93,6 +81,7 @@ pub fn is_blocked_pawn(color: Color, sq: usize, own_pawns: u64) -> bool {
 // FORWARD AND DIAGONAL MOVES
 // DEPRECATE:
 #[deprecated = "Leaving Here If I need this in the future, otherwise not needed"]
+#[allow(dead_code)]
 fn forward_move(row: i8, col: i8, color: Color) -> u64 {
     let mut bitboard = 0;
     if color == WHITE {
@@ -116,6 +105,7 @@ fn forward_move(row: i8, col: i8, color: Color) -> u64 {
 
 // DEPRECATE:
 #[deprecated = "Leaving Here If I need this in the future, otherwise not needed"]
+#[allow(dead_code)]
 fn diagonal_move(row: i8, col: i8, color: Color) -> u64 {
     let mut bitboard = 0;
     if color == WHITE && row < 7 {
@@ -129,21 +119,19 @@ fn diagonal_move(row: i8, col: i8, color: Color) -> u64 {
     bitboard
 }
 
-use rand::Rng;
-
 #[cfg(test)]
 mod tests {
+
+    use rand::Rng;
 
     use super::*;
 
     #[test]
     fn zobrist_keys() {
-        let mut rand: u64 = rand::rng().random();
-
-        for i in 0..48 {
+        for _ in 0..48 {
             println!("[");
-            for i in 0..14 {
-                rand = rand::rng().random();
+            for _ in 0..14 {
+                let rand: u64 = rand::rng().random();
                 println!("{:?},", rand);
             }
             println!("],");
@@ -151,6 +139,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_second_row_white_pawn() {
         let row = 1;
         for col in 0..8 {
@@ -163,6 +152,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_second_row_black_pawn() {
         let row = 1;
         for col in 0..8 {
@@ -173,6 +163,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_seventh_row_black_pawn() {
         let row = 6;
         for col in 0..8 {
@@ -188,6 +179,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_seventh_row_white_pawn() {
         let row = 6;
         for col in 0..8 {
@@ -198,6 +190,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_middle_row_white_pawn() {
         for row in 2..7 {
             for col in 0..8 {
@@ -209,6 +202,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_middle_row_black_pawn() {
         for row in 1..6 {
             for col in 0..8 {
@@ -246,6 +240,7 @@ mod tests {
     // }
 
     #[test]
+    #[allow(deprecated)]
     fn test_diagonal_white_pawn() {
         for row in 1..6 {
             for col in 1..6 {
@@ -260,6 +255,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_diagonal_white_pawn_col_edge() {
         for row in 1..6 {
             let col = 0;
@@ -279,6 +275,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_diagonal_black_pawn() {
         for row in 1..6 {
             for col in 1..6 {
@@ -293,6 +290,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_diagonal_black_pawn_col_edge() {
         for row in 1..6 {
             let col = 0;

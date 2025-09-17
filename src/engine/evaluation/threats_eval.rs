@@ -3,16 +3,12 @@ use crate::engine::attacks::knight::get_knight_mask;
 use crate::engine::attacks::pawn::{
     get_all_pawn_forward_mask, get_all_pawn_left_att_mask, get_all_pawn_right_att_mask,
 };
-use crate::engine::attacks::queen;
 use crate::engine::board::board::Board;
 use crate::engine::board::color::{Color, ColorTrait};
 use crate::engine::board::piece::*;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
-use crate::engine::evaluation::mobility_eval::MobilityEvalTrait;
-use crate::engine::generated::bishop::BISHOP_MASKS;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::RANK_BITBOARD;
-use crate::engine::misc::display::display_board::print_bitboard;
 
 pub const ROOK_THREAT: [(isize, isize); 6] =
     [(3, 46), (37, 68), (0, 0), (42, 60), (0, 38), (58, 41)];
@@ -141,13 +137,12 @@ impl ThreatsEvalTrait for Board {
     fn pawn_push_threat(&mut self, clr: Color) -> u64 {
         let clr_push_ranks = [2, 5];
         let both_occ = self.occ_bb(clr) | self.occ_bb(clr.opp());
-        let mut pawn_threats = 0;
         let pawn_one_push = get_all_pawn_forward_mask(self.pawn_bb(clr), clr) & !both_occ;
         let pawn_two_push = get_all_pawn_forward_mask(
             pawn_one_push & RANK_BITBOARD[clr_push_ranks[clr.idx()]],
             clr,
         ) & !both_occ;
-        pawn_threats =
+        let mut pawn_threats =
             (pawn_one_push | pawn_two_push) & !self.eval.attacked_by[(PAWN + clr.opp()).idx()];
 
         pawn_threats = (pawn_threats & self.eval.attack_map[clr.idx()])

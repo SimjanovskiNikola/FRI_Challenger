@@ -1,12 +1,4 @@
-use std::io::BufRead;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, RwLock, mpsc};
-use std::thread::JoinHandle;
-use std::time::{Duration, Instant};
-use std::{io, thread, u64};
-
-use arc_swap::ArcSwap;
-
+use super::time::set_time_limit;
 use crate::engine::board::board::Board;
 use crate::engine::board::color::ColorTrait;
 use crate::engine::board::fen::FenTrait;
@@ -15,9 +7,12 @@ use crate::engine::misc::const_utility::FEN_START;
 use crate::engine::misc::display::display_moves::{from_move_notation, move_notation};
 use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::search::iter_deepening::Search;
-use crate::engine::search::transposition_table::TTTable;
-
-use super::time::set_time_limit;
+use std::io::BufRead;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, mpsc};
+use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
+use std::{io, thread, u64};
 
 #[derive(Debug, Clone)]
 pub struct UCITime {

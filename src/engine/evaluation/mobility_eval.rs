@@ -1,13 +1,7 @@
-use crate::engine::attacks::bishop::get_bishop_mask;
-use crate::engine::attacks::knight::get_knight_mask;
 use crate::engine::attacks::pawn::{get_all_pawn_left_att_mask, get_all_pawn_right_att_mask};
-use crate::engine::attacks::queen::get_queen_mask;
-use crate::engine::attacks::rook::get_rook_mask;
 use crate::engine::board::board::Board;
 use crate::engine::board::color::{Color, ColorTrait};
-use crate::engine::board::piece::{
-    Piece, PieceTrait, BISHOP, KNIGHT, PAWN, PIECES_WITHOUT_PAWN_KING, QUEEN, ROOK,
-};
+use crate::engine::board::piece::*;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 
@@ -94,7 +88,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
 
     use super::*;
 

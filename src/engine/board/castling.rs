@@ -78,7 +78,8 @@ impl CastlingRights {
         self.val() & castle.val() != 0
     }
 
-    fn get_mask(&self, clr: Color) -> u8 {
+    #[inline(always)]
+    pub fn get_mask(&self, clr: Color) -> u8 {
         CLR_CASTLE_MASK[clr.idx()] & self.val()
     }
 
