@@ -408,6 +408,7 @@ mod tests {
 
     use crate::engine::board::fen::FenTrait;
     use crate::engine::misc::bit_pos_utility::extract_all_bits;
+    use crate::engine::misc::bitboard::BitboardTrait;
     use crate::engine::misc::display::display_board::*;
     use crate::engine::misc::display::display_moves::*;
 
