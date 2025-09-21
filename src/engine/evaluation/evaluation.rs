@@ -209,6 +209,7 @@ pub trait EvaluationTrait:
 
 impl EvaluationTrait for Board {
     fn evaluation(&mut self) -> isize {
+        self.eval.reset();
         self.init();
 
         // 1. Piece Value
@@ -261,13 +262,13 @@ impl EvaluationTrait for Board {
         self.eval.reset();
 
         if let Some(pawn_entry) = self.pawn_tt.get(self.pk_key()) {
-            self.eval.pawn_behind_masks = pawn_entry.pawn_behind_masks;
-            self.eval.pawn_att_span = pawn_entry.pawn_att_span;
-            self.eval.king_pawn_dx = pawn_entry.king_pawn_dx;
-            self.eval.open_file = pawn_entry.open_file;
+            // self.eval.pawn_behind_masks = pawn_entry.pawn_behind_masks;
+            // self.eval.pawn_att_span = pawn_entry.pawn_att_span;
+            // self.eval.king_pawn_dx = pawn_entry.king_pawn_dx;
+            // self.eval.open_file = pawn_entry.open_file;
             self.eval.king_shelter =
                 pawn_entry.shelter.map(|(x, y, z)| (x as isize, y as isize, z as isize));
-            self.eval.pawn_eval = pawn_entry.pawn_eval;
+            self.eval.pawn_eval = pawn_entry.pawn_eval.map(|(x, y)| (x as isize, y as isize));
             self.eval.candidate_passed = pawn_entry.candidate_passed;
             self.eval.pawn_hash_hit = true;
         }
@@ -287,25 +288,23 @@ impl EvaluationTrait for Board {
         self.imbalance(BLACK);
 
         // 4. Pawns
-        self.pawns_eval(WHITE);
-        self.pawns_eval(BLACK);
-        // if !self.eval.pawn_hash_hit {
-        //     self.pawns_eval(WHITE);
-        //     self.pawns_eval(BLACK);
-        // } else {
-        //     self.sum(
-        //         WHITE,
-        //         None,
-        //         None,
-        //         (self.eval.pawn_eval[WHITE.idx()].0, self.eval.pawn_eval[WHITE.idx()].1),
-        //     );
-        //     self.sum(
-        //         BLACK,
-        //         None,
-        //         None,
-        //         (self.eval.pawn_eval[BLACK.idx()].0, self.eval.pawn_eval[BLACK.idx()].1),
-        //     );
-        // }
+        if !self.eval.pawn_hash_hit {
+            self.pawns_eval(WHITE);
+            self.pawns_eval(BLACK);
+        } else {
+            self.sum(
+                WHITE,
+                None,
+                None,
+                (self.eval.pawn_eval[WHITE.idx()].0, self.eval.pawn_eval[WHITE.idx()].1),
+            );
+            self.sum(
+                BLACK,
+                None,
+                None,
+                (self.eval.pawn_eval[BLACK.idx()].0, self.eval.pawn_eval[BLACK.idx()].1),
+            );
+        }
 
         // 5. Pieces
         self.piece_eval(WHITE);
@@ -337,15 +336,16 @@ impl EvaluationTrait for Board {
         self.tempo(self.color());
 
         if !self.eval.pawn_hash_hit {
+            let king_shelter =
+                self.eval.king_shelter.map(|(x, y, z)| (x as i16, y as i16, z as i16));
             self.pawn_tt.set(
                 self.pk_key(),
                 self.eval.pawn_behind_masks,
                 self.eval.pawn_att_span,
                 self.eval.king_pawn_dx,
                 self.eval.open_file,
-                self.eval.king_shelter.map(|(x, y, z)| (x as i16, y as i16, z as i16)),
-                self.eval.pawn_eval,
-                // [self.eval.pawn_eval[WHITE.idx()], self.eval.pawn_eval[BLACK.idx()]],
+                king_shelter,
+                self.eval.pawn_eval.map(|(x, y)| (x as i16, y as i16)),
                 self.eval.candidate_passed,
             );
         }

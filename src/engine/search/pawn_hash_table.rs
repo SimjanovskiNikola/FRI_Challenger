@@ -1,4 +1,5 @@
-const MAX_TT_ENTRIES: u64 = 500211;
+// const MAX_TT_ENTRIES: u64 = 400211;
+const MAX_TT_ENTRIES: u64 = 403139;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Bound {
@@ -12,14 +13,14 @@ pub enum Bound {
 // NOTE: Currently Around 15Mb
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PawnEntry {
-    pub key: u64,                       // 8Bytes
-    pub pawn_behind_masks: [u64; 2],    // 16Bytes
-    pub pawn_att_span: [u64; 2],        // 16Bytes
-    pub king_pawn_dx: [u8; 2],          // 2Bytes
-    pub open_file: [u64; 2],            // 16Bytes
-    pub shelter: [(i16, i16, i16); 2],  // 12Bytes
-    pub pawn_eval: [(isize, isize); 2], // 32Bytes
-    pub candidate_passed: [u64; 2],     // 16Bytes
+    pub key: u64, // 8Bytes
+    // pub pawn_behind_masks: [u64; 2],   // 16Bytes
+    // pub pawn_att_span: [u64; 2], // 16Bytes
+    // pub king_pawn_dx: [u8; 2],         // 2Bytes
+    // pub open_file: [u64; 2],           // 16Bytes
+    pub shelter: [(i16, i16, i16); 2], // 12Bytes
+    pub pawn_eval: [(i16, i16); 2],    // 8Bytes // Can be one i32 max
+    pub candidate_passed: [u64; 2],    // 16Bytes
     // Candidate Passed Pawns,
     pub age: i8, // 1Byte
 } // Total:  103 Bytes (Padding to 71 Bytes on 64-bit)                                 
@@ -32,16 +33,16 @@ impl PawnEntry {
         king_pawn_dx: [u8; 2],
         open_file: [u64; 2],
         shelter: [(i16, i16, i16); 2],
-        pawn_eval: [(isize, isize); 2],
+        pawn_eval: [(i16, i16); 2],
         candidate_passed: [u64; 2],
         age: i8,
     ) -> Self {
         Self {
             key,
-            pawn_behind_masks,
-            pawn_att_span,
-            king_pawn_dx,
-            open_file,
+            // pawn_behind_masks,
+            // pawn_att_span,
+            // king_pawn_dx,
+            // open_file,
             shelter,
             pawn_eval,
             candidate_passed,
@@ -85,7 +86,7 @@ impl PawnHashTable {
         king_pawn_dx: [u8; 2],
         open_file: [u64; 2],
         shelter: [(i16, i16, i16); 2],
-        pawn_eval: [(isize, isize); 2],
+        pawn_eval: [(i16, i16); 2],
         candidate_passed: [u64; 2],
     ) {
         self.inserts += 1;

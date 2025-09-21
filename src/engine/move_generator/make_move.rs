@@ -6,6 +6,7 @@ use crate::engine::board::moves::*;
 use crate::engine::board::piece::*;
 use crate::engine::board::zobrist::ZobristKeysTrait;
 use crate::engine::evaluation::evaluation::EvaluationTrait;
+use crate::engine::generated::zobrist_keys::CASTLE_KEYS;
 use crate::engine::generated::zobrist_keys::PIECE_COUNT_KEYS;
 use crate::engine::generated::zobrist_keys::PIECE_KEYS;
 use crate::engine::misc::bitboard::BitboardTrait;
@@ -26,6 +27,7 @@ impl BoardMoveTrait for Board {
         self.history.push(self.state);
         self.moves.push(*mv);
         self.zb_reset_key();
+        self.state.pk_key ^= CASTLE_KEYS[self.state.castling.idx()];
 
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece),
@@ -169,6 +171,7 @@ impl BoardMoveTrait for Board {
             }
         }
         self.zb_castling();
+        self.state.pk_key ^= CASTLE_KEYS[self.state.castling.idx()];
 
         // Setting the En passant
         if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {

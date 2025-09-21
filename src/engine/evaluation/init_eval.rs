@@ -41,9 +41,6 @@ impl InitEvalTrait for Board {
 
     #[inline(always)]
     fn pawn_init(&mut self) {
-        if self.eval.pawn_hash_hit {
-            return;
-        }
         for &clr in &COLORS {
             let (own, enemy) = self.both_occ_bb(clr);
             let piece = PAWN + clr;
