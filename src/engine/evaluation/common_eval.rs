@@ -59,6 +59,15 @@ pub trait CommonEvalTrait {
         value: (isize, isize),
     );
 
+    fn sum_into_arr(
+        &mut self,
+        color: Color,
+        square: Option<usize>,
+        piece: Option<Piece>,
+        value: (isize, isize),
+        score: &mut [(isize, isize); 2],
+    );
+
     fn calculate_score(&mut self) -> isize;
     fn get_mask(&mut self, piece: Piece, sq: usize) -> u64;
     fn x_ray_mask(&mut self, piece: Piece, sq: usize) -> u64;
@@ -136,6 +145,21 @@ impl CommonEvalTrait for Board {
 
         self.eval.score[color.idx()].0 += value.0;
         self.eval.score[color.idx()].1 += value.1;
+    }
+
+    #[inline(always)]
+    fn sum_into_arr(
+        &mut self,
+        color: Color,
+        square: Option<usize>,
+        piece: Option<Piece>,
+        value: (isize, isize),
+        score: &mut [(isize, isize); 2],
+    ) {
+        // self.trace(color, square, piece, value);
+
+        score[color.idx()].0 += value.0;
+        score[color.idx()].1 += value.1;
     }
 
     // ************************************************

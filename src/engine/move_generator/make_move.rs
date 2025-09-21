@@ -119,8 +119,10 @@ impl BoardMoveTrait for Board {
 
         self.bitboard[piece.idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
         self.bitboard[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
-        self.state.key ^= PIECE_KEYS[from_sq][piece.idx()];
-        self.state.key ^= PIECE_KEYS[to_sq][piece.idx()];
+        self.state.key ^= PIECE_KEYS[from_sq][piece.idx()] ^ PIECE_KEYS[to_sq][piece.idx()];
+        if piece.is_pawn() || piece.is_king() {
+            self.state.pk_key ^= PIECE_KEYS[from_sq][piece.idx()] ^ PIECE_KEYS[to_sq][piece.idx()];
+        }
         self.quiet_eval(piece, from_sq, to_sq);
     }
 
@@ -131,8 +133,9 @@ impl BoardMoveTrait for Board {
         self.bitboard[piece.idx()].set_bit(sq);
         self.bitboard[piece.color().idx()].set_bit(sq);
         self.state.key ^= PIECE_KEYS[sq][piece.idx()];
-        self.state.pc_key ^= PIECE_COUNT_KEYS[self.p_count[piece.idx()]][piece.idx()]
-            ^ PIECE_COUNT_KEYS[self.p_count[piece.idx()] + 1][piece.idx()];
+        if piece.is_pawn() || piece.is_king() {
+            self.state.pk_key ^= PIECE_KEYS[sq][piece.idx()]
+        }
         self.p_count[piece.idx()] += 1;
         self.add_eval(piece, sq);
     }
@@ -144,8 +147,9 @@ impl BoardMoveTrait for Board {
         self.bitboard[piece.idx()].clear_bit(sq);
         self.bitboard[piece.color().idx()].clear_bit(sq);
         self.state.key ^= PIECE_KEYS[sq][piece.idx()];
-        self.state.pc_key ^= PIECE_COUNT_KEYS[self.p_count[piece.idx()]][piece.idx()]
-            ^ PIECE_COUNT_KEYS[self.p_count[piece.idx()] - 1][piece.idx()];
+        if piece.is_pawn() || piece.is_king() {
+            self.state.pk_key ^= PIECE_KEYS[sq][piece.idx()]
+        }
         self.p_count[piece.idx()] -= 1;
         self.clear_eval(piece, sq);
     }

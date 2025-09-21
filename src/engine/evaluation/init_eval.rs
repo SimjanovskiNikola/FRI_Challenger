@@ -32,7 +32,6 @@ pub trait InitEvalTrait {
 impl InitEvalTrait for Board {
     #[inline(always)]
     fn init(&mut self) {
-        self.eval.reset();
         self.determine_phase();
 
         self.pawn_init();
@@ -42,6 +41,9 @@ impl InitEvalTrait for Board {
 
     #[inline(always)]
     fn pawn_init(&mut self) {
+        if self.eval.pawn_hash_hit {
+            return;
+        }
         for &clr in &COLORS {
             let (own, enemy) = self.both_occ_bb(clr);
             let piece = PAWN + clr;
@@ -59,22 +61,22 @@ impl InitEvalTrait for Board {
                 }
 
                 self.eval.king_pawn_dx[clr.idx()] =
-                    self.eval.king_pawn_dx[clr.idx()].min(self.king_dist(clr, sq));
+                    self.eval.king_pawn_dx[clr.idx()].min(self.king_dist(clr, sq) as u8);
 
                 self.eval.open_file[clr.idx()] &= !FILE_BITBOARD[get_file(sq)]; // OPEN-FILE
             }
         }
+    }
 
+    #[inline(always)]
+    fn piece_init(&mut self) {
         for &clr in &COLORS {
             self.eval.outpost[clr.idx()] = !self.eval.pawn_att_span[clr.opp().idx()]
                 & OUTPOST_RANKS[clr.idx()]
                 & (get_all_pawn_left_att_mask(self.pawn_bb(clr), clr)
                     | get_all_pawn_right_att_mask(self.pawn_bb(clr), clr));
         }
-    }
 
-    #[inline(always)]
-    fn piece_init(&mut self) {
         for &clr in &COLORS {
             self.eval.mobility_area[clr.idx()] = self.mobility_area(clr);
             let king_sq = self.king_sq(clr.opp());
@@ -134,7 +136,9 @@ impl InitEvalTrait for Board {
         for clr in COLORS {
             self.eval.king_ring[clr.idx()] = self.king_ring(clr);
             self.check(clr);
-            self.eval.king_shelter[clr.idx()] = self.shelter(clr);
+            if !self.eval.pawn_hash_hit {
+                self.eval.king_shelter[clr.idx()] = self.shelter(clr);
+            }
         }
     }
 

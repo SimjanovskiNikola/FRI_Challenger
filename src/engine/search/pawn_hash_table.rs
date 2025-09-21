@@ -1,171 +1,155 @@
-// use crate::engine::board::board::Board;
-// use crate::engine::board::moves::ExtendedMove;
-// use crate::engine::board::moves::Move;
-// use crate::engine::move_generator::make_move::BoardMoveTrait;
-// use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
+const MAX_TT_ENTRIES: u64 = 500211;
 
-// use once_cell::sync::Lazy;
-// use std::sync::{atomic::AtomicU64, Mutex, RwLock};
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Bound {
+    Lower,
+    Exact,
+    Upper,
+}
 
-// pub static TT: Lazy<TTTable> = Lazy::new(|| TTTable::init());
+// NOTE: 64 + 32 + 16 + 8 + 8 = 128 BITS = 16 Bytes
+// NOTE: 1Mb = 1000000 Bytes = 166,666 Entries
+// NOTE: Currently Around 15Mb
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PawnEntry {
+    pub key: u64,                       // 8Bytes
+    pub pawn_behind_masks: [u64; 2],    // 16Bytes
+    pub pawn_att_span: [u64; 2],        // 16Bytes
+    pub king_pawn_dx: [u8; 2],          // 2Bytes
+    pub open_file: [u64; 2],            // 16Bytes
+    pub shelter: [(i16, i16, i16); 2],  // 12Bytes
+    pub pawn_eval: [(isize, isize); 2], // 32Bytes
+    pub candidate_passed: [u64; 2],     // 16Bytes
+    // Candidate Passed Pawns,
+    pub age: i8, // 1Byte
+} // Total:  103 Bytes (Padding to 71 Bytes on 64-bit)                                 
 
-// const MAX_TT_ENTRIES: usize = 10007;
+impl PawnEntry {
+    pub fn init(
+        key: u64,
+        pawn_behind_masks: [u64; 2],
+        pawn_att_span: [u64; 2],
+        king_pawn_dx: [u8; 2],
+        open_file: [u64; 2],
+        shelter: [(i16, i16, i16); 2],
+        pawn_eval: [(isize, isize); 2],
+        candidate_passed: [u64; 2],
+        age: i8,
+    ) -> Self {
+        Self {
+            key,
+            pawn_behind_masks,
+            pawn_att_span,
+            king_pawn_dx,
+            open_file,
+            shelter,
+            pawn_eval,
+            candidate_passed,
+            age,
+        }
+    }
+}
 
-// #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-// pub enum Bound {
-//     Lower,
-//     Exact,
-//     Upper,
-// }
+#[derive(Debug, Clone)]
+pub struct PawnHashTable {
+    pub table: Box<[Option<PawnEntry>]>,
+    pub lookups: u64,
+    pub inserts: u64,
+    pub hits: u64,
+    pub collisions: u64,
+    pub curr_age: i8,
+}
 
-// // NOTE: 64 + 32 + 16 + 8 + 8 = 128 BITS = 16 Bytes
-// // NOTE: 1Mb = 1000000 Bytes = 166,666 Entries
-// // NOTE: Currently Around 15Mb
-// #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-// pub struct PawnHashEntry {
-//     pub key: u64,
-//     pub age: i16,
-// }
+impl PawnHashTable {
+    pub fn init() -> Self {
+        Self {
+            table: vec![None; MAX_TT_ENTRIES as usize].into_boxed_slice(), //Box::new([None; MAX_TT_ENTRIES]),
+            lookups: 0,
+            inserts: 0,
+            hits: 0,
+            collisions: 0,
+            curr_age: 0,
+        }
+    }
 
-// impl PawnHashEntry {
-//     pub fn init(key: u64, mv: Move, score: i16, depth: i8, category: Bound, age: i16) -> Self {
-//         Self { key, mv, score, depth, category, age }
-//     }
-// }
+    #[inline(always)]
+    pub fn idx(key: u64) -> usize {
+        return (key % MAX_TT_ENTRIES) as usize;
+    }
 
-// #[derive(Debug)]
-// pub struct TTTable {
-//     pub table: Box<[Option<TTEntry>]>, //Vec<Option<TTEntry>>,
-//     pub lookups: u64,
-//     pub inserts: u64,
-//     pub hits: u64,
-//     pub collisions: u64,
-//     pub curr_age: i16,
-// }
+    pub fn set(
+        &mut self,
+        key: u64,
+        pawn_behind_masks: [u64; 2],
+        pawn_att_span: [u64; 2],
+        king_pawn_dx: [u8; 2],
+        open_file: [u64; 2],
+        shelter: [(i16, i16, i16); 2],
+        pawn_eval: [(isize, isize); 2],
+        candidate_passed: [u64; 2],
+    ) {
+        self.inserts += 1;
 
-// impl TTTable {
-//     pub fn init() -> Self {
-//         Self {
-//             table: vec![None; MAX_TT_ENTRIES].into_boxed_slice(), //Box::new([None; MAX_TT_ENTRIES]),
-//             lookups: 0,
-//             inserts: 0,
-//             hits: 0,
-//             collisions: 0,
-//             curr_age: 0,
-//         }
-//     }
+        if let Some(entry) = self.table[Self::idx(key)] {
+            self.collisions += 1;
+            if entry.age < self.curr_age {
+                self.table[Self::idx(key)] = Some(PawnEntry::init(
+                    key,
+                    pawn_behind_masks,
+                    pawn_att_span,
+                    king_pawn_dx,
+                    open_file,
+                    shelter,
+                    pawn_eval,
+                    candidate_passed,
+                    self.curr_age,
+                ));
+            }
+            return;
+        }
 
-//     pub fn idx(key: u64) -> usize {
-//         return (key % MAX_TT_ENTRIES as u64) as usize;
-//     }
+        self.table[Self::idx(key)] = Some(PawnEntry::init(
+            key,
+            pawn_behind_masks,
+            pawn_att_span,
+            king_pawn_dx,
+            open_file,
+            shelter,
+            pawn_eval,
+            candidate_passed,
+            self.curr_age,
+        ));
+    }
 
-//     pub fn set(&mut self, key: u64, mv: Move, score: i16, depth: i8, category: Bound) {
-//         self.inserts += 1;
+    pub fn get(&mut self, key: u64) -> Option<PawnEntry> {
+        if let Some(entry) = self.table[Self::idx(key)] {
+            if entry.key == key {
+                self.hits += 1;
+                return Some(entry);
+            }
+        }
 
-//         if let Some(entry) = self.table[Self::idx(key)] {
-//             self.collisions += 1;
-//             if (entry.age < self.curr_age) || (entry.depth <= depth) {
-//                 self.table[Self::idx(key)] =
-//                     Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
-//             }
-//             return;
-//         }
+        return None;
+    }
 
-//         self.table[Self::idx(key)] =
-//             Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
-//     }
+    pub fn print_stats(&self) {
+        println!(
+            "lookups: {}; inserts: {}; hits: {}; collisions: {};",
+            self.lookups, self.inserts, self.hits, self.collisions
+        );
+    }
 
-//     pub fn probe(&self, key: u64, depth: i8, mut alpha: i16, mut beta: i16) -> Option<(i16, Move)> {
-//         // self.lookups += 1;
-//         let idx = Self::idx(key);
-//         if let Some(e) = self.table[idx] {
-//             if e.key == key && (e.depth as i16 + e.age) >= (depth as i16 + self.curr_age) {
-//                 match e.category {
-//                     Bound::Lower => alpha = alpha.max(e.score),
-//                     Bound::Exact => {
-//                         // self.hits += 1;
-//                         return Some((e.score, e.mv));
-//                     }
-//                     Bound::Upper => beta = beta.min(e.score),
-//                 }
-//                 if alpha >= beta {
-//                     // self.hits += 1;
-//                     return Some((e.score, e.mv));
-//                 }
-//             }
-//         }
+    pub fn clear(&mut self) {
+        self.table.fill(None);
+        self.clear_stats();
+        self.curr_age = 0;
+    }
 
-//         return None;
-//     }
-
-//     pub fn get(&self, key: u64) -> Option<TTEntry> {
-//         let idx = Self::idx(key);
-//         if let Some(entry) = self.table.get(idx) {
-//             if let Some(e) = *entry {
-//                 if e.key == key {
-//                     return Some(e);
-//                 }
-//             }
-//         }
-
-//         return None;
-//     }
-
-//     pub fn print_stats(&self) {
-//         println!(
-//             "lookups: {}; inserts: {}; hits: {}; collisions: {};",
-//             self.lookups, self.inserts, self.hits, self.collisions
-//         );
-//     }
-
-//     pub fn clear(&mut self) {
-//         self.table.fill(None);
-//         self.clear_stats();
-//         self.curr_age = 0;
-//     }
-
-//     pub fn clear_stats(&mut self) {
-//         self.hits = 0;
-//         self.collisions = 0;
-//         self.inserts = 0;
-//         self.lookups = 0;
-//         self.curr_age += 1;
-//     }
-
-//     pub fn get_line(&self, board: &mut Board) -> Vec<ExtendedMove> {
-//         let mut line: Vec<ExtendedMove> = Vec::with_capacity(64); // TODO: Max Depth Add as a constant
-//         let mut moves_made = 0;
-
-//         while let Some(entry) = self.get(board.state.key) {
-//             if line.len() >= 64 {
-//                 break;
-//             }
-
-//             if board.move_exists(&entry.mv) {
-//                 // println!("Before Key: {:?}", board.state.key);
-//                 board.make_move(&entry.mv);
-//                 line.push(ExtendedMove { mv: entry.mv, key: board.state.key });
-//                 // println!("After Key: {:?}", board.state.key);
-//                 moves_made += 1;
-//             } else {
-//                 break;
-//             }
-//         }
-
-//         while moves_made > 0 {
-//             board.undo_move();
-//             moves_made -= 1;
-//         }
-
-//         line
-//     }
-// }
-
-// TODO: PawnHashTable Must Include:
-// - King Shelter
-// - Pawn Evaluation
-
-// TODO: Material Must Include:
-// - Material Evaluation
-// - Imbalance Evaluation
-// - Non-Pawn Material Evaluation
+    pub fn clear_stats(&mut self) {
+        self.hits = 0;
+        self.collisions = 0;
+        self.inserts = 0;
+        self.lookups = 0;
+        self.curr_age += 1;
+    }
+}
