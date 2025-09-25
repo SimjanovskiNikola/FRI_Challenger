@@ -262,10 +262,6 @@ impl EvaluationTrait for Board {
         self.eval.reset();
 
         if let Some(pawn_entry) = self.pawn_tt.get(self.pk_key()) {
-            // self.eval.pawn_behind_masks = pawn_entry.pawn_behind_masks;
-            // self.eval.pawn_att_span = pawn_entry.pawn_att_span;
-            // self.eval.king_pawn_dx = pawn_entry.king_pawn_dx;
-            // self.eval.open_file = pawn_entry.open_file;
             self.eval.king_shelter =
                 pawn_entry.shelter.map(|(x, y, z)| (x as isize, y as isize, z as isize));
             self.eval.pawn_eval = pawn_entry.pawn_eval.map(|(x, y)| (x as isize, y as isize));
@@ -340,10 +336,6 @@ impl EvaluationTrait for Board {
                 self.eval.king_shelter.map(|(x, y, z)| (x as i16, y as i16, z as i16));
             self.pawn_tt.set(
                 self.pk_key(),
-                self.eval.pawn_behind_masks,
-                self.eval.pawn_att_span,
-                self.eval.king_pawn_dx,
-                self.eval.open_file,
                 king_shelter,
                 self.eval.pawn_eval.map(|(x, y)| (x as i16, y as i16)),
                 self.eval.candidate_passed,
