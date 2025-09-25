@@ -20,11 +20,7 @@ impl Iterator for Bitboard {
     type Item = usize;
 
     fn next(&mut self) -> Option<usize> {
-        if *self > 0 {
-            Some(self.pop_lsb())
-        } else {
-            None
-        }
+        if *self > 0 { Some(self.pop_lsb()) } else { None }
     }
 }
 

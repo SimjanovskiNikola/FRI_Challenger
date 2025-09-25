@@ -5,7 +5,7 @@ use crate::engine::board::square::{get_file, get_rank};
 use crate::engine::evaluation::common_eval::{CLR_RANK, CommonEvalTrait};
 use crate::engine::evaluation::pawn_eval::PawnEvalTrait;
 use crate::engine::generated::pawn::{FORWARD_SPANS_LR, PAWN_ATTACK_LOOKUP, PAWN_FORWARD_SPANS};
-use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
+use crate::engine::misc::bitboard::{Bitboard, BitboardTrait, Iterator};
 
 pub const PASSED_PAWN_REW: [[(isize, isize); 8]; 2] = [
     [(0, 0), (10, 28), (17, 33), (15, 41), (62, 72), (168, 177), (276, 260), (0, 0)],
@@ -45,9 +45,15 @@ impl PassedPawnEvalTrait for Board {
 
     #[inline(always)]
     fn passed_leverable(&mut self, sq: usize, clr: Color) -> bool {
-        if !self.candidate_passed(sq, clr) {
-            // println!("Candidate Not Passed on sq: {:?}", sq);
+        // if !self.candidate_passed(sq, clr) {
+        //     return false;
+        // }
+        if (self.eval.pawn_hash_hit && !self.eval.candidate_passed[clr.idx()].is_set(sq))
+            || (!self.eval.pawn_hash_hit && !self.candidate_passed(sq, clr))
+        {
             return false;
+        } else {
+            self.eval.candidate_passed[clr.idx()].set_bit(sq);
         }
 
         if !self.blocked_pawn(sq, clr, self.pawn_bb(clr.opp())) {

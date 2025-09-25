@@ -50,18 +50,22 @@ impl PawnEvalTrait for Board {
         // println!("Weak Lever: {:?}", self.weak_lever(sq, clr));
         // println!("Blocked pawn 5th 6th: {:?}", self.blocked_pawn_5th_6th_rank(sq, clr));
         // println!("Connected: {:?}", self.blocked_pawn_5th_6th_rank(sq, clr));
-
+        let mut pawn_eval = self.eval.pawn_eval;
         if self.doubled_isolated_pawn(sq, clr) {
             self.sum(clr, Some(sq), None, (-11, -56));
+            self.sum_into_arr(clr, Some(sq), None, (-11, -56), &mut pawn_eval);
         } else if self.isolated_pawn(sq, clr) {
             self.sum(clr, Some(sq), None, (-5, -15));
+            self.sum_into_arr(clr, Some(sq), None, (-5, -15), &mut pawn_eval);
         } else if self.backward_pawn(sq, clr) {
             self.sum(clr, Some(sq), None, (-9, -24));
+            self.sum_into_arr(clr, Some(sq), None, (-9, -24), &mut pawn_eval);
         }
 
         // FIXME: Not correct (Needs to check how many doubled are on the same file)
         if self.doubled_pawn(sq, clr) {
             self.sum(clr, Some(sq), None, (-11, -56));
+            self.sum_into_arr(clr, Some(sq), None, (-11, -56), &mut pawn_eval);
         }
 
         if self.connected_pawn(sq, clr) {
@@ -69,23 +73,32 @@ impl PawnEvalTrait for Board {
             let bonus =
                 (calc_bonus, calc_bonus * (CLR_RANK[clr.idx()][get_rank(sq)] as isize - 2) / 4);
             self.sum(clr, Some(sq), None, bonus);
+            self.sum_into_arr(clr, Some(sq), None, bonus, &mut pawn_eval);
             // FIXME: Check if it is ok to be this a minus sth
             // println!("Connected Bonus: {:?}", bonus);
         }
 
         if self.weak_unopposed_pawn(sq, clr) {
             self.sum(clr, Some(sq), None, (-13, -27));
+            self.sum_into_arr(clr, Some(sq), None, (-13, -27), &mut pawn_eval);
         }
 
         if self.weak_lever(sq, clr) {
             self.sum(clr, Some(sq), None, (0, -56));
+            self.sum_into_arr(clr, Some(sq), None, (0, -56), &mut pawn_eval);
         }
 
         if self.blocked_pawn_5th_6th_rank(sq, clr) == 1 {
             self.sum(clr, Some(sq), None, (-11, -4));
+            self.sum_into_arr(clr, Some(sq), None, (-11, -4), &mut pawn_eval);
         } else if self.blocked_pawn_5th_6th_rank(sq, clr) == 2 {
             self.sum(clr, Some(sq), None, (-3, 4));
+            self.sum_into_arr(clr, Some(sq), None, (-3, 4), &mut pawn_eval);
         }
+        // println!("self.eval.pawn_eval: {:?}", self.eval.pawn_eval);
+        // println!("pawn_eval: {:?}", pawn_eval);
+
+        self.eval.pawn_eval[clr.idx()] = pawn_eval[clr.idx()];
     }
 
     #[inline(always)]

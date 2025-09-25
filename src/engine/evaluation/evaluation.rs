@@ -35,6 +35,9 @@ pub struct Evaluation {
     // Threats Evaluation
     pub weak_enemy: [Bitboard; 2],
 
+    // Passed Pawn Evaluation
+    pub candidate_passed: [Bitboard; 2],
+
     // Piece Evaluation
     pub outpost: [Bitboard; 2],
     pub open_file: [Bitboard; 2],
@@ -45,7 +48,7 @@ pub struct Evaluation {
     pub king_att_weight: [isize; 2],
     pub king_att_count: [usize; 2],
     pub king_att: [usize; 2],
-    pub king_pawn_dx: [usize; 2],
+    pub king_pawn_dx: [u8; 2],
     pub king_shelter: [(isize, isize, isize); 2],
     pub checks: [Bitboard; 14],
     pub king_ring: [Bitboard; 2],
@@ -59,8 +62,10 @@ pub struct Evaluation {
     pub material_eval: [(isize, isize); 2],
     pub psqt_eval: [(isize, isize); 2],
     pub mobility_eval: [(isize, isize); 2],
+    pub pawn_eval: [(isize, isize); 2],
 
     // Score
+    pub pawn_hash_hit: bool,
     pub phase: (isize, isize),
     pub score: [(isize, isize); 2],
 }
@@ -81,6 +86,9 @@ impl Evaluation {
 
             // Threats Evaluation
             weak_enemy: [0; 2],
+
+            // Passed Pawn Evaluation
+            candidate_passed: [0; 2],
 
             // Piece Evaluation
             outpost: [0; 2],
@@ -106,8 +114,10 @@ impl Evaluation {
             material_eval: [(0, 0); 2],
             psqt_eval: [(0, 0); 2],
             mobility_eval: [(0, 0); 2],
+            pawn_eval: [(0, 0); 2],
 
             // Score
+            pawn_hash_hit: false,
             phase: (0, 0),
             score: [(0, 0); 2],
         }
@@ -119,11 +129,17 @@ impl Evaluation {
         self.attacked_by.fill(0);
         self.attacked_by_2.fill(0);
 
+        // Space Evaluation
+        self.pawn_behind_masks.fill(0);
+
         // Mobility Evaluation
         self.mobility_area.fill(0);
 
         // Threats Evaluation
         self.weak_enemy.fill(0);
+
+        // Passed Pawn Evaluation
+        self.candidate_passed.fill(0);
 
         // Piece Evaluation
         self.king_att_count_pieces.fill(0);
@@ -148,8 +164,10 @@ impl Evaluation {
         // self.material_eval.fill((0, 0));
         // self.psqt_eval.fill((0, 0));
         self.mobility_eval.fill((0, 0));
+        self.pawn_eval.fill((0, 0));
 
         // Score
+        self.pawn_hash_hit = false;
         self.phase = (0, 0);
         self.score.fill((0, 0));
     }
@@ -191,6 +209,7 @@ pub trait EvaluationTrait:
 
 impl EvaluationTrait for Board {
     fn evaluation(&mut self) -> isize {
+        self.eval.reset();
         self.init();
 
         // 1. Piece Value
@@ -240,6 +259,16 @@ impl EvaluationTrait for Board {
     }
 
     fn inc_evaluation(&mut self) -> isize {
+        self.eval.reset();
+
+        if let Some(pawn_entry) = self.pawn_tt.get(self.pk_key()) {
+            self.eval.king_shelter =
+                pawn_entry.shelter.map(|(x, y, z)| (x as isize, y as isize, z as isize));
+            self.eval.pawn_eval = pawn_entry.pawn_eval.map(|(x, y)| (x as isize, y as isize));
+            self.eval.candidate_passed = pawn_entry.candidate_passed;
+            self.eval.pawn_hash_hit = true;
+        }
+
         self.init();
 
         // 1. Piece Value
@@ -255,8 +284,23 @@ impl EvaluationTrait for Board {
         self.imbalance(BLACK);
 
         // 4. Pawns
-        self.pawns_eval(WHITE);
-        self.pawns_eval(BLACK);
+        if !self.eval.pawn_hash_hit {
+            self.pawns_eval(WHITE);
+            self.pawns_eval(BLACK);
+        } else {
+            self.sum(
+                WHITE,
+                None,
+                None,
+                (self.eval.pawn_eval[WHITE.idx()].0, self.eval.pawn_eval[WHITE.idx()].1),
+            );
+            self.sum(
+                BLACK,
+                None,
+                None,
+                (self.eval.pawn_eval[BLACK.idx()].0, self.eval.pawn_eval[BLACK.idx()].1),
+            );
+        }
 
         // 5. Pieces
         self.piece_eval(WHITE);
@@ -286,6 +330,17 @@ impl EvaluationTrait for Board {
 
         // 11. Tempo
         self.tempo(self.color());
+
+        if !self.eval.pawn_hash_hit {
+            let king_shelter =
+                self.eval.king_shelter.map(|(x, y, z)| (x as i16, y as i16, z as i16));
+            self.pawn_tt.set(
+                self.pk_key(),
+                king_shelter,
+                self.eval.pawn_eval.map(|(x, y)| (x as i16, y as i16)),
+                self.eval.candidate_passed,
+            );
+        }
 
         return self.calculate_score() * self.color().sign();
     }

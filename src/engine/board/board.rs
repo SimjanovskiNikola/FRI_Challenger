@@ -6,6 +6,7 @@ use super::{moves::Move, piece::PAWN};
 use crate::engine::evaluation::common_eval::CLR_SQ;
 use crate::engine::evaluation::evaluation::Evaluation;
 use crate::engine::misc::bitboard::BitboardTrait;
+use crate::engine::search::pawn_hash_table::PawnHashTable;
 use crate::engine::search::transposition_table::TTTable;
 use crate::engine::{
     board::fen::FenTrait,
@@ -27,6 +28,7 @@ pub struct Board {
 
     // TODO: Add This to Move Ordering Structure
     pub tt: TTTable,
+    pub pawn_tt: PawnHashTable,
     pub s_history: [[isize; 64]; 14],
     pub s_killers: [[Option<Move>; 2]; 64],
     pub pv_moves: [[Option<Move>; MAX_PLY]; MAX_PLY],
@@ -54,6 +56,7 @@ impl Board {
 
             // Move Ordering
             tt: TTTable::init(),
+            pawn_tt: PawnHashTable::init(),
             s_history: [[0isize; 64]; 14],
             s_killers: [[None; 2]; 64],
             pv_moves: [[None; 64]; 64],
@@ -73,6 +76,7 @@ impl Board {
         self.history = Vec::with_capacity(1024);
         self.state = BoardState::init();
         self.tt.clear();
+        self.pawn_tt.clear();
         self.s_history = [[0isize; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
         // self.s_pv = [None; 64];
@@ -95,7 +99,7 @@ impl Board {
 
     #[inline(always)]
     pub fn bb(&self, piece: Piece) -> u64 {
-        self.bitboard[piece.idx()]
+        self.bitboard[piece as usize]
     }
 
     #[inline(always)]
@@ -191,6 +195,11 @@ impl Board {
     #[inline(always)]
     pub fn key(&self) -> u64 {
         self.state.key
+    }
+
+    #[inline(always)]
+    pub fn pk_key(&self) -> u64 {
+        self.state.pk_key
     }
 
     #[inline(always)]

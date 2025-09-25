@@ -6,6 +6,7 @@ use crate::engine::board::moves::*;
 use crate::engine::board::piece::*;
 use crate::engine::board::zobrist::ZobristKeysTrait;
 use crate::engine::evaluation::evaluation::EvaluationTrait;
+use crate::engine::generated::zobrist_keys::CASTLE_KEYS;
 use crate::engine::generated::zobrist_keys::PIECE_COUNT_KEYS;
 use crate::engine::generated::zobrist_keys::PIECE_KEYS;
 use crate::engine::misc::bitboard::BitboardTrait;
@@ -26,6 +27,7 @@ impl BoardMoveTrait for Board {
         self.history.push(self.state);
         self.moves.push(*mv);
         self.zb_reset_key();
+        self.state.pk_key ^= CASTLE_KEYS[self.state.castling.idx()];
 
         match mv.flag {
             Flag::Quiet => self.quiet_mv(mv.from as usize, mv.to as usize, mv.piece),
@@ -119,8 +121,10 @@ impl BoardMoveTrait for Board {
 
         self.bitboard[piece.idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
         self.bitboard[piece.color().idx()] ^= (1u64 << to_sq) | (1u64 << from_sq);
-        self.state.key ^= PIECE_KEYS[from_sq][piece.idx()];
-        self.state.key ^= PIECE_KEYS[to_sq][piece.idx()];
+        self.state.key ^= PIECE_KEYS[from_sq][piece.idx()] ^ PIECE_KEYS[to_sq][piece.idx()];
+        if piece.is_pawn() || piece.is_king() {
+            self.state.pk_key ^= PIECE_KEYS[from_sq][piece.idx()] ^ PIECE_KEYS[to_sq][piece.idx()];
+        }
         self.quiet_eval(piece, from_sq, to_sq);
     }
 
@@ -131,8 +135,9 @@ impl BoardMoveTrait for Board {
         self.bitboard[piece.idx()].set_bit(sq);
         self.bitboard[piece.color().idx()].set_bit(sq);
         self.state.key ^= PIECE_KEYS[sq][piece.idx()];
-        self.state.pc_key ^= PIECE_COUNT_KEYS[self.p_count[piece.idx()]][piece.idx()]
-            ^ PIECE_COUNT_KEYS[self.p_count[piece.idx()] + 1][piece.idx()];
+        if piece.is_pawn() || piece.is_king() {
+            self.state.pk_key ^= PIECE_KEYS[sq][piece.idx()]
+        }
         self.p_count[piece.idx()] += 1;
         self.add_eval(piece, sq);
     }
@@ -144,8 +149,9 @@ impl BoardMoveTrait for Board {
         self.bitboard[piece.idx()].clear_bit(sq);
         self.bitboard[piece.color().idx()].clear_bit(sq);
         self.state.key ^= PIECE_KEYS[sq][piece.idx()];
-        self.state.pc_key ^= PIECE_COUNT_KEYS[self.p_count[piece.idx()]][piece.idx()]
-            ^ PIECE_COUNT_KEYS[self.p_count[piece.idx()] - 1][piece.idx()];
+        if piece.is_pawn() || piece.is_king() {
+            self.state.pk_key ^= PIECE_KEYS[sq][piece.idx()]
+        }
         self.p_count[piece.idx()] -= 1;
         self.clear_eval(piece, sq);
     }
@@ -165,6 +171,7 @@ impl BoardMoveTrait for Board {
             }
         }
         self.zb_castling();
+        self.state.pk_key ^= CASTLE_KEYS[self.state.castling.idx()];
 
         // Setting the En passant
         if mv.piece.is_pawn() && mv.from.abs_diff(mv.to) == 16 {

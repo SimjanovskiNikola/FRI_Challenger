@@ -34,7 +34,7 @@ impl TTEntry {
 
 #[derive(Debug, Clone)]
 pub struct TTTable {
-    pub table: Box<[Option<TTEntry>]>, //Vec<Option<TTEntry>>,
+    pub table: Box<[Option<TTEntry>]>,
     pub lookups: u64,
     pub inserts: u64,
     pub hits: u64,

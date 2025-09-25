@@ -102,6 +102,10 @@ impl Search {
 
             self.print_info(score, get_move_list(&pv_line, self.info.curr_depth));
             self.print_ordering_info(depth);
+            self.board.pawn_tt.print_stats();
+
+            self.board.pawn_tt.clear_stats(); // Update the Current age
+            self.board.tt.clear_stats(); // Update the Current age
             // search.tt.lock().unwrap().print_stats();
         }
         best_mv
