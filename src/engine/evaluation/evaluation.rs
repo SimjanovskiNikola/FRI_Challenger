@@ -177,6 +177,10 @@ impl Evaluation {
         self.psqt_eval.fill((0, 0));
     }
 
+    pub fn simple_eval_reset(&mut self) {
+        self.score.fill((0, 0));
+    }
+
     pub fn full_reset(&mut self) {
         self.reset();
         self.inc_reset();
@@ -200,7 +204,8 @@ pub trait EvaluationTrait:
     + TempoEvalTrait
 {
     fn evaluation(&mut self) -> isize;
-    fn inc_evaluation(&mut self) -> isize;
+    fn simple_eval(&mut self) -> isize;
+    fn inc_eval(&mut self) -> isize;
 
     fn clear_eval(&mut self, piece: Piece, sq: usize);
     fn add_eval(&mut self, piece: Piece, sq: usize);
@@ -208,6 +213,20 @@ pub trait EvaluationTrait:
 }
 
 impl EvaluationTrait for Board {
+    fn simple_eval(&mut self) -> isize {
+        self.eval.simple_eval_reset();
+
+        // 1. Material Evaluation
+        self.sum(WHITE, None, None, self.eval.material_eval[WHITE.idx()]);
+        self.sum(BLACK, None, None, self.eval.material_eval[BLACK.idx()]);
+
+        // 2. PSQT Evaluation
+        self.sum(WHITE, None, None, self.eval.psqt_eval[WHITE.idx()]);
+        self.sum(BLACK, None, None, self.eval.psqt_eval[BLACK.idx()]);
+
+        return self.calculate_score() * self.color().sign();
+    }
+
     fn evaluation(&mut self) -> isize {
         self.eval.reset();
         self.init();
@@ -258,7 +277,7 @@ impl EvaluationTrait for Board {
         return self.calculate_score() * self.color().sign();
     }
 
-    fn inc_evaluation(&mut self) -> isize {
+    fn inc_eval(&mut self) -> isize {
         self.eval.reset();
 
         if let Some(pawn_entry) = self.pawn_tt.get(self.pk_key()) {

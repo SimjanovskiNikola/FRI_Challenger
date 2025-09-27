@@ -56,6 +56,13 @@ impl Search {
         self.info.alpha_raise_index_sum[depth as usize] += legal_mv_num;
     }
 
+    pub const FUTILITY_MARGINS: [isize; 5] = [0, 200, 800, 1250, 1600];
+
+    #[inline(always)]
+    fn in_check(&self) -> bool {
+        self.board.sq_attack(self.board.king_sq(self.board.color()), self.board.color()) != 0
+    }
+
     pub fn alpha_beta(
         &mut self,
         mut alpha: isize,
@@ -77,11 +84,11 @@ impl Search {
         }
 
         if self.board.ply() > 63 || depth >= 63 {
-            return self.board.inc_evaluation();
+            return self.board.inc_eval();
         }
 
-        let in_check: bool =
-            self.board.sq_attack(self.board.king_sq(self.board.color()), self.board.color()) != 0;
+        let in_check: bool = self.in_check();
+        // self.board.sq_attack(self.board.king_sq(self.board.color()), self.board.color()) != 0;
 
         // NOTE: Check extension
         if in_check {
@@ -99,6 +106,15 @@ impl Search {
         // }
 
         self.info.nodes += 1;
+
+        // FIXME: Uncomment for use of Futility Pruning
+        // let do_futility_pruning = if depth > 4 || is_pvs || in_check {
+        //     // Only apply at shallow depths, in non-PV nodes, and when not in check.
+        //     false
+        // } else {
+        //     // Prune if the static eval is significantly worse than alpha.
+        //     self.board.inc_eval() + Self::FUTILITY_MARGINS[depth as usize] <= alpha
+        // };
 
         // NOTE: Null move Pruning
         let color = self.board.color();
@@ -140,6 +156,19 @@ impl Search {
                 continue;
             }
             legal_mv_num += 1;
+
+            // Don't prune captures, promotions, or checks.
+            // Also, don't prune the first move, as it's likely the best.
+            // FIXME: Uncomment for use of Futility Pruning
+            // if do_futility_pruning
+            //     && legal_mv_num > 1
+            //     && !mv.flag.is_capture()
+            //     && !mv.flag.is_promo()
+            //     && !self.in_check()
+            // {
+            //     self.board.undo_move();
+            //     continue; // Prune this move
+            // }
 
             let mut score: isize;
             if legal_mv_num == 1 {
