@@ -10,7 +10,7 @@ impl Search {
         self.info.nodes += 1;
 
         // let eval = self.board.evaluation();
-        let eval = self.board.inc_evaluation();
+        let eval = self.board.inc_eval();
 
         if self.board.ply() > 63 {
             return eval;
