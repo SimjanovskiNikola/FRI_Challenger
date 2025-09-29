@@ -18,12 +18,12 @@ impl SqPos {
 }
 
 pub const fn get_file(sq: usize) -> usize {
-    assert!(sq >= 0 && sq <= 64);
+    debug_assert!(sq >= 0 && sq <= 64);
     sq % 8
 }
 
 pub const fn get_rank(sq: usize) -> usize {
-    assert!(sq >= 0 && sq <= 64);
+    debug_assert!(sq >= 0 && sq <= 64);
     sq / 8
 }
 

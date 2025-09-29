@@ -1,6 +1,8 @@
-FROM rust:latest
+FROM rust:nightly
 
 WORKDIR /app
+
+RUN rustup component add rust-analyzer
 
 COPY Cargo.toml .
 COPY Cargo.lock .

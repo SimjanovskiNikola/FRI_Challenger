@@ -38,7 +38,7 @@ impl PawnEvalTrait for Board {
         }
     }
 
-    #[inline(always)]
+    // #[inline(always)]
     fn single_pawn_eval(&mut self, sq: usize, clr: Color) {
         // println!("Sq: {:?}", sq);
         // println!("Double Isolated: {:?}", self.doubled_isolated_pawn(sq, clr));

@@ -130,7 +130,10 @@ impl BoardMoveTrait for Board {
 
     #[inline(always)]
     fn add_piece(&mut self, sq: usize, piece: Piece) {
-        assert!(self.squares[sq] == 0, "Adding a Piece on a square, where a peace already exists");
+        debug_assert!(
+            self.squares[sq] == 0,
+            "Adding a Piece on a square, where a peace already exists"
+        );
         self.squares[sq] = piece;
         self.bitboard[piece.idx()].set_bit(sq);
         self.bitboard[piece.color().idx()].set_bit(sq);
@@ -144,7 +147,7 @@ impl BoardMoveTrait for Board {
 
     #[inline(always)]
     fn clear_piece(&mut self, sq: usize, piece: Piece) {
-        assert!(self.squares[sq] != 0, "Clearing a Peace that does not exist");
+        debug_assert!(self.squares[sq] != 0, "Clearing a Piece that does not exist");
         self.squares[sq] = 0;
         self.bitboard[piece.idx()].clear_bit(sq);
         self.bitboard[piece.color().idx()].clear_bit(sq);

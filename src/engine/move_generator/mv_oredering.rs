@@ -28,8 +28,10 @@ impl MoveOrderingTrait for Board {
         for (mv, score) in moves.iter_mut() {
             if pv_mv == Some(*mv) {
                 *score = PV_MV_SCORE;
+                continue;
             } else if matches!(self.tt.get(self.key()), Some(tt_move) if *mv == tt_move.mv) {
                 *score = TT_MV_SCORE;
+                continue;
             }
 
             match mv.flag {
@@ -71,7 +73,7 @@ impl MoveOrderingTrait for Board {
     }
 
     fn capture_eval(&mut self, mv: &Move) -> isize {
-        assert!(self.squares[mv.to as usize] != 0, "There is no piece in the to square");
+        debug_assert!(self.squares[mv.to as usize] != 0, "There is no piece in the to square");
 
         self.see(mv.from as usize, mv.to as usize) + SEE_MV_SCORE
     }

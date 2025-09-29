@@ -71,7 +71,7 @@ impl Search {
         is_nmp: bool,
     ) -> isize {
         // If we reached the final depth than make sure there is no horizon effect
-        assert!(depth >= 0, "Depth is smaller than 0");
+        debug_assert!(depth >= 0, "Depth is smaller than 0");
 
         if depth == 0 {
             return self.quiescence_search(alpha, beta, depth);

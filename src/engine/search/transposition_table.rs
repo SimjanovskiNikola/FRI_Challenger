@@ -4,7 +4,8 @@ use crate::engine::board::moves::Move;
 use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 
-const MAX_TT_ENTRIES: usize = 1040211;
+// const MAX_TT_ENTRIES: usize = 1040211;
+const MAX_TT_ENTRIES: usize = 211;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Bound {
