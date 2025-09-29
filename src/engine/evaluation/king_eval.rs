@@ -218,7 +218,6 @@ impl KingEvalTrait for Board {
         return knight_unsafe | bishop_unsafe | rook_unsafe;
     }
 
-    #[inline(always)]
     fn safe_check(&mut self, clr: Color, piece: Piece) -> u64 {
         let checks = match piece.kind() {
             PAWN => 0,
@@ -289,7 +288,7 @@ impl KingEvalTrait for Board {
             & self.x_ray_mask(QUEEN + clr.opp(), king_sq);
     }
 
-    #[inline(always)]
+    // #[inline(always)]
     fn shelter(&mut self, clr: Color) -> (isize, isize, isize) {
         let king_sq = self.king_sq(clr.opp());
         let mut king_strenght = self.strength_square(king_sq, clr);

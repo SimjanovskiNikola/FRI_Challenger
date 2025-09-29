@@ -239,7 +239,7 @@ impl Board {
 
     #[inline(always)]
     pub fn piece_sq(&self, sq: usize) -> Piece {
-        assert!(self.squares[sq] != 0, "There is no piece at this square");
+        debug_assert!(self.squares[sq] != 0, "There is no piece at this square");
         self.squares[sq]
     }
 
@@ -248,7 +248,7 @@ impl Board {
     pub fn is_repetition(board: &Board) -> bool {
         let his_len = board.history.len();
         let half_move = board.half_move() as usize;
-        assert!(his_len >= half_move, "It is Negative {:?} {:?}", his_len, board.half_move());
+        debug_assert!(his_len >= half_move, "It is Negative {:?} {:?}", his_len, board.half_move());
 
         for i in (his_len - half_move)..his_len {
             if board.history[i].key == board.key() {
@@ -262,7 +262,7 @@ impl Board {
     // FIXME: IS THIS REALLY NEEDED AND USED SOMEWHERE ???????
     #[inline(always)]
     pub fn get_killer(&self, idx: usize) -> Option<Move> {
-        assert!(idx == 0 || idx == 1, "Index is nor 0 nor 1: {idx}");
+        debug_assert!(idx == 0 || idx == 1, "Index is nor 0 nor 1: {idx}");
         self.s_killers[self.ply()][idx]
     }
 
