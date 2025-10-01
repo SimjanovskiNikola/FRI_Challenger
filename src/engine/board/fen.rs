@@ -1,7 +1,7 @@
 use super::board::Board;
-use super::castling::CastlingRights;
 use super::color::*;
 use super::piece::*;
+use crate::engine::board::castling::*;
 use crate::engine::board::zobrist::ZobristKeysTrait;
 use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::bitboard::BitboardTrait;
@@ -77,10 +77,10 @@ impl FenTrait for Board {
     fn set_castling(&mut self, castling: &str) {
         for ch in castling.chars() {
             match ch {
-                'K' => self.state.castling.add(CastlingRights::WKINGSIDE),
-                'Q' => self.state.castling.add(CastlingRights::WQUEENSIDE),
-                'k' => self.state.castling.add(CastlingRights::BKINGSIDE),
-                'q' => self.state.castling.add(CastlingRights::BQUEENSIDE),
+                'K' => self.state.castling.add(CASTLING_WKINGSIDE),
+                'Q' => self.state.castling.add(CASTLING_WQUEENSIDE),
+                'k' => self.state.castling.add(CASTLING_BKINGSIDE),
+                'q' => self.state.castling.add(CASTLING_BQUEENSIDE),
                 '-' => (),
                 _ => panic!("Unknown Castling Rights: {}", ch),
             }
@@ -115,7 +115,7 @@ mod tests {
     fn initialize_works() {
         let game = Board::initialize();
         assert_eq!(game.state.color, WHITE);
-        assert_eq!(game.state.castling, CastlingRights::ALL);
+        assert_eq!(game.state.castling, CASTLING_ALL);
         assert_eq!(game.state.ep, None);
         assert_eq!(game.state.half_move, 0);
         assert_eq!(game.state.full_move, 1);
@@ -127,7 +127,7 @@ mod tests {
     fn test_fen_middle_game() {
         let board = Board::read_fen(FEN_MIDDLE_GAME);
         assert_eq!(board.state.color, WHITE);
-        assert_eq!(board.state.castling, CastlingRights::ALL);
+        assert_eq!(board.state.castling, CASTLING_ALL);
         assert_eq!(board.state.ep, None);
         assert_eq!(board.state.half_move, 0);
         assert_eq!(board.state.full_move, 1);
@@ -139,7 +139,7 @@ mod tests {
     fn test_fen_pawns_black_game() {
         let board = Board::read_fen(FEN_PAWNS_BLACK);
         assert_eq!(board.state.color, BLACK);
-        assert_eq!(board.state.castling, CastlingRights::ALL);
+        assert_eq!(board.state.castling, CASTLING_ALL);
         assert_eq!(board.state.ep, Some(SqPos::E3 as u8));
         assert_eq!(board.state.half_move, 0);
         assert_eq!(board.state.full_move, 1);

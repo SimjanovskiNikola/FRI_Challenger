@@ -1,4 +1,5 @@
 use crate::engine::board::board::Board;
+use crate::engine::board::castling::CastlingRightsTrait;
 use crate::engine::board::color::{Color, ColorTrait};
 use crate::engine::board::piece::*;
 use crate::engine::board::square::{get_file, get_rank};
