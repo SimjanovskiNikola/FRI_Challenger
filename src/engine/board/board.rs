@@ -1,8 +1,8 @@
-use super::castling::CastlingRights;
 use super::color::{Color, ColorTrait};
 use super::piece::{BISHOP, KING, KNIGHT, Piece, PieceTrait, QUEEN, ROOK};
 use super::state::BoardState;
 use super::{moves::Move, piece::PAWN};
+use crate::engine::board::castling::Castling;
 use crate::engine::evaluation::common_eval::CLR_SQ;
 use crate::engine::evaluation::evaluation::Evaluation;
 use crate::engine::misc::bitboard::BitboardTrait;
@@ -208,7 +208,7 @@ impl Board {
     }
 
     #[inline(always)]
-    pub fn castling(&self) -> CastlingRights {
+    pub fn castling(&self) -> Castling {
         self.state.castling
     }
 
@@ -297,9 +297,9 @@ impl Board {
 mod tests {
 
     use super::*;
-    use crate::engine::board::castling::CastlingRights;
-    use crate::engine::board::color::{BLACK, WHITE};
-    use crate::engine::evaluation::evaluation::{Evaluation, EvaluationTrait};
+    use crate::engine::board::castling::CASTLING_NONE;
+    use crate::engine::board::color::*;
+    use crate::engine::evaluation::evaluation::EvaluationTrait;
     use crate::engine::misc::const_utility::{
         FEN_CASTLE_ONE, FEN_MATE_IN_5, FEN_POS_FIVE, FEN_POS_FOUR, FEN_POS_THREE,
     };
@@ -312,7 +312,7 @@ mod tests {
         assert_eq!(board.squares, [0; 64]);
         assert_eq!(board.bitboard, [0; 14]);
         assert_eq!(board.state.color, WHITE);
-        assert_eq!(board.state.castling, CastlingRights::NONE);
+        assert_eq!(board.state.castling, CASTLING_NONE);
         assert_eq!(board.state.ep, None);
         assert_eq!(board.state.half_move, 0);
         assert_eq!(board.state.full_move, 1);

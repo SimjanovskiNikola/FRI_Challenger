@@ -314,21 +314,21 @@ impl BoardGenMoveTrait for Board {
         let piece = KING + self.color();
         match self.color() {
             WHITE => {
-                if self.state.castling.valid(CastlingRights::WKINGSIDE, self, own, enemy) {
+                if self.state.castling.valid(CASTLING_WKINGSIDE, self, own, enemy) {
                     let mv = Move::init(E1 as u8, G1 as u8, piece, Flag::KingCastle);
                     self.gen_moves.push((mv, 0));
                 }
-                if self.state.castling.valid(CastlingRights::WQUEENSIDE, self, own, enemy) {
+                if self.state.castling.valid(CASTLING_WQUEENSIDE, self, own, enemy) {
                     let mv = Move::init(E1 as u8, C1 as u8, piece, Flag::QueenCastle);
                     self.gen_moves.push((mv, 0));
                 }
             }
             BLACK => {
-                if self.state.castling.valid(CastlingRights::BKINGSIDE, self, own, enemy) {
+                if self.state.castling.valid(CASTLING_BKINGSIDE, self, own, enemy) {
                     let mv = Move::init(E8 as u8, G8 as u8, piece, Flag::KingCastle);
                     self.gen_moves.push((mv, 0));
                 }
-                if self.state.castling.valid(CastlingRights::BQUEENSIDE, self, own, enemy) {
+                if self.state.castling.valid(CASTLING_BQUEENSIDE, self, own, enemy) {
                     let mv = Move::init(E8 as u8, C8 as u8, piece, Flag::QueenCastle);
                     self.gen_moves.push((mv, 0));
                 }

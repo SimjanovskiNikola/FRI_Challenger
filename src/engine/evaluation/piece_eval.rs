@@ -1,9 +1,10 @@
-use crate::engine::attacks::bishop::{get_bishop_mask, BLACK_SQUARES, WHITE_SQUARES};
+use crate::engine::attacks::bishop::{BLACK_SQUARES, WHITE_SQUARES, get_bishop_mask};
 use crate::engine::attacks::pawn::get_all_pawn_forward_mask;
 use crate::engine::attacks::rook::get_rook_mask;
 use crate::engine::board::board::Board;
+use crate::engine::board::castling::CastlingRightsTrait;
 use crate::engine::board::color::{Color, ColorTrait};
-use crate::engine::board::piece::{PieceTrait, BISHOP, KNIGHT, PAWN, ROOK};
+use crate::engine::board::piece::{BISHOP, KNIGHT, PAWN, PieceTrait, ROOK};
 use crate::engine::board::square::get_file;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::generated::between::BETWEEN_BB;
@@ -273,7 +274,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
 
     use super::*;
 

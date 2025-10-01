@@ -14,9 +14,9 @@ pub const fn get_king_mask(sq: usize, _own: u64, _: u64, _: Color) -> u64 {
 }
 
 // TODO: TEST ME
-pub fn has_good_pawn_shield(own_pawns: u64, castling: Option<CastlingRights>) -> bool {
+pub fn has_good_pawn_shield(own_pawns: u64, castling: Option<Castling>) -> bool {
     if let Some(c) = castling {
-        (own_pawns & CASTLE_PAWN_SHIELD[c.bits().count_ones() as usize]).count_ones() == 3
+        (own_pawns & CASTLE_PAWN_SHIELD[c.count_ones() as usize]).count_ones() == 3
     } else {
         false
     }
