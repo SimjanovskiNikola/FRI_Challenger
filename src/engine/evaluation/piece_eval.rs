@@ -11,12 +11,12 @@ use crate::engine::generated::between::BETWEEN_BB;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::{FILE_BITBOARD, RANK_BITBOARD};
 
-pub const OUTPOST_RANKS: [u64; 2] = [
+pub static OUTPOST_RANKS: [u64; 2] = [
     RANK_BITBOARD[3] | RANK_BITBOARD[4] | RANK_BITBOARD[5],
     RANK_BITBOARD[4] | RANK_BITBOARD[3] | RANK_BITBOARD[2],
 ];
 
-pub const QUEEN_INFILTRATION: [u64; 2] = [
+pub static QUEEN_INFILTRATION: [u64; 2] = [
     RANK_BITBOARD[7] | RANK_BITBOARD[6] | RANK_BITBOARD[5] | RANK_BITBOARD[4],
     RANK_BITBOARD[0] | RANK_BITBOARD[1] | RANK_BITBOARD[2] | RANK_BITBOARD[3],
 ];

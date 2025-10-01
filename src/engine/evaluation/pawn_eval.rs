@@ -9,7 +9,7 @@ use crate::engine::generated::pawn::{
 };
 use crate::engine::misc::bitboard::{Bitboard, BitboardTrait, Iterator};
 
-pub const BLOCKED_RANKS: [u64; 2] = [281470681743360, 4294901760];
+pub static BLOCKED_RANKS: [u64; 2] = [281470681743360, 4294901760];
 
 pub trait PawnEvalTrait {
     fn pawns_eval(&mut self, clr: Color);

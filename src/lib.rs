@@ -37,7 +37,6 @@ pub mod engine {
         pub mod alpha_beta;
         pub mod iter_deepening;
         pub mod pawn_hash_table;
-        pub mod pvs;
         pub mod quiescence;
         pub mod transposition_table;
     }
@@ -66,7 +65,6 @@ pub mod engine {
         pub mod const_utility;
         pub mod directions;
         pub mod display;
-        pub mod generate_key_utility;
         pub mod play_chess_utility;
     }
 }

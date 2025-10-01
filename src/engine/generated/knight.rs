@@ -1,5 +1,5 @@
 #[allow(dead_code)]
-const KNIGHT_OFFSET_POS: [(i8, i8); 8] =
+static KNIGHT_OFFSET_POS: [(i8, i8); 8] =
     [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (2, -1), (2, 1), (1, -2), (1, 2)];
 
 pub static KNIGHT_LOOKUP: [u64; 64] = [

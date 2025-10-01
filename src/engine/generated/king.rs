@@ -1,8 +1,8 @@
 #[allow(dead_code)]
-const KING_OFFSET_POS: [(i8, i8); 8] =
+static KING_OFFSET_POS: [(i8, i8); 8] =
     [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
 
-pub const KING_RING: [u64; 64] = [
+pub static KING_RING: [u64; 64] = [
     0x0000000000070706,
     0x0000000000070705,
     0x00000000000e0e0a,

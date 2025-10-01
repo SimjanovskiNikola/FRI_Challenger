@@ -3,5 +3,4 @@ pub mod bitboard;
 pub mod const_utility;
 pub mod directions;
 pub mod display;
-pub mod generate_key_utility;
 pub mod play_chess_utility;

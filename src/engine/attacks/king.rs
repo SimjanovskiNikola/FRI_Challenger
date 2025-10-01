@@ -1,31 +1,16 @@
-use crate::engine::board::castling::*;
 use crate::engine::board::color::Color;
 use crate::engine::generated::king::KING_LOOKUP;
-use crate::engine::generated::pawn::ISOLATED_PAWN_LOOKUP;
 
 #[inline(always)]
-pub fn get_king_mv(sq: usize, own: u64, _: u64, _: Color) -> u64 {
+/// Gets King moves considering other pieces on the board and excluding own pieces
+pub const fn get_king_mv(sq: usize, own: u64, _: u64, _: Color) -> u64 {
     KING_LOOKUP[sq] & !own
 }
 
 #[inline(always)]
-pub const fn get_king_mask(sq: usize, _own: u64, _: u64, _: Color) -> u64 {
+/// Gets only the mask of possible moves, ignoring other pieces on the board
+pub const fn get_king_mask(sq: usize, _: u64, _: u64, _: Color) -> u64 {
     KING_LOOKUP[sq]
-}
-
-// TODO: TEST ME
-pub fn has_good_pawn_shield(own_pawns: u64, castling: Option<Castling>) -> bool {
-    if let Some(c) = castling {
-        (own_pawns & CASTLE_PAWN_SHIELD[c.count_ones() as usize]).count_ones() == 3
-    } else {
-        false
-    }
-}
-
-// TODO: TEST ME
-#[inline(always)]
-pub fn has_near_open_files(sq: usize, own_pawns: u64) -> bool {
-    ISOLATED_PAWN_LOOKUP[sq] & own_pawns == 0
 }
 
 #[cfg(test)]

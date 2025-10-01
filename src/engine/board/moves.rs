@@ -12,21 +12,21 @@ pub enum Flag {
 }
 
 impl Flag {
-    pub fn is_capture(&self) -> bool {
+    pub const fn is_capture(&self) -> bool {
         match *self {
             Flag::Capture(_) | Flag::EP | Flag::Promotion(_, Some(_)) => true,
             _ => false,
         }
     }
 
-    pub fn is_promo(&self) -> bool {
+    pub const fn is_promo(&self) -> bool {
         match *self {
             Flag::Promotion(_, _) => true,
             _ => false,
         }
     }
 
-    pub fn get_promo_piece(&self) -> Option<Piece> {
+    pub const fn get_promo_piece(&self) -> Option<Piece> {
         match *self {
             Flag::Promotion(piece, _) => Some(piece),
             _ => None,
@@ -43,11 +43,11 @@ pub struct Move {
 }
 
 impl Move {
-    pub fn init(from: u8, to: u8, piece: Piece, flag: Flag) -> Self {
+    pub const fn init(from: u8, to: u8, piece: Piece, flag: Flag) -> Self {
         Self { from, to, piece, flag }
     }
 
-    pub fn null_move() -> Self {
+    pub const fn null_move() -> Self {
         Self { from: 0, to: 0, piece: 0, flag: Flag::NullMove }
     }
 }

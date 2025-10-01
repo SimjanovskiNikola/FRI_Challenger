@@ -7,7 +7,7 @@ use crate::engine::evaluation::pawn_eval::PawnEvalTrait;
 use crate::engine::generated::pawn::{FORWARD_SPANS_LR, PAWN_ATTACK_LOOKUP, PAWN_FORWARD_SPANS};
 use crate::engine::misc::bitboard::{Bitboard, BitboardTrait, Iterator};
 
-pub const PASSED_PAWN_REW: [[(isize, isize); 8]; 2] = [
+pub static PASSED_PAWN_REW: [[(isize, isize); 8]; 2] = [
     [(0, 0), (10, 28), (17, 33), (15, 41), (62, 72), (168, 177), (276, 260), (0, 0)],
     [(0, 0), (276, 260), (168, 177), (62, 72), (15, 41), (17, 33), (10, 28), (0, 0)],
 ];

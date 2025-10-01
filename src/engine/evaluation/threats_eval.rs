@@ -10,10 +10,10 @@ use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 use crate::engine::misc::const_utility::RANK_BITBOARD;
 
-pub const ROOK_THREAT: [(isize, isize); 6] =
+pub static ROOK_THREAT: [(isize, isize); 6] =
     [(3, 46), (37, 68), (0, 0), (42, 60), (0, 38), (58, 41)];
 
-pub const MINOR_THREAT: [(isize, isize); 6] =
+pub static MINOR_THREAT: [(isize, isize); 6] =
     [(5, 32), (57, 41), (0, 0), (77, 56), (88, 119), (79, 161)];
 
 pub trait ThreatsEvalTrait {

@@ -7,11 +7,11 @@ use crate::engine::board::piece::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 
-const PV_MV_SCORE: isize = 95000;
-const TT_MV_SCORE: isize = 80000;
-const SEE_MV_SCORE: isize = 2000;
-const KILLER_MV_SCORE: [isize; 2] = [2000, 1950];
-const HIS_MV_SCORE: isize = 1000;
+static PV_MV_SCORE: isize = 95000;
+static TT_MV_SCORE: isize = 80000;
+static SEE_MV_SCORE: isize = 2000;
+static KILLER_MV_SCORE: [isize; 2] = [2000, 1950];
+static HIS_MV_SCORE: isize = 1000;
 
 pub trait MoveOrderingTrait {
     fn next_move(&mut self, moves: &mut Vec<(Move, isize)>) -> Option<Move>;
