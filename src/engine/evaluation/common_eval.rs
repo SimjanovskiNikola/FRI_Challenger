@@ -11,17 +11,17 @@ use crate::engine::board::square::{get_file, get_rank};
 use crate::engine::generated::between::BETWEEN_BB;
 use crate::engine::generated::king::KING_RING;
 
-pub const KING_ATT_WEIGHT: [isize; 6] = [0, 81, 0, 52, 44, 10];
+pub static KING_ATT_WEIGHT: [isize; 6] = [0, 81, 0, 52, 44, 10];
 
 // First 3 Ranks and 4 Center Files for every Color
-pub const CLR_CENTER: [u64; 2] = [1010580480, 16954726998343680];
+pub static CLR_CENTER: [u64; 2] = [1010580480, 16954726998343680];
 
 // Absolute Ranks based on color
-pub const CLR_RANK: [[usize; 8]; 2] = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]];
+pub static CLR_RANK: [[usize; 8]; 2] = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]];
 
 // Absolute Square based on color
 #[rustfmt::skip]
-pub const CLR_SQ: [[usize; 64]; 2] = [
+pub static CLR_SQ: [[usize; 64]; 2] = [
     [
         0,  1,  2,  3,  4,  5,  6,  7,
         8,  9,  10, 11, 12, 13, 14, 15,

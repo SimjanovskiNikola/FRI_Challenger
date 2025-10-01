@@ -5,23 +5,23 @@ use crate::engine::board::piece::*;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 use crate::engine::misc::bitboard::{BitboardTrait, Iterator};
 
-pub const KNIGHT_MOBILITY: [(isize, isize); 9] =
+pub static KNIGHT_MOBILITY: [(isize, isize); 9] =
     [(-62, -81), (-53, -56), (-12, -31), (-4, -16), (3, 5), (13, 11), (22, 17), (28, 20), (33, 25)];
 
 #[rustfmt::skip]
-pub const BISHOP_MOBILITY: [(isize, isize); 14] = [
+pub static  BISHOP_MOBILITY: [(isize, isize); 14] = [
     (-48, -59), (-20, -23), (16, -3), (26, 13), (38, 24), (51, 42), (55, 54), 
     (63, 57), (63, 65), (68, 73), (81, 78), (81, 86), (91, 88), (98, 97),
 ];
 
 #[rustfmt::skip]
-pub const ROOK_MOBILITY: [(isize, isize); 15] = [
+pub static  ROOK_MOBILITY: [(isize, isize); 15] = [
     (-60, -78), (-20, -17), (2, 23), (3, 39), (3, 70), (11, 99), (22, 103), (31, 121),
     (40, 134), (40, 139), (41, 158), (48, 164), (57, 168), (57, 169), (62, 172),
 ];
 
 #[rustfmt::skip]
-pub const QUEEN_MOBILITY: [(isize, isize); 28] = [
+pub static  QUEEN_MOBILITY: [(isize, isize); 28] = [
     (-30, -48), (-12, -30), (-8, -7), (-9, 19), (20, 40), (23, 55), (23, 59),
     (35, 75), (38, 78), (53, 96), (64, 96), (65, 100), (65, 121), (66, 127),
     (67, 131), (67, 133), (72, 136), (72, 141), (77, 147), (79, 150), (93, 151),

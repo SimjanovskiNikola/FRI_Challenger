@@ -5,7 +5,7 @@ use crate::engine::evaluation::common_eval::{CLR_SQ, CommonEvalTrait};
 use crate::engine::misc::bitboard::Iterator;
 
 #[rustfmt::skip]
-pub const PSQT: [[(isize, isize); 64]; 6] = [
+pub static PSQT: [[(isize, isize); 64]; 6] = [
     [ // Pawn NOTE: DONE
         (   0,   0), (   0,   0), (   0,   0), (   0,   0), (   0,   0), (   0,   0), (   0,   0), (   0,   0),
         (   3, -10), (   3,  -6), (  10,  10), (  19,   0), (  16,  14), (  19,   7), (   7,  -5), (  -5, -19),

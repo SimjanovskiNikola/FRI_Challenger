@@ -1,32 +1,25 @@
 use super::utility::pext;
 use crate::engine::board::color::Color;
-use crate::engine::board::square::get_file;
 use crate::engine::generated::rook::{ROOK_BASE, ROOK_LOOKUP, ROOK_MASKS};
-use crate::engine::misc::const_utility::FILE_BITBOARD;
 
 #[inline(always)]
+/// Gets Queen moves considering other pieces on the board and excluding own pieces
 pub fn get_rook_mv(sq: usize, own: u64, enemy: u64, _clr: Color) -> u64 {
     get_rook_mask(sq, own, enemy, _clr) & !own
 }
 
 #[inline(always)]
+/// Gets Queen moves considering other pieces on the board
 pub fn get_rook_mask(sq: usize, own: u64, enemy: u64, _: Color) -> u64 {
-    let occupancy = own | enemy;
-    let key = pext(occupancy, ROOK_MASKS[sq]) as usize;
+    let key = pext(own | enemy, ROOK_MASKS[sq]) as usize;
 
     ROOK_LOOKUP[ROOK_BASE[sq] * 1024 + key]
 }
 
-// TODO: TEST ME
 #[inline(always)]
-pub fn is_rook_on_semi_open_file(sq: usize, own_pawns: u64) -> bool {
-    FILE_BITBOARD[get_file(sq)] & (own_pawns) != 0
-}
-
-// TODO: TEST ME
-#[inline(always)]
-pub fn is_rook_on_open_file(sq: usize, own_pawns: u64, enemy_pawns: u64) -> bool {
-    FILE_BITBOARD[get_file(sq)] & (own_pawns | enemy_pawns) != 0
+/// Gets only the mask of possible moves, ignoring other pieces on the board
+pub const fn get_rook_lookup(sq: usize, _: u64, _: u64, _: Color) -> u64 {
+    ROOK_MASKS[sq]
 }
 
 #[cfg(test)]

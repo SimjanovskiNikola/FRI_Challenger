@@ -1,5 +1,3 @@
-use num_enum::TryFromPrimitive;
-
 // **** START: FEN STRINGS ****
 pub const FEN_START: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 pub const FEN1: &str = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
@@ -38,8 +36,7 @@ pub const FEN_MATE_IN_5: &str = "N1bk3r/P5pp/3b1p2/3B4/R2nP1nq/3P3N/1BP3KP/4Q2R 
 
 pub static FILE_LETTERS: [&str; 8] = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, TryFromPrimitive)]
-#[repr(usize)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum File {
     A = 0,
     B = 1,
@@ -50,8 +47,7 @@ pub enum File {
     G = 6,
     H = 7,
 }
-#[derive(Debug, PartialEq, Eq, Clone, Copy, TryFromPrimitive)]
-#[repr(usize)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Rank {
     One = 0,
     Two = 1,
@@ -63,7 +59,7 @@ pub enum Rank {
     Eight = 7,
 }
 
-pub const FILE_BITBOARD: [u64; 8] = [
+pub static FILE_BITBOARD: [u64; 8] = [
     0x0101010101010101,
     0x0202020202020202,
     0x0404040404040404,
@@ -74,7 +70,7 @@ pub const FILE_BITBOARD: [u64; 8] = [
     0x8080808080808080,
 ];
 
-pub const RANK_BITBOARD: [u64; 8] = [
+pub static RANK_BITBOARD: [u64; 8] = [
     0x00000000000000FF,
     0x000000000000FF00,
     0x0000000000FF0000,
@@ -84,27 +80,3 @@ pub const RANK_BITBOARD: [u64; 8] = [
     0x00FF000000000000,
     0xFF00000000000000,
 ];
-
-// #[rustfmt::skip]
-// pub const OK_SQ:[usize;64] = [
-//     0,  1,  2,  3,  4,  5,  6,  7,
-//     8,  9,  10, 11, 12, 13, 14, 15,
-//     16, 17, 18, 19, 20, 21, 22, 23,
-//     24, 25, 26, 27, 28, 29, 30, 31,
-//     32, 33, 34, 35, 36, 37, 38, 39,
-//     40, 41, 42, 43, 44, 45, 46, 47,
-//     48, 49, 50, 51, 52, 53, 54, 55,
-//     56, 57, 58, 59, 60, 61, 62, 63,
-// ];
-
-// #[rustfmt::skip]
-// pub const OPP_SQ:[usize;64] = [
-//     56, 57, 58, 59, 60, 61, 62, 63,
-//     48, 49, 50, 51, 52, 53, 54, 55,
-//     40, 41, 42, 43, 44, 45, 46, 47,
-//     32, 33, 34, 35, 36, 37, 38, 39,
-//     24, 25, 26, 27, 28, 29, 30, 31,
-//     16, 17, 18, 19, 20, 21, 22, 23,
-//     8,  9,  10, 11, 12, 13, 14, 15,
-//     0,  1,  2,  3,  4,  5,  6,  7,
-// ];

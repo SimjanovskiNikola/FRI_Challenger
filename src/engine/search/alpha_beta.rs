@@ -56,12 +56,12 @@ impl Search {
         self.info.alpha_raise_index_sum[depth as usize] += legal_mv_num;
     }
 
-    pub const FUTILITY_MARGINS: [isize; 5] = [0, 200, 800, 1250, 1600];
-
     #[inline(always)]
     fn in_check(&self) -> bool {
         self.board.sq_attack(self.board.king_sq(self.board.color()), self.board.color()) != 0
     }
+
+    pub const FUTILITY_MARGINS: [isize; 5] = [0, 200, 800, 1250, 1600];
 
     pub fn alpha_beta(
         &mut self,

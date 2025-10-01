@@ -1,6 +1,9 @@
 use std::arch::x86_64::_pdep_u64;
 use std::arch::x86_64::_pext_u64;
 
+// This Functions are used for sliding pieces (Rook, Bishop, Queen)
+// And the creation of the BISHOP_LOOKUP and ROOK_LOOKUP tables
+
 #[inline(always)]
 pub fn insert_bits(mask: u64, occupancy: u64) -> u64 {
     let mut result = 0;

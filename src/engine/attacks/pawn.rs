@@ -1,13 +1,18 @@
 use crate::engine::board::color::*;
 use crate::engine::board::piece::*;
+use crate::engine::board::square::get_rank;
 use crate::engine::generated::pawn::*;
 use crate::engine::misc::bit_pos_utility::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::const_utility::FILE_BITBOARD;
 use crate::engine::misc::const_utility::Rank;
 
-// PAWN MOVE, ATTACK, EP
+/*******************************
+* SINGLE PAWN MOVE, ATTACK, EP *
+********************************/
+
 #[inline(always)]
+/// Gets Single pawn forward moves considering other pieces on the board and excluding own pieces
 pub fn get_pawn_mv(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
     let moves = PAWN_MOVE_LOOKUP[color.idx()][sq] & !(own | enemy);
 
@@ -22,60 +27,66 @@ pub fn get_pawn_mv(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
 }
 
 #[inline(always)]
+/// Gets Single pawn attack moves considering other pieces on the board
 pub fn get_pawn_att(sq: usize, own: u64, enemy: u64, color: Color) -> u64 {
     let attacks = PAWN_ATTACK_LOOKUP[color.idx()][sq] & !own;
     attacks & enemy
 }
 
 #[inline(always)]
+/// Gets Single pawn attack mask, ignoring other pieces on the board
 pub fn get_pawn_att_mask(sq: usize, _own: u64, _enemy: u64, color: Color) -> u64 {
     PAWN_ATTACK_LOOKUP[color.idx()][sq]
 }
 
 #[inline(always)]
+/// Gets En Passant bitboard if the given square is a valid en passant square for the given color
 pub fn get_pawn_ep(color: Color, ep: u8) -> u64 {
-    let rank_ep = get_bit_rank(ep as usize);
-    if (rank_ep == Rank::Six && color.is_white()) || (rank_ep == Rank::Three && color.is_black()) {
+    let rank_ep = get_rank(ep as usize);
+    if (rank_ep == 5 && color.is_white()) || (rank_ep == 2 && color.is_black()) {
         1 << ep
     } else {
         0
     }
 }
 
+/*******************************
+*    ALL PAWNS MOVE, ATTACK    *
+********************************/
+
 #[inline(always)]
+/// Gets Double pawn attacks (squares attacked by two pawns)
 pub const fn get_pawn_2_att(bb: u64, color: Color) -> u64 {
     get_all_pawn_left_att_mask(bb, color) & get_all_pawn_right_att_mask(bb, color)
 }
 
 #[inline(always)]
+/// Gets All pawn left attacks
 pub const fn get_all_pawn_left_att_mask(bb: u64, color: Color) -> u64 {
     if color == WHITE { (bb << 9) & !FILE_BITBOARD[0] } else { (bb >> 9) & !FILE_BITBOARD[7] }
 }
 
 #[inline(always)]
+/// Gets All pawn right attacks
 pub const fn get_all_pawn_right_att_mask(bb: u64, color: Color) -> u64 {
     if color == WHITE { (bb << 7) & !FILE_BITBOARD[7] } else { (bb >> 7) & !FILE_BITBOARD[0] }
 }
 
+#[inline(always)]
+/// Gets All pawn attack masks
+pub const fn get_all_pawn_att_mask(bb: u64, color: Color) -> u64 {
+    if color == WHITE {
+        ((bb << 7) & !FILE_BITBOARD[7]) | ((bb << 9) & !FILE_BITBOARD[0])
+    } else {
+        ((bb >> 7) & !FILE_BITBOARD[0]) | ((bb >> 9) & !FILE_BITBOARD[7])
+    }
+}
+
 // TODO:
 #[inline(always)]
+/// Gets All pawn forward moves, ignoring other pieces on the board
 pub const fn get_all_pawn_forward_mask(bb: u64, color: Color) -> u64 {
     if color == WHITE { bb << 8 } else { bb >> 8 }
-}
-
-#[inline(always)]
-pub fn is_passed_pawn(color: Color, sq: usize, enemy_pawns: u64) -> bool {
-    PASSED_PAWN_LOOKUP[color.idx()][sq] & enemy_pawns == 0
-}
-
-#[inline(always)]
-pub fn is_isolated_pawn(sq: usize, own_pawns: u64) -> bool {
-    ISOLATED_PAWN_LOOKUP[sq] & own_pawns == 0
-}
-
-#[inline(always)]
-pub fn is_blocked_pawn(color: Color, sq: usize, own_pawns: u64) -> bool {
-    BLOCKED_PAWN_LOOKUP[color.idx()][sq] & own_pawns == 0
 }
 
 // FORWARD AND DIAGONAL MOVES

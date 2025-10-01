@@ -16,7 +16,7 @@ pub struct BoardState {
 }
 
 impl BoardState {
-    pub fn init() -> Self {
+    pub const fn init() -> Self {
         Self {
             color: WHITE,
             castling: CASTLING_NONE,

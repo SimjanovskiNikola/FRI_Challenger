@@ -4,7 +4,7 @@ use crate::engine::board::piece::*;
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 
 #[rustfmt::skip]
-pub const PIECE_MATERIAL: [(isize, isize); 6] = [
+pub static  PIECE_MATERIAL: [(isize, isize); 6] = [
     ( 124, 206), // Pawn
     ( 781, 854), // Knight
     (   0,   0), // King
@@ -60,7 +60,7 @@ mod tests {
     use crate::engine::board::color::{BLACK, WHITE};
     use crate::engine::board::fen::FenTrait;
     use crate::engine::evaluation::init_eval::InitEvalTrait;
-    use crate::engine::evaluation::test_evaluation::{eval_assert, SF_EVAL};
+    use crate::engine::evaluation::test_evaluation::{SF_EVAL, eval_assert};
 
     use super::*;
 

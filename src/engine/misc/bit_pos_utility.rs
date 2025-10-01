@@ -20,30 +20,6 @@ pub fn extract_all_bits(mut bitboard: u64) -> Vec<usize> {
 }
 
 #[inline(always)]
-pub fn get_bit_rank(square: usize) -> Rank {
-    match Rank::try_from(square / 8) {
-        Ok(rank) => rank,
-        Err(_) => panic!("Invalid Thing"),
-    }
-}
-
-#[inline(always)]
-pub fn get_bit_file(square: usize) -> File {
-    match File::try_from(square % 8) {
-        Ok(file) => file,
-        Err(_) => panic!("Invalid Thing"),
-    }
-}
-
-#[inline(always)]
-pub fn get_rank_bits(square: usize) -> File {
-    match File::try_from(square % 8) {
-        Ok(file) => file,
-        Err(_) => panic!("Invalid Thing"),
-    }
-}
-
-#[inline(always)]
 pub fn exclude_file_rank(bitboard: u64, file: Option<usize>, rank: Option<usize>) -> u64 {
     match (rank, file) {
         (Some(r), Some(f)) => (bitboard & !RANK_BITBOARD[r]) & !FILE_BITBOARD[f],
@@ -182,24 +158,6 @@ mod tests {
         let resp = extract_all_bits(bits);
 
         assert_eq!(vec![2, 5, 55], resp)
-    }
-
-    #[test]
-    fn test_get_bit_file() {
-        assert_eq!(get_bit_file(0), File::A);
-        assert_eq!(get_bit_file(3), File::D);
-        assert_eq!(get_bit_file(15), File::H);
-        assert_eq!(get_bit_file(17), File::B);
-        assert_eq!(get_bit_file(26), File::C);
-    }
-
-    #[test]
-    fn test_get_bit_rank() {
-        assert_eq!(get_bit_rank(0), Rank::One);
-        assert_eq!(get_bit_rank(3), Rank::One);
-        assert_eq!(get_bit_rank(15), Rank::Two);
-        assert_eq!(get_bit_rank(17), Rank::Three);
-        assert_eq!(get_bit_rank(26), Rank::Four);
     }
 }
 //**** END: TESTS ****

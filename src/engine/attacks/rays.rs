@@ -1,6 +1,12 @@
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::misc::directions::Dir;
 
+// This Functions are used for sliding pieces (Rook, Bishop, Queen).
+// They are not used because they are really slow compared to pext method.
+
+// DEPRECATE:
+#[deprecated = "Leaving Here If I need this in the future, otherwise not needed"]
+#[allow(dead_code)]
 pub fn first_hit(dir: Dir, bitboard: u64) -> Option<usize> {
     if bitboard == 0 {
         None
@@ -11,6 +17,9 @@ pub fn first_hit(dir: Dir, bitboard: u64) -> Option<usize> {
     }
 }
 
+// DEPRECATE:
+#[deprecated = "Leaving Here If I need this in the future, otherwise not needed"]
+#[allow(dead_code)]
 pub fn blocked_ray_att(dir: Dir, ray_family: &[u64; 64], ray: u64, own: u64, enemy: u64) -> u64 {
     let first_own_hit = first_hit(dir, ray & own);
     let first_enemy_hit = first_hit(dir, ray & enemy);

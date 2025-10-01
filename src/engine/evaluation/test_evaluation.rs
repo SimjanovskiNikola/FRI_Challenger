@@ -19,7 +19,7 @@ pub struct SFEval<'a> {
     pub tempo: isize,
 }
 
-pub const SF_EVAL: [SFEval; 18] = [
+pub static SF_EVAL: [SFEval; 18] = [
     SFEval {
         fen: "r3r1k1/3q1pp1/p2pb2p/Np6/1P1QPn2/5N1P/1P3PP1/R3R1K1 w - - 0 0",
         phase: 106,

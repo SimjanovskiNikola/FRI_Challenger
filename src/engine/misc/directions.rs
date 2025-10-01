@@ -1,6 +1,6 @@
-pub const DIR_OFFSET: [(i8, i8); 8] =
+pub static DIR_OFFSET: [(i8, i8); 8] =
     [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)];
-pub const DIRECTIONS: [Dir; 8] = [
+pub static DIRECTIONS: [Dir; 8] = [
     Dir::NORTH,
     Dir::SOUTH,
     Dir::EAST,

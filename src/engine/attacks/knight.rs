@@ -3,12 +3,14 @@ use crate::engine::board::color::Color;
 use crate::engine::generated::knight::KNIGHT_LOOKUP;
 
 #[inline(always)]
-pub fn get_knight_mv(sq: usize, own: u64, _: u64, _: Color) -> u64 {
+/// Gets Knight moves considering other pieces on the board and excluding own pieces
+pub const fn get_knight_mv(sq: usize, own: u64, _: u64, _: Color) -> u64 {
     KNIGHT_LOOKUP[sq] & !own
 }
 
 #[inline(always)]
-pub fn get_knight_mask(sq: usize, _own: u64, _: u64, _: Color) -> u64 {
+/// Gets only the mask of possible moves, ignoring other pieces on the board
+pub const fn get_knight_mask(sq: usize, _: u64, _: u64, _: Color) -> u64 {
     KNIGHT_LOOKUP[sq]
 }
 

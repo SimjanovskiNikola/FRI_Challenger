@@ -98,48 +98,48 @@ impl Board {
     }
 
     #[inline(always)]
-    pub fn bb(&self, piece: Piece) -> u64 {
+    pub const fn bb(&self, piece: Piece) -> u64 {
         self.bitboard[piece as usize]
     }
 
     #[inline(always)]
-    pub fn both_bb(&self, piece: Piece) -> (u64, u64) {
-        (self.bb(piece), self.bb(piece.opp()))
+    pub const fn both_bb(&self, piece: Piece) -> (u64, u64) {
+        (self.bb(piece), self.bb(piece ^ 1))
     }
 
     #[inline(always)]
-    pub fn pawn_bb(&self, color: Color) -> u64 {
+    pub const fn pawn_bb(&self, color: Color) -> u64 {
         self.bitboard[(PAWN + color) as usize]
     }
 
     #[inline(always)]
-    pub fn knight_bb(&self, color: Color) -> u64 {
+    pub const fn knight_bb(&self, color: Color) -> u64 {
         self.bitboard[(KNIGHT + color) as usize]
     }
 
     #[inline(always)]
-    pub fn king_bb(&self, color: Color) -> u64 {
+    pub const fn king_bb(&self, color: Color) -> u64 {
         self.bitboard[(KING + color) as usize]
     }
 
     #[inline(always)]
-    pub fn bishop_bb(&self, color: Color) -> u64 {
+    pub const fn bishop_bb(&self, color: Color) -> u64 {
         self.bitboard[(BISHOP + color) as usize]
     }
 
     #[inline(always)]
-    pub fn rook_bb(&self, color: Color) -> u64 {
+    pub const fn rook_bb(&self, color: Color) -> u64 {
         self.bitboard[(ROOK + color) as usize]
     }
 
     #[inline(always)]
-    pub fn queen_bb(&self, color: Color) -> u64 {
+    pub const fn queen_bb(&self, color: Color) -> u64 {
         self.bitboard[(QUEEN + color) as usize]
     }
 
     #[inline(always)]
-    pub fn occ_bb(&self, color: Color) -> u64 {
-        self.bitboard[color.idx()]
+    pub const fn occ_bb(&self, color: Color) -> u64 {
+        self.bitboard[color as usize]
     }
 
     #[inline(always)]
@@ -148,87 +148,87 @@ impl Board {
     }
 
     #[inline(always)]
-    pub fn king_sq(&self, color: Color) -> usize {
-        self.king_bb(color).get_lsb()
+    pub const fn king_sq(&self, color: Color) -> usize {
+        self.king_bb(color).trailing_zeros() as usize
     }
 
     #[inline(always)]
-    pub fn piece_count(&self, piece: Piece) -> usize {
-        self.p_count[piece.idx()]
+    pub const fn piece_count(&self, piece: Piece) -> usize {
+        self.p_count[piece as usize]
     }
 
     #[inline(always)]
-    pub fn pawn_count(&self, color: Color) -> usize {
+    pub const fn pawn_count(&self, color: Color) -> usize {
         self.piece_count(PAWN + color)
     }
 
     #[inline(always)]
-    pub fn knight_count(&self, color: Color) -> usize {
+    pub const fn knight_count(&self, color: Color) -> usize {
         self.piece_count(KNIGHT + color)
     }
 
     #[inline(always)]
-    pub fn king_count(&self, color: Color) -> usize {
+    pub const fn king_count(&self, color: Color) -> usize {
         self.piece_count(KING + color)
     }
 
     #[inline(always)]
-    pub fn bishop_count(&self, color: Color) -> usize {
+    pub const fn bishop_count(&self, color: Color) -> usize {
         self.piece_count(BISHOP + color)
     }
 
     #[inline(always)]
-    pub fn rook_count(&self, color: Color) -> usize {
+    pub const fn rook_count(&self, color: Color) -> usize {
         self.piece_count(ROOK + color)
     }
 
     #[inline(always)]
-    pub fn queen_count(&self, color: Color) -> usize {
+    pub const fn queen_count(&self, color: Color) -> usize {
         self.piece_count(QUEEN + color)
     }
 
     #[inline(always)]
-    pub fn ply(&self) -> usize {
+    pub const fn ply(&self) -> usize {
         self.moves.len()
     }
 
     #[inline(always)]
-    pub fn key(&self) -> u64 {
+    pub const fn key(&self) -> u64 {
         self.state.key
     }
 
     #[inline(always)]
-    pub fn pk_key(&self) -> u64 {
+    pub const fn pk_key(&self) -> u64 {
         self.state.pk_key
     }
 
     #[inline(always)]
-    pub fn ep(&self) -> Option<u8> {
+    pub const fn ep(&self) -> Option<u8> {
         self.state.ep
     }
 
     #[inline(always)]
-    pub fn castling(&self) -> Castling {
+    pub const fn castling(&self) -> Castling {
         self.state.castling
     }
 
     #[inline(always)]
-    pub fn color(&self) -> Color {
+    pub const fn color(&self) -> Color {
         self.state.color
     }
 
     #[inline(always)]
-    pub fn half_move(&self) -> u8 {
+    pub const fn half_move(&self) -> u8 {
         self.state.half_move
     }
 
     #[inline(always)]
-    pub fn full_move(&self) -> u16 {
+    pub const fn full_move(&self) -> u16 {
         self.state.full_move
     }
 
     #[inline(always)]
-    pub fn phase(&self) -> isize {
+    pub const fn phase(&self) -> isize {
         self.state.phase
     }
 
@@ -238,7 +238,7 @@ impl Board {
     }
 
     #[inline(always)]
-    pub fn piece_sq(&self, sq: usize) -> Piece {
+    pub const fn piece_sq(&self, sq: usize) -> Piece {
         debug_assert!(self.squares[sq] != 0, "There is no piece at this square");
         self.squares[sq]
     }

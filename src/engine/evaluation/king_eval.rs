@@ -8,7 +8,7 @@ use crate::engine::generated::pawn::{ISOLATED_PAWN_LOOKUP, PAWN_FORWARD_SPANS};
 use crate::engine::misc::bitboard::{Bitboard, BitboardTrait};
 use crate::engine::misc::const_utility::{FILE_BITBOARD, RANK_BITBOARD};
 
-pub const UNBLOCKED_STORM: [[isize; 7]; 8] = [
+pub static UNBLOCKED_STORM: [[isize; 7]; 8] = [
     [85, 50, 45, 50, 97, -166, -289],
     [46, 20, -10, 37, 45, 122, -25],
     [-6, -14, -22, -2, 34, 168, 51],
@@ -19,9 +19,9 @@ pub const UNBLOCKED_STORM: [[isize; 7]; 8] = [
     [85, 50, 45, 50, 97, -166, -289],
 ];
 
-pub const BLOCKED_STORM: [[isize; 7]; 2] = [[0, -1, -4, -7, -10, 76, 0], [0, 2, 6, 10, 15, 78, 0]];
+pub static BLOCKED_STORM: [[isize; 7]; 2] = [[0, -1, -4, -7, -10, 76, 0], [0, 2, 6, 10, 15, 78, 0]];
 
-pub const WEAKNESS: [[isize; 7]; 8] = [
+pub static WEAKNESS: [[isize; 7]; 8] = [
     [-6, 25, 18, 39, 58, 93, 81],
     [-43, -63, -11, -29, -49, 35, 61],
     [-10, -45, 3, 32, -2, 23, 75],
@@ -32,9 +32,9 @@ pub const WEAKNESS: [[isize; 7]; 8] = [
     [-6, 25, 18, 39, 58, 93, 81],
 ];
 
-pub const FLANK_ADDITIONAL_FILE: [usize; 8] = [2, 3, 0, 5, 2, 7, 4, 5];
+pub static FLANK_ADDITIONAL_FILE: [usize; 8] = [2, 3, 0, 5, 2, 7, 4, 5];
 
-pub const FLANK_MASK: [u64; 2] = [
+pub static FLANK_MASK: [u64; 2] = [
     (RANK_BITBOARD[0] | RANK_BITBOARD[1] | RANK_BITBOARD[2] | RANK_BITBOARD[3] | RANK_BITBOARD[4]),
     (RANK_BITBOARD[7] | RANK_BITBOARD[6] | RANK_BITBOARD[5] | RANK_BITBOARD[4] | RANK_BITBOARD[3]),
 ];

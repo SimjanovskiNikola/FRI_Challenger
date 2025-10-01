@@ -4,7 +4,7 @@ use crate::engine::board::color::{Color, ColorTrait};
 use crate::engine::evaluation::common_eval::CommonEvalTrait;
 
 // Quadratic interaction bonuses for own peaces NOTE: DONE
-pub const QUADRATIC_OURS: [[isize; 6]; 6] = [
+pub static QUADRATIC_OURS: [[isize; 6]; 6] = [
     [0, 0, 0, 0, 0, 0],   // Bishop pair DEPRECATE: Refactor This as it is not needed
     [40, 38, 0, 0, 0, 0], // Pawn
     [32, 255, -62, 0, 0, 0], // Knight
@@ -14,7 +14,7 @@ pub const QUADRATIC_OURS: [[isize; 6]; 6] = [
 ];
 
 // Quadratic interaction bonuses for their peaces NOTE: DONE
-pub const QUADRATIC_THEIRS: [[isize; 6]; 6] = [
+pub static QUADRATIC_THEIRS: [[isize; 6]; 6] = [
     [0, 0, 0, 0, 0, 0],    // Bishop pair DEPRECATE: Refactor This as it is not needed
     [36, 0, 0, 0, 0, 0],   // Pawn
     [9, 63, 0, 0, 0, 0],   // Knight

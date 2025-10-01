@@ -1,4 +1,4 @@
-pub const BETWEEN_BB: [[u64; 64]; 64] = [
+pub static BETWEEN_BB: [[u64; 64]; 64] = [
     [
         0x0000000000000001,
         0x0000000000000003,
