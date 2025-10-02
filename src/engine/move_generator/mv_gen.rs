@@ -341,6 +341,7 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
+    #[inline(always)]
     fn sq_attack(&self, sq: usize, color: Color) -> u64 {
         let (own_occ, enemy_occ) = self.both_occ_bb(color);
 
