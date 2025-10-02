@@ -143,7 +143,7 @@ impl CastlingRightsTrait for Castling {
         resp != 0
     }
 
-    #[inline(always)]
+    // #[inline(always)]
     fn valid(&self, castle: Castling, board: &Board, own: u64, enemy: u64) -> bool {
         self.is_set(castle)
             && self.sq_empty(castle, own, enemy)

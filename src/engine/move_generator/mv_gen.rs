@@ -130,11 +130,13 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
+    #[inline(always)]
     fn pawn_moves(&mut self) {
         self.pawn_capture_moves();
         self.pawn_quiet_moves();
     }
 
+    #[inline(always)]
     fn pawn_quiet_moves(&mut self) {
         let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
         let both_occ = own_occ | enemy_occ;
@@ -180,6 +182,7 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
+    #[inline(always)]
     fn pawn_capture_moves(&mut self) {
         let (_own_occ, enemy_occ) = self.both_occ_bb(self.color());
         let piece = PAWN + self.color();
@@ -276,6 +279,7 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
+    #[inline(always)]
     fn add_ep_moves(&mut self) {
         if let Some(mv) = self.state.ep {
             let color = self.color().opp();
@@ -337,7 +341,6 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
-    #[inline(always)]
     fn sq_attack(&self, sq: usize, color: Color) -> u64 {
         let (own_occ, enemy_occ) = self.both_occ_bb(color);
 

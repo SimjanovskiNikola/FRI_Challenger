@@ -22,6 +22,7 @@ pub trait MoveOrderingTrait {
 }
 
 impl MoveOrderingTrait for Board {
+    #[inline(always)]
     fn score_moves(&mut self, moves: &mut Vec<(Move, isize)>) {
         let pv_mv = self.pv_moves[0][self.ply()];
         // let tt_mv = self.tt.read().unwrap().get(self.key());
@@ -51,6 +52,7 @@ impl MoveOrderingTrait for Board {
         }
     }
 
+    #[inline(always)]
     fn next_move(&mut self, moves: &mut Vec<(Move, isize)>) -> Option<Move> {
         if moves.len() == 0 {
             return None;
@@ -62,6 +64,7 @@ impl MoveOrderingTrait for Board {
         Some(moves.swap_remove(best_idx).0)
     }
 
+    #[inline(always)]
     fn quiet_eval(&mut self, mv: &Move) -> isize {
         if Some(*mv) == self.s_killers[self.ply()][0] {
             return KILLER_MV_SCORE[0];
@@ -72,12 +75,14 @@ impl MoveOrderingTrait for Board {
         return self.s_history[mv.piece.idx()][mv.to as usize] + HIS_MV_SCORE;
     }
 
+    #[inline(always)]
     fn capture_eval(&mut self, mv: &Move) -> isize {
         debug_assert!(self.squares[mv.to as usize] != 0, "There is no piece in the to square");
 
         self.see(mv.from as usize, mv.to as usize) + SEE_MV_SCORE
     }
 
+    #[inline(always)]
     fn see(&mut self, mut from: usize, to: usize) -> isize {
         let mut occ = self.occ_bb(WHITE) | self.occ_bb(BLACK);
         let mut clr = self.color();

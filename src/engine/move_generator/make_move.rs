@@ -23,6 +23,7 @@ pub trait BoardMoveTrait {
 }
 
 impl BoardMoveTrait for Board {
+    #[inline(always)]
     fn make_move(&mut self, mv: &Move) -> bool {
         self.history.push(self.state);
         self.moves.push(*mv);
@@ -71,6 +72,7 @@ impl BoardMoveTrait for Board {
         true
     }
 
+    #[inline(always)]
     fn undo_move(&mut self) {
         let (mv, st) = match (self.moves.pop(), self.history.pop()) {
             (Some(m), Some(s)) => (m, s),
@@ -159,6 +161,7 @@ impl BoardMoveTrait for Board {
         self.clear_eval(piece, sq);
     }
 
+    #[inline(always)]
     fn make_state(&mut self, mv: &Move) {
         // Switch the color
         self.state.color.change_color();

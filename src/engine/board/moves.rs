@@ -12,6 +12,7 @@ pub enum Flag {
 }
 
 impl Flag {
+    #[inline(always)]
     pub const fn is_capture(&self) -> bool {
         match *self {
             Flag::Capture(_) | Flag::EP | Flag::Promotion(_, Some(_)) => true,
@@ -19,6 +20,7 @@ impl Flag {
         }
     }
 
+    #[inline(always)]
     pub const fn is_promo(&self) -> bool {
         match *self {
             Flag::Promotion(_, _) => true,
@@ -26,6 +28,7 @@ impl Flag {
         }
     }
 
+    #[inline(always)]
     pub const fn get_promo_piece(&self) -> Option<Piece> {
         match *self {
             Flag::Promotion(piece, _) => Some(piece),

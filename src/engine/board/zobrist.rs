@@ -12,28 +12,34 @@ pub trait ZobristKeysTrait {
 }
 
 impl ZobristKeysTrait for Board {
+    #[inline(always)]
     fn zb_reset_key(&mut self) {
         self.zb_clr();
         self.zb_castling();
         self.zb_ep();
     }
 
+    #[inline(always)]
     fn zb_replace_piece(&mut self, from_sq: usize, to_sq: usize, piece: Piece) {
         self.state.key ^= PIECE_KEYS[to_sq][piece.idx()] ^ PIECE_KEYS[from_sq][piece.idx()];
     }
 
+    #[inline(always)]
     fn zb_toggle_piece(&mut self, sq: usize, piece: Piece) {
         self.state.key ^= PIECE_KEYS[sq][piece.idx()]
     }
 
+    #[inline(always)]
     fn zb_clr(&mut self) {
         self.state.key ^= SIDE_KEY * self.color() as u64;
     }
 
+    #[inline(always)]
     fn zb_castling(&mut self) {
         self.state.key ^= CASTLE_KEYS[self.state.castling.idx()];
     }
 
+    #[inline(always)]
     fn zb_ep(&mut self) {
         if let Some(idx) = self.state.ep {
             self.state.key ^= EP_KEYS[idx as usize]
