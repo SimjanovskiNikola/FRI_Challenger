@@ -20,7 +20,7 @@ pub fn insert_bits(mask: u64, occupancy: u64) -> u64 {
     result
 }
 
-#[inline]
+#[inline(always)]
 pub fn pext(bitboard: u64, mask: u64) -> u64 {
     unsafe { _pext_u64(bitboard, mask) }
 }

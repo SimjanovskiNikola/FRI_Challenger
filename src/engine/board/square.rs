@@ -19,20 +19,24 @@ impl SqPos {
     }
 }
 
+#[inline(always)]
 pub const fn get_file(sq: usize) -> usize {
     debug_assert!(sq >= 0 && sq <= 64);
     sq % 8
 }
 
+#[inline(always)]
 pub const fn get_rank(sq: usize) -> usize {
     debug_assert!(sq >= 0 && sq <= 64);
     sq / 8
 }
 
+#[inline(always)]
 pub const fn get_rank_bb(sq: usize) -> u64 {
     RANK_BITBOARD[get_rank(sq)]
 }
 
+#[inline(always)]
 pub const fn get_file_bb(sq: usize) -> u64 {
     FILE_BITBOARD[get_file(sq)]
 }

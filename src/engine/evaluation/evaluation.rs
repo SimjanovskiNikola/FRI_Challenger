@@ -364,6 +364,7 @@ impl EvaluationTrait for Board {
         return self.calculate_score() * self.color().sign();
     }
 
+    #[inline(always)]
     fn clear_eval(&mut self, piece: Piece, sq: usize) {
         self.eval.material_eval[piece.color().idx()].0 -=
             MaterialEvalTrait::piece_material(self, piece).0;
@@ -373,6 +374,8 @@ impl EvaluationTrait for Board {
         self.eval.psqt_eval[piece.color().idx()].0 -= PSQTEvalTrait::piece_psqt(self, piece, sq).0;
         self.eval.psqt_eval[piece.color().idx()].1 -= PSQTEvalTrait::piece_psqt(self, piece, sq).1;
     }
+
+    #[inline(always)]
     fn add_eval(&mut self, piece: Piece, sq: usize) {
         self.eval.material_eval[piece.color().idx()].0 +=
             MaterialEvalTrait::piece_material(self, piece).0;
@@ -383,6 +386,7 @@ impl EvaluationTrait for Board {
         self.eval.psqt_eval[piece.color().idx()].1 += PSQTEvalTrait::piece_psqt(self, piece, sq).1;
     }
 
+    #[inline(always)]
     fn quiet_eval(&mut self, piece: Piece, from: usize, to: usize) {
         self.eval.psqt_eval[piece.color().idx()].0 += PSQTEvalTrait::piece_psqt(self, piece, to).0
             - PSQTEvalTrait::piece_psqt(self, piece, from).0;
