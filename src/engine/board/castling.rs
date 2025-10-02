@@ -1,5 +1,3 @@
-// use bitflags::bitflags;
-
 use super::color::*;
 use super::square::SqPos::*;
 use crate::engine::board::board::Board;
