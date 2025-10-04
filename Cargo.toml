@@ -1,5 +1,5 @@
 [package]
-name = "fri_check_mate"
+name = "fri_challenger"
 version = "0.6.0"
 edition = "2024"
 
@@ -16,7 +16,7 @@ clippy = "0.0.302"
 dhat-heap = []
 
 [[bin]]
-name = "chess-engine"
+name = "FRI-Challenger"
 path = "src/main.rs"
 
 [[bench]]

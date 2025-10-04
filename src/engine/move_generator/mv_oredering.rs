@@ -25,12 +25,12 @@ impl MoveOrderingTrait for Board {
     #[inline(always)]
     fn score_moves(&mut self, moves: &mut Vec<(Move, isize)>) {
         let pv_mv = if let Some(mv) = self.pv_line.get(self.ply()) { Some(*mv) } else { None };
-        // let tt_mv = self.tt.read().unwrap().get(self.key());
+        let tt_mv = self.tt.get(self.key());
         for (mv, score) in moves.iter_mut() {
             if pv_mv == Some(*mv) {
                 *score = PV_MV_SCORE;
                 continue;
-            } else if matches!(self.tt.get(self.key()), Some(tt_move) if *mv == tt_move.mv) {
+            } else if matches!(tt_mv, Some(tt_move) if *mv == tt_move.mv) {
                 *score = TT_MV_SCORE;
                 continue;
             }

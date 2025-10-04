@@ -4,8 +4,7 @@ use crate::engine::board::moves::Move;
 use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 
-// const MAX_TT_ENTRIES: usize = 1040211;
-const MAX_TT_ENTRIES: usize = 211;
+const MAX_TT_ENTRIES: usize = 403139;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Bound {
@@ -19,12 +18,12 @@ pub enum Bound {
 // NOTE: Currently Around 15Mb
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TTEntry {
-    pub key: u64,
-    pub mv: Move,
-    pub score: i16,
-    pub depth: i8,
-    pub category: Bound,
-    pub age: i16,
+    pub key: u64,        // 8 Bytes Max
+    pub mv: Move,        // 6 Bytes Max
+    pub score: i16,      // 2 Bytes
+    pub depth: i8,       // 1 Byte
+    pub category: Bound, // 1 Byte
+    pub age: i16,        // 2 Bytes
 }
 
 impl TTEntry {

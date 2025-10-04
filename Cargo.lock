@@ -424,7 +424,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "fri_check_mate"
+name = "fri_challenger"
 version = "0.6.0"
 dependencies = [
  "clippy",
