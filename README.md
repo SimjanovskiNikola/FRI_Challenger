@@ -2,41 +2,30 @@
 
 A  chess engine written in **Rust**. This project is the culmination of a diploma thesis for the **Faculty of Computer and Information Science (FRI)** at the **University of Ljubljana**.
 
-*The name "FRI Challenger" pays homage to the faculty where it was created.*
 
-***
-
-## 🚀 Project Status
-
-| Metric | Detail |
+| Version | Current ELO Rating (Est.) |
 | :--- | :--- |
-| **Current ELO Rating (Est.)** | ~2000 |
-| **Current Version** | `0.6.0` |
-| **Technology** | Rust |
-
-### 🎯 Roadmap to v1.0.0 (First Release)
-
-The engine is currently in an advanced alpha state. The first official stable release will be version `1.0.0` and is planned once the following key search optimizations are implemented:
-
-* **Futility Search**
-* **Transposition Table**
-
-***
+| `0.6.0` | ~UNKNOWN |
+| `0.5.0` | ~UNKNOWN |
+| `0.4.0` | ~UNKNOWN |
+| `0.3.0` | ~UNKNOWN |
+| `0.2.0` | ~UNKNOWN |
+| `0.1.0` | ~UNKNOWN |
 
 ## 🧠 Core Engine Features & Algorithms
 
 The engine is built on standard and modern chess programming principles:
 
-### Move Generator
+#### Move Generator
 - Semi-legal move generator
 - Move Ordering (PV, Killers, History heuristics, SEE)
-### Search 
+#### Search 
 - Iterative Deepening
 - Principal Variation Table (Upgraded Alpha Beta search)
 - Quiescence search
 - NMP + NMR
 - LMR (Late move pruning) (Added 1 More depth to the search)
-### Evaluation
+#### Evaluation
 - Material
 - PSQT (Piece Square Table)
 - Imbalance
@@ -47,13 +36,6 @@ The engine is built on standard and modern chess programming principles:
 - Passed Pawn  #(Fixed in this release)
 - Space
 - Tempo
-
-### Stats:  
-- Game Results:
-- Depth: 9 in 1 second
-- Perft: ~25.000.000 nps
-- Search: ~ 2.000.000 nps
-- Rating: 
 
 ## 🛠️ Getting Started (Development Setup)
 
