@@ -6,6 +6,7 @@ use crate::engine::board::moves::*;
 use crate::engine::board::piece::*;
 use crate::engine::misc::bitboard::BitboardTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
+use crate::engine::search::transposition_table::TT;
 
 static PV_MV_SCORE: isize = 95000;
 static TT_MV_SCORE: isize = 80000;
@@ -25,7 +26,8 @@ impl MoveOrderingTrait for Board {
     #[inline(always)]
     fn score_moves(&mut self, moves: &mut Vec<(Move, isize)>) {
         let pv_mv = if let Some(mv) = self.pv_line.get(self.ply()) { Some(*mv) } else { None };
-        let tt_mv = self.tt.get(self.key());
+        // let tt_mv = self.tt.get(self.key());
+        let tt_mv = TT.read().unwrap().get(self.key());
         for (mv, score) in moves.iter_mut() {
             if pv_mv == Some(*mv) {
                 *score = PV_MV_SCORE;

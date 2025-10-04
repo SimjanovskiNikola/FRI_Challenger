@@ -1,8 +1,16 @@
+use once_cell::sync::Lazy;
+use std::sync::RwLock;
+use std::sync::atomic::AtomicI16;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering;
+
 use crate::engine::board::board::Board;
 use crate::engine::board::moves::ExtendedMove;
 use crate::engine::board::moves::Move;
 use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
+
+pub static TT: Lazy<RwLock<TTTable>> = Lazy::new(|| RwLock::new(TTTable::init()));
 
 const MAX_TT_ENTRIES: usize = 403139;
 
@@ -32,25 +40,25 @@ impl TTEntry {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct TTTable {
     pub table: Box<[Option<TTEntry>]>,
-    pub lookups: u64,
-    pub inserts: u64,
-    pub hits: u64,
-    pub collisions: u64,
-    pub curr_age: i16,
+    pub lookups: AtomicU64,
+    pub inserts: AtomicU64,
+    pub hits: AtomicU64,
+    pub collisions: AtomicU64,
+    pub curr_age: AtomicI16,
 }
 
 impl TTTable {
     pub fn init() -> Self {
         Self {
             table: vec![None; MAX_TT_ENTRIES].into_boxed_slice(), //Box::new([None; MAX_TT_ENTRIES]),
-            lookups: 0,
-            inserts: 0,
-            hits: 0,
-            collisions: 0,
-            curr_age: 0,
+            lookups: AtomicU64::new(0),
+            inserts: AtomicU64::new(0),
+            hits: AtomicU64::new(0),
+            collisions: AtomicU64::new(0),
+            curr_age: AtomicI16::new(0),
         }
     }
 
@@ -60,36 +68,51 @@ impl TTTable {
     }
 
     pub fn set(&mut self, key: u64, mv: Move, score: i16, depth: i8, category: Bound) {
-        self.inserts += 1;
+        self.inserts.fetch_add(1, Ordering::Relaxed);
 
         if let Some(entry) = self.table[Self::idx(key)] {
-            self.collisions += 1;
-            if (entry.age < self.curr_age) || (entry.depth <= depth) {
-                self.table[Self::idx(key)] =
-                    Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
+            self.collisions.fetch_add(1, Ordering::Relaxed);
+            if (entry.age < self.curr_age.load(Ordering::Relaxed)) || (entry.depth <= depth) {
+                self.table[Self::idx(key)] = Some(TTEntry::init(
+                    key,
+                    mv,
+                    score,
+                    depth,
+                    category,
+                    self.curr_age.load(Ordering::Relaxed),
+                ));
             }
             return;
         }
 
-        self.table[Self::idx(key)] =
-            Some(TTEntry::init(key, mv, score, depth, category, self.curr_age));
+        self.table[Self::idx(key)] = Some(TTEntry::init(
+            key,
+            mv,
+            score,
+            depth,
+            category,
+            self.curr_age.load(Ordering::Relaxed),
+        ));
     }
 
     pub fn probe(&self, key: u64, depth: i8, mut alpha: i16, mut beta: i16) -> Option<(i16, Move)> {
-        // self.lookups += 1;
+        self.lookups.fetch_add(1, Ordering::Relaxed);
         let idx = Self::idx(key);
         if let Some(e) = self.table[idx] {
-            if e.key == key && (e.depth as i16 + e.age) >= (depth as i16 + self.curr_age) {
+            if e.key == key
+                && (e.depth as i16 + e.age)
+                    >= (depth as i16 + self.curr_age.load(Ordering::Relaxed))
+            {
                 match e.category {
                     Bound::Lower => alpha = alpha.max(e.score),
                     Bound::Exact => {
-                        // self.hits += 1;
+                        self.hits.fetch_add(1, Ordering::Relaxed);
                         return Some((e.score, e.mv));
                     }
                     Bound::Upper => beta = beta.min(e.score),
                 }
                 if alpha >= beta {
-                    // self.hits += 1;
+                    self.hits.fetch_add(1, Ordering::Relaxed);
                     return Some((e.score, e.mv));
                 }
             }
@@ -110,23 +133,26 @@ impl TTTable {
 
     pub fn print_stats(&self) {
         println!(
-            "lookups: {}; inserts: {}; hits: {}; collisions: {};",
-            self.lookups, self.inserts, self.hits, self.collisions
+            "TT -> lookups: {}; inserts: {}; hits: {}; collisions: {};",
+            self.lookups.load(Ordering::Relaxed),
+            self.inserts.load(Ordering::Relaxed),
+            self.hits.load(Ordering::Relaxed),
+            self.collisions.load(Ordering::Relaxed)
         );
     }
 
     pub fn clear(&mut self) {
         self.table.fill(None);
         self.clear_stats();
-        self.curr_age = 0;
+        self.curr_age.store(0, Ordering::Relaxed);
     }
 
-    pub fn clear_stats(&mut self) {
-        self.hits = 0;
-        self.collisions = 0;
-        self.inserts = 0;
-        self.lookups = 0;
-        self.curr_age += 1;
+    pub fn clear_stats(&self) {
+        self.hits.store(0, Ordering::Relaxed);
+        self.collisions.store(0, Ordering::Relaxed);
+        self.inserts.store(0, Ordering::Relaxed);
+        self.lookups.store(0, Ordering::Relaxed);
+        self.curr_age.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn get_line(&self, board: &mut Board) -> Vec<ExtendedMove> {

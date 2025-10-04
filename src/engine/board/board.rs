@@ -27,8 +27,8 @@ pub struct Board {
     pub state: BoardState,
 
     // TODO: Add This to Move Ordering Structure
-    pub tt: TTTable,
-    pub pawn_tt: PawnHashTable,
+    // pub tt: TTTable,
+    // pub pawn_tt: PawnHashTable,
     pub s_history: [[isize; 64]; 14],
     pub s_killers: [[Option<Move>; 2]; 64],
     pub pv_moves: [[Option<Move>; MAX_PLY]; MAX_PLY],
@@ -56,8 +56,8 @@ impl Board {
             state: BoardState::init(),
 
             // Move Ordering
-            tt: TTTable::init(),
-            pawn_tt: PawnHashTable::init(),
+            // tt: TTTable::init(),
+            // pawn_tt: PawnHashTable::init(),
             s_history: [[0isize; 64]; 14],
             s_killers: [[None; 2]; 64],
             pv_moves: [[None; 64]; 64],
@@ -77,8 +77,8 @@ impl Board {
         self.moves = Vec::with_capacity(1024);
         self.history = Vec::with_capacity(1024);
         self.state = BoardState::init();
-        self.tt.clear();
-        self.pawn_tt.clear();
+        // self.tt.clear();
+        // self.pawn_tt.clear();
         self.s_history = [[0isize; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
         self.pv_line.clear();

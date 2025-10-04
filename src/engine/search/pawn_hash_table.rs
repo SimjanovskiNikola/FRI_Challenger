@@ -1,5 +1,13 @@
+use once_cell::sync::Lazy;
+use std::sync::{
+    RwLock,
+    atomic::{AtomicI8, AtomicU64, Ordering},
+};
+
 // const MAX_TT_ENTRIES: u64 = 400211;
 const MAX_TT_ENTRIES: u64 = 403139;
+
+pub static PAWN_TT: Lazy<RwLock<PawnHashTable>> = Lazy::new(|| RwLock::new(PawnHashTable::init()));
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Bound {
@@ -32,25 +40,25 @@ impl PawnEntry {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PawnHashTable {
     pub table: Box<[Option<PawnEntry>]>,
-    pub lookups: u64,
-    pub inserts: u64,
-    pub hits: u64,
-    pub collisions: u64,
-    pub curr_age: i8,
+    pub lookups: AtomicU64,
+    pub inserts: AtomicU64,
+    pub hits: AtomicU64,
+    pub collisions: AtomicU64,
+    pub curr_age: AtomicI8,
 }
 
 impl PawnHashTable {
     pub fn init() -> Self {
         Self {
             table: vec![None; MAX_TT_ENTRIES as usize].into_boxed_slice(), //Box::new([None; MAX_TT_ENTRIES]),
-            lookups: 0,
-            inserts: 0,
-            hits: 0,
-            collisions: 0,
-            curr_age: 0,
+            lookups: AtomicU64::new(0),
+            inserts: AtomicU64::new(0),
+            hits: AtomicU64::new(0),
+            collisions: AtomicU64::new(0),
+            curr_age: AtomicI8::new(0),
         }
     }
 
@@ -66,25 +74,37 @@ impl PawnHashTable {
         pawn_eval: [(i16, i16); 2],
         candidate_passed: [u64; 2],
     ) {
-        self.inserts += 1;
+        self.inserts.fetch_add(1, Ordering::Relaxed);
 
         if let Some(entry) = self.table[Self::idx(key)] {
-            self.collisions += 1;
-            if entry.age < self.curr_age {
-                self.table[Self::idx(key)] =
-                    Some(PawnEntry::init(key, shelter, pawn_eval, candidate_passed, self.curr_age));
+            self.collisions.fetch_add(1, Ordering::Relaxed);
+            if entry.age < self.curr_age.load(Ordering::Relaxed) {
+                self.table[Self::idx(key)] = Some(PawnEntry::init(
+                    key,
+                    shelter,
+                    pawn_eval,
+                    candidate_passed,
+                    self.curr_age.load(Ordering::Relaxed),
+                ));
             }
             return;
         }
 
-        self.table[Self::idx(key)] =
-            Some(PawnEntry::init(key, shelter, pawn_eval, candidate_passed, self.curr_age));
+        self.table[Self::idx(key)] = Some(PawnEntry::init(
+            key,
+            shelter,
+            pawn_eval,
+            candidate_passed,
+            self.curr_age.load(Ordering::Relaxed),
+        ));
     }
 
-    pub fn get(&mut self, key: u64) -> Option<PawnEntry> {
+    pub fn get(&self, key: u64) -> Option<PawnEntry> {
+        self.lookups.fetch_add(1, Ordering::Relaxed);
+
         if let Some(entry) = self.table[Self::idx(key)] {
             if entry.key == key {
-                self.hits += 1;
+                self.hits.fetch_add(1, Ordering::Relaxed);
                 return Some(entry);
             }
         }
@@ -94,22 +114,25 @@ impl PawnHashTable {
 
     pub fn print_stats(&self) {
         println!(
-            "lookups: {}; inserts: {}; hits: {}; collisions: {};",
-            self.lookups, self.inserts, self.hits, self.collisions
+            "PAWN_TT -> lookups: {}; inserts: {}; hits: {}; collisions: {};",
+            self.lookups.load(Ordering::Relaxed),
+            self.inserts.load(Ordering::Relaxed),
+            self.hits.load(Ordering::Relaxed),
+            self.collisions.load(Ordering::Relaxed)
         );
     }
 
     pub fn clear(&mut self) {
         self.table.fill(None);
         self.clear_stats();
-        self.curr_age = 0;
+        self.curr_age.store(0, Ordering::Relaxed);
     }
 
     pub fn clear_stats(&mut self) {
-        self.hits = 0;
-        self.collisions = 0;
-        self.inserts = 0;
-        self.lookups = 0;
-        self.curr_age += 1;
+        self.hits.store(0, Ordering::Relaxed);
+        self.collisions.store(0, Ordering::Relaxed);
+        self.inserts.store(0, Ordering::Relaxed);
+        self.lookups.store(0, Ordering::Relaxed);
+        self.curr_age.fetch_add(1, Ordering::Relaxed);
     }
 }

@@ -430,6 +430,7 @@ dependencies = [
  "clippy",
  "criterion",
  "iai-callgrind",
+ "once_cell",
  "pprof",
  "rand",
 ]

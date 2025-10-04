@@ -5,6 +5,8 @@ use crate::engine::misc::display::display_stats::DisplayStatsTrait;
 use crate::engine::protocols::time::safe_to_start_next_iter;
 use crate::engine::protocols::time::time_over;
 use crate::engine::protocols::uci::UCITime;
+use crate::engine::search::pawn_hash_table::PAWN_TT;
+use crate::engine::search::transposition_table::TT;
 
 const MAX_INF: isize = isize::MAX / 2;
 const MIN_INF: isize = isize::MIN / 2;
@@ -101,11 +103,17 @@ impl Search {
             }
 
             self.print_info(score, get_move_list(&self.board.pv_line, self.info.curr_depth));
-            self.print_ordering_info(depth);
-            self.board.pawn_tt.print_stats();
+            // self.print_ordering_info(depth);
 
-            self.board.pawn_tt.clear_stats(); // Update the Current age
-            self.board.tt.clear_stats(); // Update the Current age
+            // self.board.pawn_tt.print_stats();
+            // PAWN_TT.read().unwrap().print_stats();
+
+            PAWN_TT.write().unwrap().clear_stats();
+
+            // self.board.pawn_tt.clear_stats(); // Update the Current age
+            // self.board.tt.clear_stats(); // Update the Current age
+            // TT.read().unwrap().print_stats();
+            TT.write().unwrap().clear_stats(); // Update the Current age
             // search.tt.lock().unwrap().print_stats();
         }
         best_mv
