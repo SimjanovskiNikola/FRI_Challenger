@@ -19,7 +19,7 @@ impl Search {
     #[inline(always)]
     pub fn add_history(&mut self, mv: Move, depth: i8) {
         if !mv.flag.is_capture() {
-            self.board.s_history[mv.piece.idx()][mv.to as usize] += (depth * depth) as isize;
+            self.board.s_history[mv.piece.idx()][mv.to as usize] += depth as isize * depth as isize;
         }
     }
 
@@ -88,7 +88,6 @@ impl Search {
         }
 
         let in_check: bool = self.in_check();
-        // self.board.sq_attack(self.board.king_sq(self.board.color()), self.board.color()) != 0;
 
         // NOTE: Check extension
         if in_check {
@@ -107,14 +106,14 @@ impl Search {
 
         self.info.nodes += 1;
 
-        // FIXME: Uncomment for use of Futility Pruning
-        // let do_futility_pruning = if depth > 4 || is_pvs || in_check {
-        //     // Only apply at shallow depths, in non-PV nodes, and when not in check.
-        //     false
-        // } else {
-        //     // Prune if the static eval is significantly worse than alpha.
-        //     self.board.inc_eval() + Self::FUTILITY_MARGINS[depth as usize] <= alpha
-        // };
+        // Futility Pruning
+        let do_futility_pruning = if depth > 4 || is_pvs || in_check {
+            // Only apply at shallow depths, in non-PV nodes, and when not in check.
+            false
+        } else {
+            // Prune if the static eval is significantly worse than alpha.
+            self.board.inc_eval() + 250 * depth as isize <= alpha
+        };
 
         // NOTE: Null move Pruning
         let color = self.board.color();
@@ -122,6 +121,9 @@ impl Search {
             & !(self.board.pawn_bb(color) | self.board.king_bb(color))
             == 0;
         let nmp_allowed = !in_check && !is_nmp && !is_pawn_ending && !is_pvs;
+
+        // Remove Pruning FIXME:
+        let test_pruning = false;
 
         if nmp_allowed {
             let r = (depth - 1).min(3 + depth / 4);
@@ -159,16 +161,15 @@ impl Search {
 
             // Don't prune captures, promotions, or checks.
             // Also, don't prune the first move, as it's likely the best.
-            // FIXME: Uncomment for use of Futility Pruning
-            // if do_futility_pruning
-            //     && legal_mv_num > 1
-            //     && !mv.flag.is_capture()
-            //     && !mv.flag.is_promo()
-            //     && !self.in_check()
-            // {
-            //     self.board.undo_move();
-            //     continue; // Prune this move
-            // }
+            if do_futility_pruning
+                && legal_mv_num > 1
+                && !mv.flag.is_capture()
+                && !mv.flag.is_promo()
+                && !self.in_check()
+            {
+                self.board.undo_move();
+                continue; // Prune this move
+            }
 
             let mut score: isize;
             if legal_mv_num == 1 {
