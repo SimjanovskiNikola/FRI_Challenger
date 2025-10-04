@@ -16,6 +16,7 @@ use crate::engine::evaluation::tempo_eval::TempoEvalTrait;
 use crate::engine::evaluation::threats_eval::ThreatsEvalTrait;
 use crate::engine::evaluation::trace_eval::TraceEvalTrait;
 use crate::engine::misc::bitboard::Bitboard;
+use crate::engine::search::pawn_hash_table::PAWN_TT;
 
 // The Numbers (Tapered Eval) for the evaluation are taken from -> STOCKFISH SF_9
 
@@ -280,7 +281,8 @@ impl EvaluationTrait for Board {
     fn inc_eval(&mut self) -> isize {
         self.eval.reset();
 
-        if let Some(pawn_entry) = self.pawn_tt.get(self.pk_key()) {
+        // if let Some(pawn_entry) = self.pawn_tt.get(self.pk_key()) {
+        if let Some(pawn_entry) = PAWN_TT.read().unwrap().get(self.pk_key()) {
             self.eval.king_shelter =
                 pawn_entry.shelter.map(|(x, y, z)| (x as isize, y as isize, z as isize));
             self.eval.pawn_eval = pawn_entry.pawn_eval.map(|(x, y)| (x as isize, y as isize));
@@ -353,7 +355,8 @@ impl EvaluationTrait for Board {
         if !self.eval.pawn_hash_hit {
             let king_shelter =
                 self.eval.king_shelter.map(|(x, y, z)| (x as i16, y as i16, z as i16));
-            self.pawn_tt.set(
+            // self.pawn_tt.set(
+            PAWN_TT.write().unwrap().set(
                 self.pk_key(),
                 king_shelter,
                 self.eval.pawn_eval.map(|(x, y)| (x as i16, y as i16)),

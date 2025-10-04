@@ -4,6 +4,7 @@ use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 use crate::engine::move_generator::mv_oredering::MoveOrderingTrait;
 use crate::engine::protocols::time::time_over;
+use crate::engine::search::transposition_table::{Bound, TT};
 
 impl Search {
     pub fn quiescence_search(&mut self, mut alpha: isize, beta: isize, depth: i8) -> isize {
@@ -35,12 +36,12 @@ impl Search {
             return alpha;
         }
 
-        // if let Some((score, _)) =
-        //     TT.read().unwrap().probe(self.board.state.key, depth, alpha as i16, beta as i16)
-        // {
-        //     return score as isize;
-        // }
-
+        if let Some((score, _)) =
+            // self.board.tt.probe(self.board.state.key, depth, alpha as i16, beta as i16)
+            TT.read().unwrap().probe(self.board.state.key, depth, alpha as i16, beta as i16)
+        {
+            return score as isize;
+        }
         let mut best_mv = None;
         let mut best_score = alpha;
         let old_alpha: isize = alpha;
@@ -60,13 +61,14 @@ impl Search {
 
             if score > alpha {
                 if score >= beta {
-                    // TT.write().unwrap().set(
-                    //     self.board.state.key,
-                    //     mv,
-                    //     score as i16,
-                    //     depth,
-                    //     Bound::Lower,
-                    // );
+                    // self.board.tt.set(self.board.state.key, mv, score as i16, depth, Bound::Lower);
+                    TT.write().unwrap().set(
+                        self.board.state.key,
+                        mv,
+                        score as i16,
+                        depth,
+                        Bound::Lower,
+                    );
                     return beta;
                 }
                 alpha = score;
@@ -75,10 +77,11 @@ impl Search {
             }
         }
 
-        // if let Some(mv) = best_mv {
-        //     let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
-        //     TT.write().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
-        // }
+        if let Some(mv) = best_mv {
+            let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
+            // self.board.tt.set(self.board.state.key, mv, alpha as i16, depth, bound);
+            TT.write().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
+        }
         alpha
     }
 }

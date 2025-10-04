@@ -6,6 +6,7 @@ use crate::engine::move_generator::make_move::BoardMoveTrait;
 use crate::engine::move_generator::mv_gen::BoardGenMoveTrait;
 use crate::engine::move_generator::mv_oredering::MoveOrderingTrait;
 use crate::engine::protocols::time::time_over;
+use crate::engine::search::transposition_table::{Bound, TT};
 
 impl Search {
     #[inline(always)]
@@ -96,13 +97,19 @@ impl Search {
 
         let is_pvs = alpha != beta - 1;
 
-        // if !is_pvs
-        //     && !is_nmp
-        //     && let Some((score, _)) =
-        //         self.board.tt.probe(self.board.state.key, depth, alpha as i16, beta as i16)
-        // {
-        //     return score as isize;
-        // }
+        if !is_pvs
+            && !is_nmp
+            && let Some((score, _)) =
+                // self.board.tt.probe(self.board.state.key, depth, alpha as i16, beta as i16)
+                TT.read().unwrap().probe(
+                    self.board.state.key,
+                    depth,
+                    alpha as i16,
+                    beta as i16,
+                )
+        {
+            return score as isize;
+        }
 
         self.info.nodes += 1;
 
@@ -222,15 +229,16 @@ impl Search {
                     self.add_fail_hard_first_info(legal_mv_num);
                     self.add_fail_hard_info();
 
-                    // if !is_pvs && !is_nmp {
-                    //     self.board.tt.set(
-                    //         self.board.state.key,
-                    //         mv,
-                    //         score as i16,
-                    //         depth,
-                    //         Bound::Lower,
-                    //     );
-                    // }
+                    if !is_pvs && !is_nmp {
+                        // self.board.tt.set(
+                        TT.write().unwrap().set(
+                            self.board.state.key,
+                            mv,
+                            score as i16,
+                            depth,
+                            Bound::Lower,
+                        );
+                    }
                     return beta;
                 }
 
@@ -252,12 +260,13 @@ impl Search {
         }
 
         // // NOTE: Storing the best value in the transposition table
-        // if !is_pvs && !is_nmp {
-        //     if let Some(mv) = best_mv {
-        //         let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
-        //         self.board.tt.set(self.board.state.key, mv, alpha as i16, depth, bound);
-        //     }
-        // }
+        if !is_pvs && !is_nmp {
+            if let Some(mv) = best_mv {
+                let bound = if best_score > old_alpha { Bound::Exact } else { Bound::Upper };
+                // self.board.tt.set(self.board.state.key, mv, alpha as i16, depth, bound);
+                TT.write().unwrap().set(self.board.state.key, mv, alpha as i16, depth, bound);
+            }
+        }
 
         alpha
     }
