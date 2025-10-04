@@ -24,7 +24,7 @@ pub trait MoveOrderingTrait {
 impl MoveOrderingTrait for Board {
     #[inline(always)]
     fn score_moves(&mut self, moves: &mut Vec<(Move, isize)>) {
-        let pv_mv = self.pv_moves[0][self.ply()];
+        let pv_mv = if let Some(mv) = self.pv_line.get(self.ply()) { Some(*mv) } else { None };
         // let tt_mv = self.tt.read().unwrap().get(self.key());
         for (mv, score) in moves.iter_mut() {
             if pv_mv == Some(*mv) {

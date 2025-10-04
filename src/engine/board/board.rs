@@ -33,6 +33,7 @@ pub struct Board {
     pub s_killers: [[Option<Move>; 2]; 64],
     pub pv_moves: [[Option<Move>; MAX_PLY]; MAX_PLY],
     pub pv_len: [usize; MAX_PLY],
+    pub pv_line: Vec<Move>,
     pub gen_moves: Vec<(Move, isize)>,
 
     pub eval: Evaluation,
@@ -61,6 +62,7 @@ impl Board {
             s_killers: [[None; 2]; 64],
             pv_moves: [[None; 64]; 64],
             pv_len: [0; 64],
+            pv_line: Vec::with_capacity(64),
 
             gen_moves: Vec::with_capacity(256),
 
@@ -79,7 +81,7 @@ impl Board {
         self.pawn_tt.clear();
         self.s_history = [[0isize; 64]; 14]; // FIXME: Don't  create new, just fill with 0's
         self.s_killers = [[None; 2]; 64]; // FIXME: Don't  create new, just fill with 0's
-        // self.s_pv = [None; 64];
+        self.pv_line.clear();
         self.gen_moves.clear();
 
         self.eval.reset();
@@ -89,6 +91,7 @@ impl Board {
     pub fn pv_clear(&mut self) {
         self.pv_len.fill(0);
         self.pv_moves.fill([None; MAX_PLY]);
+        self.pv_line.clear();
     }
 
     #[inline(always)]
