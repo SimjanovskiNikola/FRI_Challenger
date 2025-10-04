@@ -107,14 +107,15 @@ impl Search {
 
         self.info.nodes += 1;
 
-        // FIXME: Uncomment for use of Futility Pruning
-        // let do_futility_pruning = if depth > 4 || is_pvs || in_check {
-        //     // Only apply at shallow depths, in non-PV nodes, and when not in check.
-        //     false
-        // } else {
-        //     // Prune if the static eval is significantly worse than alpha.
-        //     self.board.inc_eval() + Self::FUTILITY_MARGINS[depth as usize] <= alpha
-        // };
+        // Futility Pruning
+        // let do_futility_pruning = false;
+        let do_futility_pruning = if depth > 4 || is_pvs || in_check {
+            // Only apply at shallow depths, in non-PV nodes, and when not in check.
+            false
+        } else {
+            // Prune if the static eval is significantly worse than alpha.
+            self.board.inc_eval() + Self::FUTILITY_MARGINS[depth as usize] <= alpha
+        };
 
         // NOTE: Null move Pruning
         let color = self.board.color();
@@ -159,16 +160,15 @@ impl Search {
 
             // Don't prune captures, promotions, or checks.
             // Also, don't prune the first move, as it's likely the best.
-            // FIXME: Uncomment for use of Futility Pruning
-            // if do_futility_pruning
-            //     && legal_mv_num > 1
-            //     && !mv.flag.is_capture()
-            //     && !mv.flag.is_promo()
-            //     && !self.in_check()
-            // {
-            //     self.board.undo_move();
-            //     continue; // Prune this move
-            // }
+            if do_futility_pruning
+                && legal_mv_num > 1
+                && !mv.flag.is_capture()
+                && !mv.flag.is_promo()
+                && !self.in_check()
+            {
+                self.board.undo_move();
+                continue; // Prune this move
+            }
 
             let mut score: isize;
             if legal_mv_num == 1 {
