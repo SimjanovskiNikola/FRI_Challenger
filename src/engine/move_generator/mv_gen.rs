@@ -18,6 +18,7 @@ pub trait BoardGenMoveTrait {
     // Generating -> Move as a struct
     fn gen_moves(&mut self) -> Vec<(Move, isize)>;
     fn gen_captures(&mut self) -> Vec<(Move, isize)>;
+    fn gen_cap_promo(&mut self) -> Vec<(Move, isize)>;
 
     // Converting Bitboard squares to Move struct
     fn add_quiet_moves(&mut self, bb: u64, piece: Piece, sq: usize);
@@ -31,6 +32,7 @@ pub trait BoardGenMoveTrait {
     fn pawn_moves(&mut self);
     fn pawn_quiet_moves(&mut self);
     fn pawn_capture_moves(&mut self);
+    fn pawn_capture_promo_moves(&mut self);
 
     // Other Piece Moves and Captures
     fn piece_cap_moves(&mut self, piece: Piece);
@@ -39,11 +41,6 @@ pub trait BoardGenMoveTrait {
 
     // Move Generator for all pieces
     fn get_mv_bb(piece: Piece, sq: usize, own_occ: u64, enemy_occ: u64) -> u64;
-
-    // Move Ordering
-    // fn quiet_eval(&mut self, mv: &Move) -> isize;
-    // fn capture_eval(&mut self, mv: &Move) -> isize;
-    // fn see(&mut self, from: usize, to: usize) -> isize;
 
     // Is square Attacked
     fn sq_attack(&self, sq: usize, color: Color) -> u64;
@@ -56,6 +53,7 @@ pub trait BoardGenMoveTrait {
 
 impl BoardGenMoveTrait for Board {
     #[inline(always)]
+    /// Generates all moves from the current position
     fn gen_moves(&mut self) -> Vec<(Move, isize)> {
         self.pawn_moves();
 
@@ -70,6 +68,7 @@ impl BoardGenMoveTrait for Board {
     }
 
     #[inline(always)]
+    /// Generates Capture and capture promotion moves only from the current position
     fn gen_captures(&mut self) -> Vec<(Move, isize)> {
         self.pawn_capture_moves();
 
@@ -83,6 +82,22 @@ impl BoardGenMoveTrait for Board {
     }
 
     #[inline(always)]
+    // TODO: Include Checks
+    /// Generates Capture and Promotion moves only from the current position
+    fn gen_cap_promo(&mut self) -> Vec<(Move, isize)> {
+        self.pawn_capture_promo_moves();
+
+        for piece in &PIECES_WITHOUT_PAWN {
+            self.piece_cap_moves(piece + self.color());
+        }
+
+        self.add_ep_moves();
+
+        self.gen_moves.drain(..).collect()
+    }
+
+    #[inline(always)]
+    /// Gets Move Bitboard for a given piece on a given square considering other pieces on the board
     fn get_mv_bb(piece: Piece, sq: usize, own_occ: u64, enemy_occ: u64) -> u64 {
         match piece.kind() {
             PAWN => {
@@ -98,6 +113,8 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
+    #[inline(always)]
+    /// Generates quiet moves for a given piece type
     fn piece_quiet_moves(&mut self, piece: Piece) {
         let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
         let mut bb = self.bb(piece);
@@ -108,6 +125,8 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
+    #[inline(always)]
+    /// Generates capture moves for a given piece type
     fn piece_cap_moves(&mut self, piece: Piece) {
         let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
         let mut bb = self.bb(piece);
@@ -118,6 +137,8 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
+    #[inline(always)]
+    /// Generates all moves for a given piece type
     fn piece_all_moves(&mut self, piece: Piece) {
         let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
         let mut bb = self.bb(piece);
@@ -131,138 +152,143 @@ impl BoardGenMoveTrait for Board {
     }
 
     #[inline(always)]
+    /// Generates all pawn moves (quiet and capture)
     fn pawn_moves(&mut self) {
         self.pawn_capture_moves();
         self.pawn_quiet_moves();
     }
 
     #[inline(always)]
+    /// Generates quiet pawn moves and promotions
     fn pawn_quiet_moves(&mut self) {
         let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
         let both_occ = own_occ | enemy_occ;
         let piece = PAWN + self.color();
-        if self.color().is_white() {
-            let mv = (self.pawn_bb(self.color()) << 8) & !both_occ;
-            let mut one_mv = mv & !RANK_BITBOARD[7];
-            let mut one_promo = mv & RANK_BITBOARD[7];
-            let mut two_mv = ((one_mv & RANK_BITBOARD[2]) << 8) & !both_occ;
+        let sign = self.color().sign();
+        let rank = if self.color().is_white() { 7 } else { 0 };
+        let rank_2 = if self.color().is_white() { 2 } else { 5 };
 
-            while let Some(to_sq) = one_mv.next() {
-                let mv = Move::init((to_sq - 8) as u8, to_sq as u8, piece, Flag::Quiet);
-                self.gen_moves.push((mv, 0));
-            }
+        let mv = get_all_pawn_forward_mask(self.bb(piece), self.color()) & !both_occ;
+        let mut one_mv = mv & !RANK_BITBOARD[rank];
+        let mut one_promo = mv & RANK_BITBOARD[rank];
+        let mut two_mv =
+            get_all_pawn_forward_mask(one_mv & RANK_BITBOARD[rank_2], self.color()) & !both_occ;
 
-            while let Some(to_sq) = one_promo.next() {
-                self.add_quiet_promo_moves((to_sq - 8) as u8, to_sq as u8, piece);
-            }
+        while let Some(to_sq) = one_mv.next() {
+            let mv = Move::init((to_sq as isize - 8 * sign) as u8, to_sq as u8, piece, Flag::Quiet);
+            self.gen_moves.push((mv, 0));
+        }
 
-            while let Some(to_sq) = two_mv.next() {
-                let mv = Move::init((to_sq - 16) as u8, to_sq as u8, piece, Flag::Quiet);
-                self.gen_moves.push((mv, 0));
-            }
-        } else {
-            let mv = (self.pawn_bb(self.color()) >> 8) & !both_occ;
-            let mut one_mv = mv & !RANK_BITBOARD[0];
-            let mut one_promo = mv & RANK_BITBOARD[0];
-            let mut two_mv = ((one_mv & RANK_BITBOARD[5]) >> 8) & !both_occ;
+        while let Some(to_sq) = one_promo.next() {
+            self.add_quiet_promo_moves((to_sq as isize - 8 * sign) as u8, to_sq as u8, piece);
+        }
 
-            while let Some(to_sq) = one_mv.next() {
-                let mv = Move::init((to_sq + 8) as u8, to_sq as u8, piece, Flag::Quiet);
-                self.gen_moves.push((mv, 0));
-            }
-
-            while let Some(to_sq) = one_promo.next() {
-                self.add_quiet_promo_moves((to_sq + 8) as u8, to_sq as u8, piece);
-            }
-
-            while let Some(to_sq) = two_mv.next() {
-                let mv = Move::init((to_sq + 16) as u8, to_sq as u8, piece, Flag::Quiet);
-                self.gen_moves.push((mv, 0));
-            }
+        while let Some(to_sq) = two_mv.next() {
+            let mv =
+                Move::init((to_sq as isize - 16 * sign) as u8, to_sq as u8, piece, Flag::Quiet);
+            self.gen_moves.push((mv, 0));
         }
     }
 
     #[inline(always)]
+    /// Generates pawn capture moves and capture promotions
     fn pawn_capture_moves(&mut self) {
         let (_own_occ, enemy_occ) = self.both_occ_bb(self.color());
         let piece = PAWN + self.color();
+        let rank = if self.color().is_white() { 7 } else { 0 };
+        let sign = self.color().sign();
 
-        if self.color().is_white() {
-            let left = ((self.bb(piece) << 9) & !FILE_BITBOARD[0]) & enemy_occ;
-            let mut left_att = left & !RANK_BITBOARD[7];
-            let mut left_promo = left & RANK_BITBOARD[7];
+        let left = get_all_pawn_left_att_mask(self.bb(piece), self.color()) & enemy_occ;
+        let mut left_att = left & !RANK_BITBOARD[rank];
+        let mut left_promo = left & RANK_BITBOARD[rank];
 
-            while let Some(to_sq) = left_att.next() {
-                let mv = Move::init(
-                    (to_sq - 9) as u8,
-                    to_sq as u8,
-                    piece,
-                    Flag::Capture(self.piece_sq(to_sq)),
-                );
-                self.gen_moves.push((mv, 0));
-            }
+        let right = get_all_pawn_right_att_mask(self.bb(piece), self.color()) & enemy_occ;
+        let mut right_att = right & !RANK_BITBOARD[rank];
+        let mut right_promo = right & RANK_BITBOARD[rank];
 
-            while let Some(to_sq) = left_promo.next() {
-                self.add_capture_promo_moves((to_sq - 9) as u8, to_sq as u8, piece);
-            }
+        while let Some(to_sq) = left_att.next() {
+            let mv = Move::init(
+                (to_sq as isize - 9 * sign) as u8,
+                to_sq as u8,
+                piece,
+                Flag::Capture(self.piece_sq(to_sq)),
+            );
+            self.gen_moves.push((mv, 0));
+        }
 
-            let right = ((self.bb(piece) << 7) & !FILE_BITBOARD[7]) & enemy_occ;
-            let mut right_att = right & !RANK_BITBOARD[7];
-            let mut right_promo = right & RANK_BITBOARD[7];
+        while let Some(to_sq) = right_att.next() {
+            let mv = Move::init(
+                (to_sq as isize - 7 * sign) as u8,
+                to_sq as u8,
+                piece,
+                Flag::Capture(self.piece_sq(to_sq)),
+            );
+            self.gen_moves.push((mv, 0));
+        }
 
-            while let Some(to_sq) = right_att.next() {
-                let mv = Move::init(
-                    (to_sq - 7) as u8,
-                    to_sq as u8,
-                    piece,
-                    Flag::Capture(self.piece_sq(to_sq)),
-                );
-                self.gen_moves.push((mv, 0));
-            }
+        while let Some(to_sq) = left_promo.next() {
+            self.add_capture_promo_moves((to_sq as isize - 9 * sign) as u8, to_sq as u8, piece);
+        }
 
-            while let Some(to_sq) = right_promo.next() {
-                self.add_capture_promo_moves((to_sq - 7) as u8, to_sq as u8, piece);
-            }
-        } else {
-            let left = ((self.bb(piece) >> 9) & !FILE_BITBOARD[7]) & enemy_occ;
-            let mut left_att = left & !RANK_BITBOARD[0];
-            let mut left_promo = left & RANK_BITBOARD[0];
-
-            while let Some(to_sq) = left_att.next() {
-                let mv = Move::init(
-                    (to_sq + 9) as u8,
-                    to_sq as u8,
-                    piece,
-                    Flag::Capture(self.piece_sq(to_sq)),
-                );
-                self.gen_moves.push((mv, 0));
-            }
-
-            while let Some(to_sq) = left_promo.next() {
-                self.add_capture_promo_moves((to_sq + 9) as u8, to_sq as u8, piece);
-            }
-
-            let right = ((self.bb(piece) >> 7) & !FILE_BITBOARD[0]) & enemy_occ;
-            let mut right_att = right & !RANK_BITBOARD[0];
-            let mut right_promo = right & RANK_BITBOARD[0];
-
-            while let Some(to_sq) = right_att.next() {
-                let mv = Move::init(
-                    (to_sq + 7) as u8,
-                    to_sq as u8,
-                    piece,
-                    Flag::Capture(self.piece_sq(to_sq)),
-                );
-                self.gen_moves.push((mv, 0));
-            }
-
-            while let Some(to_sq) = right_promo.next() {
-                self.add_capture_promo_moves((to_sq + 7) as u8, to_sq as u8, piece);
-            }
+        while let Some(to_sq) = right_promo.next() {
+            self.add_capture_promo_moves((to_sq as isize - 7 * sign) as u8, to_sq as u8, piece);
         }
     }
 
     #[inline(always)]
+    /// Generates pawn capture moves and all promotions (quiet and capture promotions)
+    fn pawn_capture_promo_moves(&mut self) {
+        let (own_occ, enemy_occ) = self.both_occ_bb(self.color());
+        let piece = PAWN + self.color();
+        let rank = if self.color().is_white() { 7 } else { 0 };
+        let sign = self.color().sign();
+
+        let left = get_all_pawn_left_att_mask(self.bb(piece), self.color()) & enemy_occ;
+        let mut left_att = left & !RANK_BITBOARD[rank];
+        let mut left_promo = left & RANK_BITBOARD[rank];
+
+        let right = get_all_pawn_right_att_mask(self.bb(piece), self.color()) & enemy_occ;
+        let mut right_att = right & !RANK_BITBOARD[rank];
+        let mut right_promo = right & RANK_BITBOARD[rank];
+
+        let mv = get_all_pawn_forward_mask(self.bb(piece), self.color()) & !(own_occ | enemy_occ);
+        let mut one_promo = mv & RANK_BITBOARD[rank];
+
+        while let Some(to_sq) = left_att.next() {
+            let mv = Move::init(
+                (to_sq as isize - 9 * sign) as u8,
+                to_sq as u8,
+                piece,
+                Flag::Capture(self.piece_sq(to_sq)),
+            );
+            self.gen_moves.push((mv, 0));
+        }
+
+        while let Some(to_sq) = right_att.next() {
+            let mv = Move::init(
+                (to_sq as isize - 7 * sign) as u8,
+                to_sq as u8,
+                piece,
+                Flag::Capture(self.piece_sq(to_sq)),
+            );
+            self.gen_moves.push((mv, 0));
+        }
+
+        while let Some(to_sq) = left_promo.next() {
+            self.add_capture_promo_moves((to_sq as isize - 9 * sign) as u8, to_sq as u8, piece);
+        }
+
+        while let Some(to_sq) = right_promo.next() {
+            self.add_capture_promo_moves((to_sq as isize - 7 * sign) as u8, to_sq as u8, piece);
+        }
+
+        while let Some(to_sq) = one_promo.next() {
+            self.add_quiet_promo_moves((to_sq as isize - 8 * sign) as u8, to_sq as u8, piece);
+        }
+    }
+
+    #[inline(always)]
+    /// Converts Bitboard of capture moves to Move structs and adds to move list
     fn add_capture_moves(&mut self, mut bb: u64, piece: Piece, from_sq: usize) {
         while let Some(to_sq) = bb.next() {
             let flag = Flag::Capture(self.piece_sq(to_sq));
@@ -272,6 +298,7 @@ impl BoardGenMoveTrait for Board {
     }
 
     #[inline(always)]
+    /// Converts Bitboard of quiet moves to Move structs and adds to move list
     fn add_quiet_moves(&mut self, mut bb: u64, piece: Piece, from_sq: usize) {
         while let Some(to_sq) = bb.next() {
             let mv = Move::init(from_sq as u8, to_sq as u8, piece, Flag::Quiet);
@@ -280,6 +307,7 @@ impl BoardGenMoveTrait for Board {
     }
 
     #[inline(always)]
+    /// Converts Bitboard of en passant moves to Move structs and adds to move list
     fn add_ep_moves(&mut self) {
         if let Some(mv) = self.state.ep {
             let color = self.color().opp();
@@ -295,6 +323,8 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
+    #[inline(always)]
+    /// Converts Bitboard of capture promotion moves to Move structs and adds to move list
     fn add_capture_promo_moves(&mut self, from_sq: u8, to_sq: u8, piece: Piece) {
         let taken_piece = self.piece_sq(to_sq as usize); // squares[to_sq as usize];
         for promo_piece in &PIECES_WITHOUT_PAWN_KING {
@@ -304,15 +334,18 @@ impl BoardGenMoveTrait for Board {
         }
     }
 
+    #[inline(always)]
+    /// Converts Bitboard of quiet promotion moves to Move structs and adds to move list
     fn add_quiet_promo_moves(&mut self, from_sq: u8, to_sq: u8, piece: Piece) {
-        for promo_piece in &PIECES_WITHOUT_PAWN_KING {
-            let flag = Flag::Promotion(*promo_piece + piece.color(), None);
+        for &promo_piece in &PIECES_WITHOUT_PAWN_KING {
+            let flag = Flag::Promotion(promo_piece + piece.color(), None);
             let mv = Move::init(from_sq, to_sq, piece, flag);
             self.gen_moves.push((mv, 0));
         }
     }
 
     #[inline(always)]
+    /// Generates castling moves if they are valid
     fn add_castling_moves(&mut self) {
         let (own, enemy) = self.both_occ_bb(self.color());
         let piece = KING + self.color();
@@ -342,6 +375,7 @@ impl BoardGenMoveTrait for Board {
     }
 
     #[inline(always)]
+    /// Checks if a square is attacked by the given color considering a given occupancy bitboard
     fn sq_attack(&self, sq: usize, color: Color) -> u64 {
         let (own_occ, enemy_occ) = self.both_occ_bb(color);
 
@@ -359,9 +393,8 @@ impl BoardGenMoveTrait for Board {
     }
 
     #[inline(always)]
+    /// Checks if a square is attacked by the given color considering a given occupancy bitboard
     fn sq_attack_with_occ(&self, sq: usize, color: Color, occ: u64) -> u64 {
-        // let (own_occ, enemy_occ) = self.both_occ_bb(color);
-
         let op_pawns = self.bb(BLACK_PAWN - color);
         let op_knights = self.bb(BLACK_KNIGHT - color);
         let op_rq = self.bb(BLACK_QUEEN - color) | self.bb(BLACK_ROOK - color);
@@ -376,6 +409,7 @@ impl BoardGenMoveTrait for Board {
     }
 
     #[inline(always)]
+    /// Checks if there is a threefold repetition in the current position
     fn is_repetition(&self) -> bool {
         let mut threefold = 2;
         let his_len = self.history.len();
@@ -392,6 +426,7 @@ impl BoardGenMoveTrait for Board {
     }
 
     #[inline(always)]
+    /// Checks if a move exists in the current position
     fn move_exists(&mut self, mv: &Move) -> bool {
         let mut moves = self.gen_moves();
 

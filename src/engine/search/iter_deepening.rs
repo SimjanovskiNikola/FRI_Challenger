@@ -159,9 +159,10 @@ mod tests {
     }
 
     // NOTE: FIXME: Engine should look deeper before uncommenting the test
+    // 100 % Wrong Expected PV
     // #[test]
     // fn test_iter_deep_fortress() {
-    //     let depth = 8;
+    //     let depth = 7;
     //     let fen = "8/8/8/8/4kp2/1R6/P2q1PPK/8 w - - 0 1";
     //     let expected_pv = " b2b3 c4c3 d5d1 f2f1q d1f1 h2h1n";
     //     // NOTE: Best Continuation after h2h1n: b5b4 or c3b2
@@ -171,9 +172,10 @@ mod tests {
     // NOTE: FIXME: Broken Test, Related to LMR
     // #[test]
     // fn test_iter_deep_fortress() {
-    //     let depth = 6;
+    //     let depth = 8;
     //     let fen = "1r4k1/1nq3pp/pp1pp1r1/8/PPP2P2/6P1/5N1P/2RQR1K1 w - - 0 1";
-    //     let expected_pv = " f4f5 e6f5 d1d5 c7f7 e1e7 f7d5";
+    //     let expected_pv = " f4f5 e6f5 f2h3 c7f7 h3f4 g6h6 f4d5 b8e8";
+    //     // let expected_pv = " f4f5 e6f5 d1d5 c7f7 e1e7 f7d5";
     //     test_search(fen, depth, expected_pv);
     // }
 
@@ -185,22 +187,19 @@ mod tests {
         test_search(fen, depth, expected_pv);
     }
 
-    // TODO: FIXME: WHEN THE ENGINE SEES MORE THAN 10 MOVES
     // #[test]
     // fn test_iter_deep_mate_10() {
-    //     let depth = 5;
+    //     let depth = 10;
     //     let fen = "2Q5/8/4K1q1/8/3Q4/8/6k1/8 w - - 1 2";
-    //     // let board = Board::read_fen(fen);
-    //     // print_chess(&board);
-    //     let expected_pv = " e6d5 g6g5 e7d6 g1f2 b6d6 f2g1";
+    //     let expected_pv = " e6e5 g6g5 c8f5 g5g7 f5f6 g7f6 e5f6 g2g3 f6f5 g3f3";
     //     test_search(fen, depth, expected_pv);
     // }
 
     // NOTE: Uncomment In Cargo.toml the pprof to see the performance.
     #[test]
     fn test_pprof_search() {
-        #[cfg(feature = "dhat-heap")]
-        let _profiler = dhat::Profiler::new_heap();
+        // #[cfg(feature = "dhat-heap")]
+        // let _profiler = dhat::Profiler::new_heap();
         let guard = pprof::ProfilerGuardBuilder::default()
             .frequency(1000)
             .blocklist(&["libc", "libgcc", "pthread", "vdso"])
