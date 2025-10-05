@@ -24,9 +24,10 @@ pub trait MoveOrderingTrait {
 
 impl MoveOrderingTrait for Board {
     #[inline(always)]
+    /// Scores moves based on various heuristics including
+    /// PV move, TT move, captures, promotions, killer moves, and history heuristic
     fn score_moves(&mut self, moves: &mut Vec<(Move, isize)>) {
         let pv_mv = if let Some(mv) = self.pv_line.get(self.ply()) { Some(*mv) } else { None };
-        // let tt_mv = self.tt.get(self.key());
         let tt_mv = TT.read().unwrap().get(self.key());
         for (mv, score) in moves.iter_mut() {
             if pv_mv == Some(*mv) {
@@ -42,7 +43,7 @@ impl MoveOrderingTrait for Board {
                     *score = self.capture_eval(mv);
                 }
                 Flag::EP => {
-                    *score = 100;
+                    *score = SEE_MV_SCORE;
                 }
                 Flag::NullMove => {
                     panic!("There should be no null move in the move list");
@@ -55,6 +56,7 @@ impl MoveOrderingTrait for Board {
     }
 
     #[inline(always)]
+    /// Selects and removes the highest scored move from the move list
     fn next_move(&mut self, moves: &mut Vec<(Move, isize)>) -> Option<Move> {
         if moves.len() == 0 {
             return None;
@@ -67,6 +69,7 @@ impl MoveOrderingTrait for Board {
     }
 
     #[inline(always)]
+    /// Evaluates a quiet move
     fn quiet_eval(&mut self, mv: &Move) -> isize {
         if Some(*mv) == self.s_killers[self.ply()][0] {
             return KILLER_MV_SCORE[0];
@@ -78,13 +81,15 @@ impl MoveOrderingTrait for Board {
     }
 
     #[inline(always)]
+    /// Evaluates a capture move
     fn capture_eval(&mut self, mv: &Move) -> isize {
         debug_assert!(self.squares[mv.to as usize] != 0, "There is no piece in the to square");
-
         self.see(mv.from as usize, mv.to as usize) + SEE_MV_SCORE
     }
 
     #[inline(always)]
+    /// Static Exchange Evaluation (SEE) function
+    /// Returns the net gain/loss of a capture move in centipawns
     fn see(&mut self, mut from: usize, to: usize) -> isize {
         let mut occ = self.occ_bb(WHITE) | self.occ_bb(BLACK);
         let mut clr = self.color();
