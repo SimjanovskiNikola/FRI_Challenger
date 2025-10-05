@@ -45,7 +45,6 @@ impl Search {
         let mut best_mv = None;
         let mut best_score = alpha;
         let old_alpha: isize = alpha;
-        // let mut moves = self.board.gen_captures();
         let mut moves = self.board.gen_cap_promo();
         self.board.score_moves(&mut moves);
 
