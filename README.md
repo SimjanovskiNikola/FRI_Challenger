@@ -25,6 +25,8 @@ The engine is built on standard and modern chess programming principles:
 - Quiescence search
 - NMP + NMR
 - LMR (Late move pruning) (Added 1 More depth to the search)
+- Transposition Table
+- Futility Pruning
 #### Evaluation
 - Material
 - PSQT (Piece Square Table)
